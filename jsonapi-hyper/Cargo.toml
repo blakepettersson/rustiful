@@ -1,0 +1,17 @@
+[package]
+name = "jsonapi-hyper"
+version = "0.1.0"
+authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
+
+[dependencies]
+jsonapi = { path = ".." }
+futures = "0.1.7"
+hyper = { git = "https://github.com/hyperium/hyper" }
+serde = "0.8"
+serde_derive = "0.8"
+serde_json = "0.8"
+
+[dev-dependencies]
+num_cpus = "1.0"
+pretty_env_logger = "0.1"
+spmc = "0.2"

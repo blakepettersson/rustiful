@@ -1,0 +1,13 @@
+[package]
+name = "jsonapi"
+version = "0.1.0"
+authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
+
+[lib]
+
+[dependencies]
+syn = "0.11"
+quote = "0.3"
+serde = "0.8"
+serde_derive = "0.8"
+serde_json = "0.8"
