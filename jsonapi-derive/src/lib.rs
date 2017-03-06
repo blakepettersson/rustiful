@@ -189,7 +189,7 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
                                 return Err(QueryStringParseError::InvalidValue(format!("Invalid param: {}", value)))
                             },
                             (Some(key), Some(value)) if key == "sort" => {
-                                let fields:HashSet<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
+                                let fields = value.split(',').filter(|&f| !f.is_empty());
                                 for mut field in fields {
                                     let sort_order = if field.starts_with('-') {
                                         field = field.trim_left_matches('-');
