@@ -1,5 +1,5 @@
 #![crate_type = "proc-macro"]
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
 #[macro_use]
 extern crate serde_derive;
@@ -18,7 +18,7 @@ use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
 use proc_macro::TokenStream;
 
-#[proc_macro_derive(JsonApi)]
+#[proc_macro_derive(JsonApi, attributes(JsonApiId))]
 pub fn json_api(input: TokenStream) -> TokenStream {
     let source = input.to_string();
 
@@ -68,8 +68,6 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
         syn::Body::Enum(_) => panic!("#[derive(JsonApi)] can only be used with structs"),
     };
 
-    let idents:Vec<_> = fields.iter().filter_map(|f| f.ident.clone()).collect();
-
     let struct_rename_attr:Vec<_> = ast
         .attrs
         .iter()
@@ -91,6 +89,24 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
 
+    let id = fields.iter().find(|f| f.ident.iter().any(|i| i.to_string() == "id"));
+    let json_api_id_attrs:Vec<_> = fields.iter().filter(|f| f.attrs.iter().any(|a| a.name() == "JsonApiId")).collect();
+
+    if json_api_id_attrs.len() > 1 {
+        panic!("Invalid: Only one field is allowed to have the JsonApiId attribute!")
+    }
+
+    let json_api_attr_id = json_api_id_attrs.first();
+
+    if id != None && json_api_attr_id != None {
+        panic!("You can only use a JsonApiId attribute or have an id field, not both at the same time.")
+    }
+
+    let json_api_id = id.or(json_api_attr_id.cloned()).expect("No JsonApiId attribute defined! (or no field named id)");
+    let json_api_id_ty = &json_api_id.ty;
+
+    let attr_fields:Vec<_> = fields.iter().filter(|f| f != &json_api_id).collect();
+
     let lower_case_name = Ident::new(name.to_string().to_lowercase());
     let json_name = lower_case_name.to_string();
     // Shadows the json_name above - the variable above is only used for the unwrapping on the line below.
@@ -99,27 +115,28 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
     // Used in the quasi-quotation below as `#generated_field_type_name`; append name + `Fields` to the new struct name
     let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
 
-    // Used in the quasi-quotation below as `#generated_field_type_name`; append name + `Fields` to the new struct name
-    let generated_field_type_name = Ident::new(format!("__{}{}", name, "Fields"));
+    let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
+    let generated_jsonapi_resource = Ident::new(format!("__{}{}", name, "JsonApiResource"));
 
-    let vars:Vec<_> = idents.iter().map(|i| {
-        let field_var = Ident::new(format!("{}{}", "field_", i.to_string()));
-        quote! {
-            let mut #field_var = false;
-        }
-    }).collect();
-
-    let option_fields:Vec<_> = fields.iter().map(|f| {
+    let option_fields:Vec<_> = attr_fields.iter().map(|f| {
         let ident = &f.ident;
-        quote!(pub #ident : bool)
+        quote!(#ident)
     }).collect();
 
-    let sort_fields:Vec<_> = fields.iter().map(|f| {
+    let sort_fields:Vec<_> = attr_fields.iter().map(|f| {
         let ident = &f.ident;
         quote!(#ident(SortOrder))
     }).collect();
 
-    let sort_cases:Vec<_> = fields.iter().map(|f| {
+    let jsonapi_attrs:Vec<_> = attr_fields.iter().map(|f| {
+        let ident = &f.ident;
+        let ty = &f.ty;
+        let option_ty = inner_of_option_ty(ty).unwrap_or(ty);
+
+        quote!(#ident: #option_ty)
+    }).collect();
+
+    let sort_cases:Vec<_> = attr_fields.iter().map(|f| {
         let ident_string = &f.ident.clone().expect("fail").to_string();
         let enum_value = Ident::new(format!("self::sort::{}", &ident_string));
         quote! {
@@ -129,18 +146,15 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
         }
     }).collect();
 
-    let field_cases:Vec<_> = fields.iter().map(|f| {
-        let ty = &f.ty;
+    let field_cases:Vec<_> = attr_fields.iter().map(|f| {
         let ident_string = &f.ident.clone().expect("fail").to_string();
-        let field_var = Ident::new(format!("{}{}", "field_", ident_string));
-        quote!(#ident_string => #field_var = true,)
-    }).collect();
+        let enum_value = Ident::new(format!("self::field::{}", &ident_string));
+        quote! {
+            #ident_string => {
+                foo.push(#enum_value)
+            }
+        }
 
-    let field_setters:Vec<_> = fields.iter().map(|f| {
-        let ident = &f.ident;
-        let ident_string = &f.ident.clone().expect("fail").to_string();
-        let field_var = Ident::new(format!("{}{}", "field_", ident_string));
-        quote!(#ident: #field_var,)
     }).collect();
 
     let bla = quote! {
@@ -148,6 +162,7 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
             use super::#name;
             use std::str::FromStr;
             use std::collections::HashSet;
+            use std::collections::HashMap;
             use jsonapi::queryspec::*;
             use jsonapi::sort_order::SortOrder;
 
@@ -157,22 +172,34 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
                 #(#sort_fields),*
             }
 
-            pub struct #generated_field_type_name {
+            #[derive(Debug, PartialEq, Eq)]
+            #[allow(non_camel_case_types)]
+            pub enum field {
                 //Expand field names into new struct
                 #(#option_fields),*
             }
 
             pub struct #generated_params_type_name {
-                pub fields: #generated_field_type_name,
-                pub sort_fields: Vec<sort>
+                pub fields: Vec<field>,
+                pub sort_fields: Vec<sort>,
+                pub query_params: HashMap<String, String>
+            }
+
+            pub struct #generated_jsonapi_attrs {
+                #(#jsonapi_attrs),*
+            }
+
+            pub struct #generated_jsonapi_resource {
+                id: #json_api_id_ty,
+                attributes: #generated_jsonapi_attrs
             }
 
             impl FromStr for #generated_params_type_name {
                 type Err = QueryStringParseError;
                 fn from_str(query_string: &str) -> Result<#generated_params_type_name, QueryStringParseError> {
-                    #(#vars)*
-
+                    let mut foo:Vec<field> = Vec::new();
                     let mut sort_fields:Vec<sort> = Vec::new();
+                    let mut query_params = HashMap::new();
 
                     for param in query_string.split('&') {
                         let mut split = param.split('=');
@@ -238,17 +265,16 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
                                     _ => return Err(QueryStringParseError::UnImplementedError)
                                 }
                             },
-                            (Some(_), Some(_)) => {
-                                return Err(QueryStringParseError::UnImplementedError)
+                            (Some(key), Some(value)) => {
+                                query_params.insert(key.to_string(), value.to_string());
                             }
                         }
                     }
 
                     Ok(#generated_params_type_name {
-                       fields: #generated_field_type_name {
-                            #(#field_setters)*
-                       },
-                       sort_fields: sort_fields
+                       fields: foo,
+                       sort_fields: sort_fields,
+                       query_params: query_params
                     })
                 }
             }
@@ -256,13 +282,8 @@ fn expand_json_api_fields(ast: &syn::DeriveInput) -> quote::Tokens {
             impl ToParams for #name {
                 type Params = #generated_params_type_name;
             }
-
-            impl ToSortFields for #name {
-                type SortField = sort;
-            }
         }
     };
 
-    //println!("{}", bla);
     bla
 }
