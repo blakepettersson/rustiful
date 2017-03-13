@@ -1,5 +1,6 @@
 extern crate syn;
 extern crate jsonapi;
+extern crate inflector;
 
 use super::quote::*;
 use syn::Ty;
@@ -7,6 +8,7 @@ use syn::DeriveInput;
 use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
+use self::inflector::Inflector;
 
 fn is_option_ty(ty: &Ty) -> bool {
     let option_ident = Ident::new("Option");
@@ -82,7 +84,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
     let attr_fields:Vec<_> = fields.iter().filter(|f| f != &json_api_id).collect();
 
-    let lower_case_name = Ident::new(name.to_string().to_lowercase());
+    let lower_case_name = Ident::new(name.to_string().to_snake_case());
     let json_name = lower_case_name.to_string();
     // Shadows the json_name above - the variable above is only used for the unwrapping on the line below.
     let json_name = struct_rename_attr.first().unwrap_or(&json_name);
@@ -166,6 +168,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
             pub struct #generated_jsonapi_resource {
                 id: #json_api_id_ty,
+                lower_case_type: String,
                 attributes: #generated_jsonapi_attrs
             }
 
