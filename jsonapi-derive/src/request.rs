@@ -13,40 +13,52 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
 
-    let prefixed_index = Ident::new(format!("__{}_{}", name.to_string().to_snake_case(), "index"));
+    let module_name = Ident::new(format!("__{}", name.to_string().to_lowercase()));
 
     quote! {
-        pub mod routes {
-            extern crate iron;
-            extern crate serde_json;
+        pub mod #module_name {
+            pub mod routes {
+                extern crate iron;
+                extern crate serde_json;
 
-            use self::iron::prelude::*;
-            use self::iron::status;
+                use self::iron::prelude::*;
+                use self::iron::status;
 
-            use super::#name;
-            use std::str::FromStr;
-            use jsonapi::service::ToRequest;
-            use jsonapi::service::JsonApiService;
-            use jsonapi::queryspec::ToParams;
+                use super::super::#name;
+                use std::str::FromStr;
+                use jsonapi::queryspec::ToJson;
+                use jsonapi::service::ToRequest;
+                use jsonapi::service::JsonApiService;
+                use jsonapi::queryspec::ToParams;
+                use jsonapi::jsonapi_array::JsonApiArray;
 
-            impl ToRequest<#name> for #name { }
+                impl ToRequest<#name> for #name { }
 
-            fn #prefixed_index(req: &mut Request) -> IronResult<Response> {
-                match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
-                    Ok(params) => {
-                        match #name::new().find_all(params) {
-                            Ok(params) => {
-                                let serialized = serde_json::to_string(&params).unwrap();
-                                Ok(Response::with((status::Ok, serialized)))
-                            },
-                            Err(e) => {
-                                Err(IronError::new(e, status::InternalServerError))
+                pub fn index(req: &mut Request) -> IronResult<Response> {
+                    match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
+                        Ok(params) => {
+                            match #name::new().find_all(&params) {
+                                Ok(result) => {
+                                    let mapped:Vec<_> = result.into_iter().map(|e| {
+                                        let json:<<#name as JsonApiService>::T as ToJson>::Json = (e, &params).into();
+                                        json
+                                    }).collect();
+
+                                    let json_api_array = JsonApiArray::<<<#name as JsonApiService>::T as ToJson>::Json> {
+                                        data: mapped
+                                    };
+                                    let serialized = serde_json::to_string(&json_api_array).unwrap();
+                                    Ok(Response::with((status::Ok, serialized)))
+                                },
+                                Err(e) => {
+                                    Err(IronError::new(e, status::InternalServerError))
+                                }
                             }
-                        }
-                    },
-                    Err(e) => {
-                        Err(IronError::new(e, status::InternalServerError))
-                    },
+                        },
+                        Err(e) => {
+                            Err(IronError::new(e, status::InternalServerError))
+                        },
+                    }
                 }
             }
         }

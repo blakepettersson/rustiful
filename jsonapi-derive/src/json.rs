@@ -1,10 +1,12 @@
 extern crate syn;
+extern crate inflector;
 
 use super::util;
 use syn::Ty;
 use syn::DeriveInput;
 use quote::Ident;
 use quote::Tokens;
+use self::inflector::Inflector;
 
 pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
@@ -17,9 +19,15 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
 
     let json_api_id = util::get_json_id(&fields);
     let json_api_id_ty = &json_api_id.ty;
+    let json_api_id_ident = &json_api_id.ident;
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
     let generated_jsonapi_resource = Ident::new(format!("__{}{}", name, "JsonApiResource"));
 
+    let lower_case_name = Ident::new(name.to_string().to_snake_case());
+    let lower_case_name_as_str = lower_case_name.to_string();
+    // Used in the quasi-quotation below as `#generated_field_type_name`;
+    // append name + `Fields` to the new struct name
+    let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
     let attr_fields: Vec<_> = fields.iter().filter(|f| **f != json_api_id).collect();
 
     let jsonapi_attrs: Vec<_> = attr_fields.iter()
@@ -27,20 +35,106 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             let ident = &f.ident;
             let ty = &f.ty;
             let option_ty = inner_of_option_ty(ty).unwrap_or(ty);
-
-            quote!(#ident: #option_ty)
+            quote!(#ident: Option<#option_ty>)
         })
         .collect();
 
-    quote! {
-        pub struct #generated_jsonapi_attrs {
-            #(#jsonapi_attrs),*
-        }
+    let filtered_option_vars: Vec<_> = attr_fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            let model_value = Ident::new(format!("model.{}", ident.clone().expect("fail").to_string()));
+            quote!(let mut #ident = Some(#model_value);)
+        })
+        .collect();
 
-        pub struct #generated_jsonapi_resource {
-            id: #json_api_id_ty,
-            lower_case_type: String,
-            attributes: #generated_jsonapi_attrs
+    let option_fields: Vec<_> = attr_fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            quote!(#ident: Some(model.#ident))
+        })
+        .collect();
+
+    let filtered_option_fields: Vec<_> = attr_fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            quote!(#ident: #ident)
+        })
+        .collect();
+
+    let filtered_option_cases: Vec<_> = attr_fields.iter()
+        .map(|f| {
+            let ident = &f.ident.clone().expect("fail");
+            let enum_variant = Ident::new(format!("&super::{}::field::{}", lower_case_name.to_string(), ident));
+            quote! {
+                #enum_variant => #ident = None
+            }
+        })
+        .collect();
+
+    let model_id_field = Ident::new(format!("model.{}", json_api_id_ident.clone().expect("fail").to_string()));
+
+    let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
+
+    quote! {
+        mod #mod_name {
+            use super::#name;
+            use super::#lower_case_name::#generated_params_type_name;
+
+            use jsonapi::queryspec::ToJson;
+
+            #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+            pub struct #generated_jsonapi_attrs {
+                #(#jsonapi_attrs),*
+            }
+
+            #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+            pub struct #generated_jsonapi_resource {
+                id: #json_api_id_ty,
+                #[serde(rename = "type")]
+                lower_case_type: String,
+                attributes: #generated_jsonapi_attrs
+            }
+
+            impl #generated_jsonapi_resource {
+                fn new(id: #json_api_id_ty, lower_case_type: String, attrs: #generated_jsonapi_attrs) -> #generated_jsonapi_resource {
+                    #generated_jsonapi_resource {
+                        id: id,
+                        lower_case_type: lower_case_type,
+                        attributes: attrs
+                    }
+                }
+            }
+
+            impl ToJson for #name {
+                type Json = #generated_jsonapi_resource;
+            }
+
+            impl <'a> From<(#name, &'a #generated_params_type_name)> for #generated_jsonapi_resource {
+                fn from(pair: (#name, &'a #generated_params_type_name)) -> Self {
+                    let (model, params) = pair;
+                    let fields = &params.fields;
+                    if fields.is_empty() {
+                        // Return all fields
+                        #generated_jsonapi_resource::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
+                            #(#option_fields),*
+                        })
+                    } else {
+                        #(#filtered_option_vars)*
+
+                        for field in super::#lower_case_name::field::iter() {
+                            if !&params.fields.contains(field) {
+                                match field {
+                                    #(#filtered_option_cases),*
+                                }
+                            }
+                        }
+
+                        #generated_jsonapi_resource::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
+                            #(#filtered_option_fields),*
+                        })
+                    }
+                }
+            }
         }
     }
 }

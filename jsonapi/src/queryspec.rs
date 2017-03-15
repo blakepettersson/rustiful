@@ -10,6 +10,10 @@ pub trait ToSortFields {
     type SortField;
 }
 
+pub trait ToJson {
+    type Json;
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum QueryStringParseError {
     InvalidParam(String),

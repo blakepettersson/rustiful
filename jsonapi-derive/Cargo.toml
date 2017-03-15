@@ -10,7 +10,6 @@ proc-macro = true
 jsonapi = { path = "../jsonapi" }
 serde = "0.8"
 serde_derive = "0.8"
-serde_json = "0.8"
 syn = "0.11"
 quote = "0.3"
 Inflector = "*"

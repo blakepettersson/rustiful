@@ -52,6 +52,16 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
+    let blaha: Vec<_> = attr_fields.iter()
+        .map(|f| {
+            let ident_string = &f.ident.clone().expect("fail").to_string();
+            let enum_value = Ident::new(format!("self::field::{}", &ident_string));
+            quote!(#enum_value)
+        })
+        .collect();
+
+    let option_fields_len = option_fields.len();
+
     let sort_fields: Vec<_> = attr_fields.iter()
         .map(|f| {
             let ident = &f.ident;
@@ -86,25 +96,34 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
     quote! {
         pub mod #lower_case_name {
             use super::#name;
+            use std::slice::Iter;
             use std::str::FromStr;
             use std::collections::HashSet;
             use std::collections::HashMap;
             use jsonapi::queryspec::*;
             use jsonapi::sort_order::SortOrder;
 
-            #[derive(Debug, PartialEq, Eq)]
+            #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]
             pub enum sort {
                 #(#sort_fields),*
             }
 
-            #[derive(Debug, PartialEq, Eq)]
+            #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]
             pub enum field {
                 //Expand field names into new struct
                 #(#option_fields),*
             }
 
+            impl field {
+                pub fn iter() -> Iter<'static, field> {
+                    static FIELDS: [field;  #option_fields_len] = [#(#blaha),*];
+                    FIELDS.into_iter()
+                }
+            }
+
+            #[derive(Debug, PartialEq, Eq, Clone)]
             pub struct #generated_params_type_name {
                 pub fields: Vec<field>,
                 pub sort_fields: Vec<sort>,

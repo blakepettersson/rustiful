@@ -9,7 +9,12 @@ jsonapi-derive = { path = "../jsonapi-derive" }
 serde = "0.8"
 serde_derive = "0.8"
 serde_json = "0.8"
+uuid = { version = "0.3", features = ["v4"] }
 
 diesel = { version = "0.11.0", features = ["sqlite"] }
 diesel_codegen = { version = "0.11.0", features = ["sqlite"] }
 dotenv = "0.8.0"
+iron = "0.4.*"
+iron-test = "0.4.*"
+hyper = "0.10.*"
+router = "*"
