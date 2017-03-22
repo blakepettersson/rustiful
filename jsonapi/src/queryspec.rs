@@ -1,6 +1,10 @@
+extern crate serde;
+
 use std::fmt::*;
 use std::str::FromStr;
 use std::error::Error;
+use self::serde::ser::Serialize;
+use self::serde::de::Deserialize;
 
 pub trait ToParams {
     type Params: FromStr;
@@ -11,7 +15,7 @@ pub trait ToSortFields {
 }
 
 pub trait ToJson {
-    type Json;
+    type Json: Serialize + Deserialize;
 }
 
 #[derive(Debug, PartialEq, Eq)]
