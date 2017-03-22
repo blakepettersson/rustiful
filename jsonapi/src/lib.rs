@@ -1,7 +1,8 @@
 pub mod queryspec;
 pub mod service;
 pub mod sort_order;
-pub mod jsonapi_array;
+pub mod array;
+pub mod object;
 
 #[macro_use]
 extern crate serde_derive;
