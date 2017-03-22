@@ -7,7 +7,6 @@ use syn::DeriveInput;
 
 use quote::Ident;
 use quote::Tokens;
-use self::inflector::Inflector;
 
 pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
@@ -23,6 +22,8 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
 
                 use self::iron::prelude::*;
                 use self::iron::status;
+                use self::iron::headers::ContentType;
+                use self::iron::mime::Mime;
 
                 use super::super::#name;
                 use std::str::FromStr;
@@ -34,21 +35,52 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
 
                 impl ToRequest<#name> for #name { }
 
+                /*
+                pub fn get(req: &mut Request) -> IronResult<Response> {
+                    match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
+                        Ok(params) => {
+                            match #name::new().find(&params) {
+                                Ok(result) => {
+                                    let data:<<#name as JsonApiService>::T as ToJson>::Json = (result, &params).into();
+                                    let json_api_array = JsonApiArray::<<<#name as JsonApiService>::T as ToJson>::Json> {
+                                        data: data
+                                    };
+
+                                    match serde_json::to_string(&json_api_array) {
+                                        Ok(serialized) => Ok(Response::with((status::Ok, serialized))),
+                                        Err(e) => Err(IronError::new(e, status::InternalServerError))
+                                    }
+                                },
+                                Err(e) => {
+                                    Err(IronError::new(e, status::InternalServerError))
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            Err(IronError::new(e, status::InternalServerError))
+                        },
+                    }
+                }*/
+
                 pub fn index(req: &mut Request) -> IronResult<Response> {
+                    let content_type:Mime = "application/vnd.api+json".parse().unwrap();
                     match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
                         Ok(params) => {
                             match #name::new().find_all(&params) {
                                 Ok(result) => {
-                                    let mapped:Vec<_> = result.into_iter().map(|e| {
+                                    let data:Vec<_> = result.into_iter().map(|e| {
                                         let json:<<#name as JsonApiService>::T as ToJson>::Json = (e, &params).into();
                                         json
                                     }).collect();
 
                                     let json_api_array = JsonApiArray::<<<#name as JsonApiService>::T as ToJson>::Json> {
-                                        data: mapped
+                                        data: data
                                     };
-                                    let serialized = serde_json::to_string(&json_api_array).unwrap();
-                                    Ok(Response::with((status::Ok, serialized)))
+
+                                    match serde_json::to_string(&json_api_array) {
+                                        Ok(serialized) => Ok(Response::with((content_type, status::Ok, serialized))),
+                                        Err(e) => Err(IronError::new(e, status::InternalServerError))
+                                    }
                                 },
                                 Err(e) => {
                                     Err(IronError::new(e, status::InternalServerError))
