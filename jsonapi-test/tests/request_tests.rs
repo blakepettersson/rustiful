@@ -137,7 +137,8 @@ fn parse_json_api_index_get() {
     let content_type = headers.get::<ContentType>().expect("no content type found!");
     let result = response::extract_body_to_string(response);
 
-    let records: JsonApiArray<<Foo as ToJson>::Json> = serde_json::from_str(&result).unwrap();
+    println!("{}", &result);
+    let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
     let params = <Foo as ToParams>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -146,8 +147,8 @@ fn parse_json_api_index_get() {
         title: "test".to_string(),
         published: true
     };
-    let data:<Foo as ToJson>::Json = (test, &params).into();
-    let expected:JsonApiArray<<Foo as ToJson>::Json> = JsonApiArray {
+    let data:<Foo as ToJson>::Resource = (test, &params).into();
+    let expected:JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray {
         data: vec![data]
     };
 
@@ -161,7 +162,9 @@ fn parse_json_api_single_get() {
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
 
-    let record: JsonApiObject<<Foo as ToJson>::Json> = serde_json::from_str(&result).unwrap();
+    println!("{}", &result);
+
+    let record: JsonApiObject<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
     let params = <Foo as ToParams>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -170,8 +173,8 @@ fn parse_json_api_single_get() {
         title: "test".to_string(),
         published: true
     };
-    let data:<Foo as ToJson>::Json = (test, &params).into();
-    let expected:JsonApiObject<<Foo as ToJson>::Json> = JsonApiObject {
+    let data:<Foo as ToJson>::Resource = (test, &params).into();
+    let expected:JsonApiObject<<Foo as ToJson>::Resource> = JsonApiObject {
         data: data
     };
 

@@ -16,6 +16,7 @@ pub trait ToSortFields {
 
 pub trait ToJson {
     type Json: Serialize + Deserialize;
+    type Resource: Serialize + Deserialize;
 }
 
 #[derive(Debug, PartialEq, Eq)]

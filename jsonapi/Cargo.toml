@@ -6,5 +6,5 @@ authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 [lib]
 
 [dependencies]
-serde = "0.8"
-serde_derive = "0.8"
+serde = "0.9"
+serde_derive = "0.9"

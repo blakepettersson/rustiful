@@ -36,6 +36,7 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
                 use jsonapi::queryspec::ToParams;
                 use jsonapi::array::JsonApiArray;
                 use jsonapi::object::JsonApiObject;
+                use jsonapi::data::JsonApiData;
 
                 impl ToRequest<#name> for #name { }
 
@@ -54,8 +55,8 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
                                 Ok(result) => {
                                     match result {
                                         Some(obj) => {
-                                            let data:<<#name as JsonApiService>::T as ToJson>::Json = (obj, &params).into();
-                                            let json = JsonApiObject::<<<#name as JsonApiService>::T as ToJson>::Json> {
+                                            let data:<<#name as JsonApiService>::T as ToJson>::Resource = (obj, &params).into();
+                                            let json = JsonApiObject::<<<#name as JsonApiService>::T as ToJson>::Resource> {
                                                 data: data
                                             };
 
@@ -85,11 +86,11 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
                             match #name::new().find_all(&params) {
                                 Ok(result) => {
                                     let data:Vec<_> = result.into_iter().map(|e| {
-                                        let json:<<#name as JsonApiService>::T as ToJson>::Json = (e, &params).into();
+                                        let json:<<#name as JsonApiService>::T as ToJson>::Resource = (e, &params).into();
                                         json
                                     }).collect();
 
-                                    let json_api_array = JsonApiArray::<<<#name as JsonApiService>::T as ToJson>::Json> {
+                                    let json_api_array = JsonApiArray::<<<#name as JsonApiService>::T as ToJson>::Resource> {
                                         data: data
                                     };
 

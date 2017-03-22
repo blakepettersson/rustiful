@@ -18,10 +18,8 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     };
 
     let json_api_id = util::get_json_id(&fields);
-    let json_api_id_ty = &json_api_id.ty;
     let json_api_id_ident = &json_api_id.ident;
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
-    let generated_jsonapi_resource = Ident::new(format!("__{}{}", name, "JsonApiResource"));
 
     let lower_case_name = Ident::new(name.to_string().to_snake_case());
     let lower_case_name_as_str = lower_case_name.to_string();
@@ -80,6 +78,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             use super::#name;
             use super::#lower_case_name::#generated_params_type_name;
 
+            use jsonapi::data::JsonApiData;
             use jsonapi::queryspec::ToJson;
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,36 +87,22 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             }
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-            pub struct #generated_jsonapi_resource {
-                id: #json_api_id_ty,
-                #[serde(rename = "type")]
-                lower_case_type: String,
-                attributes: #generated_jsonapi_attrs
-            }
-
-            impl #generated_jsonapi_resource {
-                fn new(id: #json_api_id_ty, lower_case_type: String, attrs: #generated_jsonapi_attrs) -> #generated_jsonapi_resource {
-                    #generated_jsonapi_resource {
-                        id: id,
-                        lower_case_type: lower_case_type,
-                        attributes: attrs
-                    }
-                }
-            }
+            pub struct JsonApiResource(JsonApiData<#generated_jsonapi_attrs>);
 
             impl ToJson for #name {
-                type Json = #generated_jsonapi_resource;
+                type Json = #generated_jsonapi_attrs;
+                type Resource = JsonApiResource;
             }
 
-            impl <'a> From<(#name, &'a #generated_params_type_name)> for #generated_jsonapi_resource {
+            impl <'a> From<(#name, &'a #generated_params_type_name)> for JsonApiResource {
                 fn from(pair: (#name, &'a #generated_params_type_name)) -> Self {
                     let (model, params) = pair;
                     let fields = &params.fields;
                     if fields.is_empty() {
                         // Return all fields
-                        #generated_jsonapi_resource::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
+                        JsonApiResource(JsonApiData::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
                             #(#option_fields),*
-                        })
+                        }))
                     } else {
                         #(#filtered_option_vars)*
 
@@ -129,9 +114,10 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                             }
                         }
 
-                        #generated_jsonapi_resource::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
+                        // Return sparse fieldset specified by field query param
+                        JsonApiResource(JsonApiData::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
                             #(#filtered_option_fields),*
-                        })
+                        }))
                     }
                 }
             }
