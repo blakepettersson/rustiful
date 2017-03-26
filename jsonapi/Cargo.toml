@@ -6,8 +6,9 @@ authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 [lib]
 
 [dependencies]
-serde = "0.9"
-serde_derive = "0.9"
+serde = "0.9.*"
+serde_derive = "0.9.*"
+uuid = { version = "0.4.*", optional = true, features = ["serde"] }
 #iron = "0.5.*"
 #router = "0.5.*"
 #serde_json = "0.9"
