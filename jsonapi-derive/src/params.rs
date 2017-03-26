@@ -75,7 +75,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             let enum_value = Ident::new(format!("self::sort::{}", &ident_string));
             quote! {
             #ident_string => {
-                sort_fields.push(#enum_value(sort_order))
+                params.sort.fields.push(#enum_value(order))
             }
         }
         })
@@ -87,7 +87,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             let enum_value = Ident::new(format!("self::field::{}", &ident_string));
             quote! {
                 #ident_string => {
-                    foo.push(#enum_value)
+                    params.filter.fields.push(#enum_value)
                 }
             }
         })
@@ -97,16 +97,23 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
         pub mod #lower_case_name {
             use super::#name;
             use std::slice::Iter;
-            use std::str::FromStr;
-            use std::collections::HashSet;
             use std::collections::HashMap;
-            use jsonapi::queryspec::*;
+            use jsonapi::try_from::TryFrom;
+            use jsonapi::params::TypedParams;
             use jsonapi::sort_order::SortOrder;
+            use jsonapi::params::JsonApiResource;
+            use jsonapi::query_string::QueryString;
+            use jsonapi::queryspec::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]
             pub enum sort {
                 #(#sort_fields),*
+            }
+
+            #[derive(Debug, PartialEq, Eq, Clone, Default)]
+            pub struct Sort {
+                pub fields: Vec<sort>
             }
 
             #[derive(Debug, PartialEq, Eq, Clone)]
@@ -116,6 +123,11 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 #(#option_fields),*
             }
 
+            #[derive(Debug, PartialEq, Eq, Clone, Default)]
+            pub struct Filter {
+                pub fields: Vec<field>
+            }
+
             impl field {
                 pub fn iter() -> Iter<'static, field> {
                     static FIELDS: [field;  #option_fields_len] = [#(#blaha),*];
@@ -123,99 +135,79 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 }
             }
 
-            #[derive(Debug, PartialEq, Eq, Clone)]
+            #[derive(Debug, PartialEq, Eq, Clone, Default)]
             pub struct #generated_params_type_name {
-                pub fields: Vec<field>,
-                pub sort_fields: Vec<sort>,
+                pub filter: Filter,
+                pub sort: Sort,
                 pub query_params: HashMap<String, String>
             }
 
-            impl FromStr for #generated_params_type_name {
-                type Err = QueryStringParseError;
-                fn from_str(query_string: &str) -> Result<#generated_params_type_name, QueryStringParseError> {
-                    let mut foo:Vec<field> = Vec::new();
-                    let mut sort_fields:Vec<sort> = Vec::new();
-                    let mut query_params = HashMap::new();
+            impl TypedParams<sort, field> for #generated_params_type_name {
+                fn filter(&mut self) -> &mut Vec<field> {
+                    &mut self.filter.fields
+                }
 
-                    for param in query_string.split('&') {
-                        let mut split = param.split('=');
-                        let key_value_pair = (split.next(), split.next());
+                fn sort(&mut self) -> &mut Vec<sort> {
+                    &mut self.sort.fields
+                }
 
-                        if split.next() != None {
-                            return Err(QueryStringParseError::InvalidParam(param.to_string()));
-                        }
-
-                        match key_value_pair {
-                            (Some(""), None) | (None, None) => {},
-                            (Some(key), None) => return Err(QueryStringParseError::InvalidValue(format!("Invalid param: {}", key))),
-                            (None, Some(value)) => {
-                                return Err(QueryStringParseError::InvalidValue(format!("Invalid param: {}", value)))
-                            },
-                            (Some(key), Some(value)) if key == "sort" => {
-                                let fields = value.split(',').filter(|&f| !f.is_empty());
-                                for mut field in fields {
-                                    let sort_order = if field.starts_with('-') {
-                                        field = field.trim_left_matches('-');
-                                        SortOrder::Desc
-                                    } else {
-                                        SortOrder::Asc
-                                    };
-
-                                    match field {
-                                        #(#sort_cases)*
-                                        _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
-                                    }
-                                }
-                            },
-                            (Some(key), Some(value)) if key.starts_with("fields") => {
-                                let mut model = key.trim_left_matches("fields");
-
-                                if !model.starts_with('[') || !model.ends_with(']') {
-                                    return Err(QueryStringParseError::InvalidKeyParam(model.to_string()));
-                                }
-
-                                model = model.trim_left_matches('[').trim_right_matches(']');
-
-                                if model.is_empty() {
-                                    return Err(QueryStringParseError::InvalidValue(format!("Value for {} is empty!", key)));
-                                }
-
-                                let fields:HashSet<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
-
-                                if fields.is_empty() {
-                                    return Err(QueryStringParseError::InvalidValue(format!("Fields for {} are empty", model)))
-                                }
-
-                                match model.as_ref() {
-                                    #json_name => {
-                                        for field in fields {
-                                            match field {
-                                                #(#field_cases)*
-                                                _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
-                                            }
-                                        }
-                                    },
-
-                                    // TODO: Implement non-existent field error here
-                                    // TODO: Also implement relationship field filtering
-                                    _ => return Err(QueryStringParseError::UnImplementedError)
-                                }
-                            },
-                            (Some(key), Some(value)) => {
-                                query_params.insert(key.to_string(), value.to_string());
-                            }
-                        }
-                    }
-
-                    Ok(#generated_params_type_name {
-                       fields: foo,
-                       sort_fields: sort_fields,
-                       query_params: query_params
-                    })
+                fn query_params(&mut self) -> &mut HashMap<String, String> {
+                    &mut self.query_params
                 }
             }
 
-            impl ToParams for #name {
+            /// Parses the sort query parameter.
+            impl<'a> TryFrom<(&'a str, SortOrder, #generated_params_type_name)> for #generated_params_type_name {
+                type Err = QueryStringParseError;
+
+                fn try_from(mut tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                    //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
+
+                    let (field, order, mut params) = tuple;
+                    match field {
+                        #(#sort_cases)*
+                        _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
+                    }
+
+                    Ok(params)
+                }
+            }
+
+            /// Parses the field query parameter(s).
+            impl<'a> TryFrom<(&'a str, Vec<&'a str>, #generated_params_type_name)> for #generated_params_type_name {
+                type Err = QueryStringParseError;
+
+                fn try_from(mut tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                    let (model, fields, mut params) = tuple;
+                    match model {
+                        #json_name => {
+                            // If we already have the same field in the map, we consider this an error.
+                            if !params.filter.fields.is_empty() {
+
+                            }
+
+                            for field in fields {
+                                match field {
+                                    #(#field_cases)*
+                                    _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
+                                }
+                            }
+                        },
+                        // TODO: Implement parsing of relationships
+                        _ => return Err(QueryStringParseError::UnImplementedError)
+                    }
+
+                    Ok(params)
+                }
+            }
+
+            impl <'a> QueryString<'a> for #name {
+                type Params = #generated_params_type_name;
+                type SortField = sort;
+                type FilterField = field;
+            }
+
+            impl JsonApiResource for #name {
                 type Params = #generated_params_type_name;
             }
         }

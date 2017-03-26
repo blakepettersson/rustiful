@@ -97,7 +97,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             impl <'a> From<(#name, &'a #generated_params_type_name)> for JsonApiResource {
                 fn from(pair: (#name, &'a #generated_params_type_name)) -> Self {
                     let (model, params) = pair;
-                    let fields = &params.fields;
+                    let fields = &params.filter.fields;
                     if fields.is_empty() {
                         // Return all fields
                         JsonApiResource(JsonApiData::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
@@ -107,7 +107,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                         #(#filtered_option_vars)*
 
                         for field in super::#lower_case_name::field::iter() {
-                            if !&params.fields.contains(field) {
+                            if !&params.filter.fields.contains(field) {
                                 match field {
                                     #(#filtered_option_cases),*
                                 }

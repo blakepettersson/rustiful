@@ -6,9 +6,8 @@ extern crate jsonapi_derive;
 
 extern crate jsonapi;
 
-use std::str::FromStr;
+use jsonapi::query_string::QueryString;
 use jsonapi::sort_order::SortOrder::*;
-use jsonapi::queryspec::ToParams;
 use jsonapi::queryspec::QueryStringParseError;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
@@ -29,15 +28,15 @@ struct Bar {
 #[test]
 fn parse_renamed_json_struct() {
     use self::bar::field::*;
-    match <Bar as ToParams>::Params::from_str("fields[renamed]=bar") {
-        Ok(result) => assert_eq!(Some(&bar), result.fields.first()),
+    match <Bar as QueryString>::from_str("fields[renamed]=bar") {
+        Ok(result) => assert_eq!(Some(&bar), result.filter.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
 
 #[test]
 fn parse_renamed_json_struct_fails_on_original_name() {
-    match <Bar as ToParams>::Params::from_str("fields[bar]=bar") {
+    match <Bar as QueryString>::from_str("fields[bar]=bar") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => assert_eq!(QueryStringParseError::UnImplementedError, e),
     }
@@ -45,7 +44,7 @@ fn parse_renamed_json_struct_fails_on_original_name() {
 
 #[test]
 fn parse_params_fails_on_id_param() {
-    match <Bar as ToParams>::Params::from_str("fields[renamed]=id") {
+    match <Bar as QueryString>::from_str("fields[renamed]=id") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => assert_eq!(QueryStringParseError::InvalidValue("Invalid field: id".to_string()), e),
     }
@@ -54,23 +53,23 @@ fn parse_params_fails_on_id_param() {
 #[test]
 fn parse_present_field() {
     use self::foo::field::*;
-    match <Foo as ToParams>::Params::from_str("fields[foo]=foo") {
-        Ok(result) => assert_eq!(Some(&foo), result.fields.first()),
+    match <Foo as QueryString>::from_str("fields[foo]=foo") {
+        Ok(result) => assert_eq!(Some(&foo), result.filter.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
 
 #[test]
 fn parse_field_that_is_not_present() {
-    match <Foo as ToParams>::Params::from_str("") {
-        Ok(result) => assert_eq!(true, result.fields.is_empty()),
+    match <Foo as QueryString>::from_str("") {
+        Ok(result) => assert_eq!(true, result.filter.fields.is_empty()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
 
 #[test]
 fn parse_fields_fails_if_query_param_is_not_valid() {
-    match <Foo as ToParams>::Params::from_str("fields=body=foo") {
+    match <Foo as QueryString>::from_str("fields=body=foo") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidParam("fields=body=foo".to_string()),
@@ -81,7 +80,7 @@ fn parse_fields_fails_if_query_param_is_not_valid() {
 
 #[test]
 fn parse_fields_fails_if_fields_value_is_empty() {
-    match <Foo as ToParams>::Params::from_str("fields[foo]=") {
+    match <Foo as QueryString>::from_str("fields[foo]=") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidValue("Fields for foo are empty".to_string()),
@@ -92,7 +91,7 @@ fn parse_fields_fails_if_fields_value_is_empty() {
 
 #[test]
 fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
-    match <Foo as ToParams>::Params::from_str("fields[foo]=non_existent") {
+    match <Foo as QueryString>::from_str("fields[foo]=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidValue("Invalid field: non_existent"
@@ -104,7 +103,7 @@ fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
 
 #[test]
 fn parse_single_field_fails_if_field_doesnt_contain_left_bracket() {
-    match <Foo as ToParams>::Params::from_str("fieldsarticles]=title") {
+    match <Foo as QueryString>::from_str("fieldsarticles]=title") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidKeyParam("articles]".to_string()),
@@ -115,7 +114,7 @@ fn parse_single_field_fails_if_field_doesnt_contain_left_bracket() {
 
 #[test]
 fn parse_single_field_fails_if_field_does_not_contain_right_bracket() {
-    match <Foo as ToParams>::Params::from_str("fields[articles=title") {
+    match <Foo as QueryString>::from_str("fields[articles=title") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidKeyParam("[articles".to_string()),
@@ -127,8 +126,8 @@ fn parse_single_field_fails_if_field_does_not_contain_right_bracket() {
 #[test]
 fn parse_sort_field() {
     use self::foo::sort::*;
-    match <Foo as ToParams>::Params::from_str("sort=foo") {
-        Ok(result) => assert_eq!(Some(&foo(Asc)), result.sort_fields.first()),
+    match <Foo as QueryString>::from_str("sort=foo") {
+        Ok(result) => assert_eq!(Some(&foo(Asc)), result.sort.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -136,8 +135,8 @@ fn parse_sort_field() {
 #[test]
 fn parse_descending_sort_field() {
     use self::foo::sort::*;
-    match <Foo as ToParams>::Params::from_str("sort=-foo") {
-        Ok(result) => assert_eq!(Some(&foo(Desc)), result.sort_fields.first()),
+    match <Foo as QueryString>::from_str("sort=-foo") {
+        Ok(result) => assert_eq!(Some(&foo(Desc)), result.sort.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -145,10 +144,10 @@ fn parse_descending_sort_field() {
 #[test]
 fn parse_multiple_sort_fields() {
     use self::foo::sort::*;
-    match <Foo as ToParams>::Params::from_str("sort=-foo,abc") {
+    match <Foo as QueryString>::from_str("sort=-foo,abc") {
         Ok(result) => {
             let expected = vec![foo(Desc), abc(Asc)];
-            assert_eq!(expected, result.sort_fields)
+            assert_eq!(expected, result.sort.fields)
         }
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
@@ -156,8 +155,8 @@ fn parse_multiple_sort_fields() {
 
 #[test]
 fn parse_null_sort_field() {
-    match <Foo as ToParams>::Params::from_str("") {
-        Ok(result) => assert_eq!(None, result.sort_fields.first()),
+    match <Foo as QueryString>::from_str("") {
+        Ok(result) => assert_eq!(None, result.sort.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -165,7 +164,7 @@ fn parse_null_sort_field() {
 
 #[test]
 fn parse_query_param() {
-    match <Foo as ToParams>::Params::from_str("foo=bar") {
+    match <Foo as QueryString>::from_str("foo=bar") {
         Ok(result) => {
             let expected = &"bar".to_string();
             assert_eq!(Some(expected), result.query_params.get("foo"))
@@ -176,7 +175,7 @@ fn parse_query_param() {
 
 #[test]
 fn parse_sort_field_fails_on_id_param() {
-    match <Foo as ToParams>::Params::from_str("sort=bar") {
+    match <Foo as QueryString>::from_str("sort=bar") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => assert_eq!(QueryStringParseError::InvalidValue("Invalid field: bar".to_string()), e),
     }
@@ -184,7 +183,7 @@ fn parse_sort_field_fails_on_id_param() {
 
 #[test]
 fn parse_sort_field_fails_on_non_existent_param() {
-    match <Foo as ToParams>::Params::from_str("sort=non_existent") {
+    match <Foo as QueryString>::from_str("sort=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => assert_eq!(QueryStringParseError::InvalidValue("Invalid field: non_existent".to_string()), e),
     }

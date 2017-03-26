@@ -6,14 +6,6 @@ use std::error::Error;
 use self::serde::ser::Serialize;
 use self::serde::de::Deserialize;
 
-pub trait ToParams {
-    type Params: FromStr;
-}
-
-pub trait ToSortFields {
-    type SortField;
-}
-
 pub trait ToJson {
     type Json: Serialize + Deserialize;
     type Resource: Serialize + Deserialize;
@@ -25,6 +17,7 @@ pub enum QueryStringParseError {
     InvalidKeyParam(String),
     InvalidValue(String),
     ParseError(String),
+    DuplicateSortKey(String),
     UnImplementedError,
 }
 
@@ -32,33 +25,29 @@ static UNIMPLEMENTED: &'static str = "Unimplemented";
 
 impl Display for QueryStringParseError {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        use self::QueryStringParseError::*;
-
-        let msg = match *self {
-            InvalidParam(ref desc) => desc,
-            InvalidKeyParam(ref desc) => desc,
-            InvalidValue(ref desc) => desc,
-            ParseError(ref desc) => desc,
-            UnImplementedError => UNIMPLEMENTED,
-        };
-        write!(f, "Query string parse error: {}", msg)
+        write!(f, "Query string parse error: {}", description(self))
     }
 }
 
 impl Error for QueryStringParseError {
     fn description(&self) -> &str {
-        use self::QueryStringParseError::*;
-
-        match *self {
-            InvalidParam(ref desc) => desc,
-            InvalidKeyParam(ref desc) => desc,
-            InvalidValue(ref desc) => desc,
-            ParseError(ref desc) => desc,
-            UnImplementedError => UNIMPLEMENTED,
-        }
+        description(self)
     }
 
     fn cause(&self) -> Option<&Error> {
         None
+    }
+}
+
+fn description<'a>(error: &'a QueryStringParseError) -> &'a str {
+    use self::QueryStringParseError::*;
+
+    match *error {
+        InvalidParam(ref desc) => desc,
+        InvalidKeyParam(ref desc) => desc,
+        InvalidValue(ref desc) => desc,
+        ParseError(ref desc) => desc,
+        DuplicateSortKey(ref desc) => desc,
+        UnImplementedError => UNIMPLEMENTED,
     }
 }

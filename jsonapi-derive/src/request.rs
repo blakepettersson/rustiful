@@ -30,13 +30,14 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
                 use super::super::#name;
                 use std::str::FromStr;
 
+                use jsonapi::query_string::QueryString;
                 use jsonapi::queryspec::ToJson;
                 use jsonapi::service::ToRequest;
                 use jsonapi::service::JsonApiService;
-                use jsonapi::queryspec::ToParams;
                 use jsonapi::array::JsonApiArray;
                 use jsonapi::object::JsonApiObject;
                 use jsonapi::data::JsonApiData;
+                use jsonapi::params::JsonApiResource;
 
                 impl ToRequest<#name> for #name { }
 
@@ -49,7 +50,7 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
 
                     let id = router.find("id").unwrap();
 
-                    match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
+                    match <<#name as JsonApiService>::T as QueryString>::from_str(req.url.query().unwrap_or("")) {
                         Ok(params) => {
                             match #name::new().find(&id, &params) {
                                 Ok(result) => {
@@ -81,7 +82,7 @@ pub fn expand_iron_request_methods(ast: &DeriveInput) -> Tokens {
 
                 pub fn index(req: &mut Request) -> IronResult<Response> {
                     let content_type:Mime = "application/vnd.api+json".parse().unwrap();
-                    match <<#name as JsonApiService>::T as ToParams>::Params::from_str(req.url.query().unwrap_or("")) {
+                    match <<#name as JsonApiService>::T as QueryString>::from_str(req.url.query().unwrap_or("")) {
                         Ok(params) => {
                             match #name::new().find_all(&params) {
                                 Ok(result) => {

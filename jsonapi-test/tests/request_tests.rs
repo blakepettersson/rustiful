@@ -25,7 +25,8 @@ use uuid::Uuid;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use jsonapi::queryspec::ToParams;
+use jsonapi::query_string::QueryString;
+use jsonapi::params::JsonApiResource;
 use jsonapi::object::JsonApiObject;
 use jsonapi::service::JsonApiService;
 use iron::headers::ContentType;
@@ -95,7 +96,7 @@ impl JsonApiService for FooService {
     type T = Foo;
     type Error = TestError;
 
-    fn find(&self, id: &str, _: &<Foo as ToParams>::Params) -> Result<Option<Foo>, Self::Error> {
+    fn find(&self, id: &str, _: &<Foo as JsonApiResource>::Params) -> Result<Option<Foo>, Self::Error> {
         Ok(Some(Foo {
             id: "1".to_string(),
             body: "test".to_string(),
@@ -104,7 +105,7 @@ impl JsonApiService for FooService {
         }))
     }
 
-    fn find_all(&self, params: &<Foo as ToParams>::Params) -> Result<Vec<Foo>, Self::Error> {
+    fn find_all(&self, params: &<Foo as JsonApiResource>::Params) -> Result<Vec<Foo>, Self::Error> {
         Ok(vec![Foo {
             id: "1".to_string(),
             body: "test".to_string(),
@@ -139,7 +140,7 @@ fn parse_json_api_index_get() {
 
     println!("{}", &result);
     let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as ToParams>::Params::from_str("").expect("failed to unwrap params");
+    let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),
@@ -165,7 +166,7 @@ fn parse_json_api_single_get() {
     println!("{}", &result);
 
     let record: JsonApiObject<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as ToParams>::Params::from_str("").expect("failed to unwrap params");
+    let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),

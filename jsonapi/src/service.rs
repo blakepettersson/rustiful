@@ -2,16 +2,16 @@ extern crate serde;
 
 use std;
 use queryspec::ToJson;
-use queryspec::ToParams;
+use params::JsonApiResource;
 
 pub trait JsonApiService
 {
     type Error: std::error::Error;
-    type T: ToParams + ToJson;
+    type T: JsonApiResource + ToJson;
 
-    fn find(&self, id: &str, params: &<Self::T as ToParams>::Params) -> Result<Option<Self::T>, Self::Error>;
+    fn find(&self, id: &str, params: &<Self::T as JsonApiResource>::Params) -> Result<Option<Self::T>, Self::Error>;
 
-    fn find_all(&self, params: &<Self::T as ToParams>::Params) -> Result<Vec<Self::T>, Self::Error>;
+    fn find_all(&self, params: &<Self::T as JsonApiResource>::Params) -> Result<Vec<Self::T>, Self::Error>;
 
     fn save(&self, record: Self::T) -> Result<Self::T, Self::Error>;
 
