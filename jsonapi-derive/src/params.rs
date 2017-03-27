@@ -142,7 +142,10 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 pub query_params: HashMap<String, String>
             }
 
-            impl TypedParams<sort, field> for #generated_params_type_name {
+            impl TypedParams for #generated_params_type_name {
+                type SortField = sort;
+                type FilterField = field;
+
                 fn filter(&mut self) -> &mut Vec<field> {
                     &mut self.filter.fields
                 }

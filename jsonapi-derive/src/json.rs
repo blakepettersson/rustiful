@@ -45,13 +45,6 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
-    let option_fields: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(#ident: Some(model.#ident))
-        })
-        .collect();
-
     let filtered_option_fields: Vec<_> = attr_fields.iter()
         .map(|f| {
             let ident = &f.ident;
@@ -69,7 +62,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
-    let model_id_field = Ident::new(format!("model.{}", json_api_id_ident.clone().expect("fail").to_string()));
+    let model_id_field = Ident::new(format!("self.{}", json_api_id_ident.clone().expect("fail").to_string()));
 
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
@@ -78,6 +71,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             use super::#name;
             use super::#lower_case_name::#generated_params_type_name;
 
+            use jsonapi::id::JsonApiId;
             use jsonapi::data::JsonApiData;
             use jsonapi::queryspec::ToJson;
 
@@ -86,38 +80,38 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                 #(#jsonapi_attrs),*
             }
 
-            #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-            pub struct JsonApiResource(JsonApiData<#generated_jsonapi_attrs>);
-
             impl ToJson for #name {
                 type Json = #generated_jsonapi_attrs;
-                type Resource = JsonApiResource;
+                type Resource = JsonApiData<#generated_jsonapi_attrs>;
+
+                fn id(&self) -> JsonApiId {
+                    #model_id_field.clone().into()
+                }
+
+                fn type_name(&self) -> String {
+                    #lower_case_name_as_str.to_string()
+                }
             }
 
-            impl <'a> From<(#name, &'a #generated_params_type_name)> for JsonApiResource {
+            impl <'a> From<(#name, &'a #generated_params_type_name)> for #generated_jsonapi_attrs {
                 fn from(pair: (#name, &'a #generated_params_type_name)) -> Self {
                     let (model, params) = pair;
-                    let fields = &params.filter.fields;
-                    if fields.is_empty() {
-                        // Return all fields
-                        JsonApiResource(JsonApiData::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
-                            #(#option_fields),*
-                        }))
-                    } else {
-                        #(#filtered_option_vars)*
 
+                    #(#filtered_option_vars)*
+
+                    let fields = &params.filter.fields;
+                    if !fields.is_empty() {
                         for field in super::#lower_case_name::field::iter() {
-                            if !&params.filter.fields.contains(field) {
+                            if !fields.contains(field) {
                                 match field {
                                     #(#filtered_option_cases),*
                                 }
                             }
                         }
+                    }
 
-                        // Return sparse fieldset specified by field query param
-                        JsonApiResource(JsonApiData::new(#model_id_field, #lower_case_name_as_str.to_string(), #generated_jsonapi_attrs {
-                            #(#filtered_option_fields),*
-                        }))
+                    #generated_jsonapi_attrs {
+                        #(#filtered_option_fields),*
                     }
                 }
             }

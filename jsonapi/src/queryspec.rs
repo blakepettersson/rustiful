@@ -1,14 +1,18 @@
 extern crate serde;
 
 use std::fmt::*;
-use std::str::FromStr;
 use std::error::Error;
+use id::JsonApiId;
 use self::serde::ser::Serialize;
 use self::serde::de::Deserialize;
 
 pub trait ToJson {
     type Json: Serialize + Deserialize;
     type Resource: Serialize + Deserialize;
+
+    fn id(&self) -> JsonApiId;
+
+    fn type_name(&self) -> String;
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1,16 +1,14 @@
 use params::TypedParams;
 use try_from::TryFrom;
 use sort_order::SortOrder;
-use std::str::FromStr;
-use std::collections::HashMap;
-use std::collections::HashSet;
 use queryspec::QueryStringParseError;
+use params::JsonApiResource;
 
 pub trait QueryString<'a> {
     type SortField;
     type FilterField;
     type Params: Default +
-        TypedParams<Self::SortField, Self::FilterField> +
+        TypedParams<SortField = Self::SortField, FilterField = Self::FilterField> +
         TryFrom<(&'a str, SortOrder, Self::Params), Err=QueryStringParseError> +
         TryFrom<(&'a str, Vec<&'a str>, Self::Params), Err=QueryStringParseError>;
 
