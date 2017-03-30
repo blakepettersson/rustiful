@@ -42,8 +42,8 @@ struct Test {
 #[resource="tests"]
 struct TestService;
 
-impl TestService {
-    fn new() -> TestService {
+impl Default for TestService {
+    fn default() -> Self {
         TestService {}
     }
 }
@@ -55,7 +55,7 @@ impl JsonApiService for TestService {
     type T = Test;
     type Error = diesel::result::Error;
 
-    fn find(&self, id: &str, _: &<Test as JsonApiResource>::Params) -> Result<Option<Test>, Self::Error> {
+    fn find(&self, id: String, _: &<Test as JsonApiResource>::Params) -> Result<Option<Test>, Self::Error> {
         table.find(id).first(&connection()).optional()
     }
 
@@ -82,7 +82,7 @@ impl JsonApiService for TestService {
         diesel::insert(&record).into(table).execute(&connection()).map(|_| record)
     }
 
-    fn delete(&self, id: &str) -> Result<(), Self::Error> {
+    fn delete(&self, id: String) -> Result<(), Self::Error> {
         diesel::delete(table.find(id)).execute(&connection()).map(|_| ())
     }
 }

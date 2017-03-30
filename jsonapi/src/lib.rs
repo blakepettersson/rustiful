@@ -8,6 +8,11 @@ pub mod id;
 pub mod try_from;
 pub mod query_string;
 pub mod params;
+pub mod request;
+pub mod errors;
+
+#[cfg(feature = "iron")]
+pub mod iron;
 
 #[macro_use]
 extern crate serde_derive;

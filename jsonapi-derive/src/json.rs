@@ -81,7 +81,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             }
 
             impl ToJson for #name {
-                type Json = #generated_jsonapi_attrs;
+                type Attrs = #generated_jsonapi_attrs;
                 type Resource = JsonApiData<#generated_jsonapi_attrs>;
 
                 fn id(&self) -> JsonApiId {

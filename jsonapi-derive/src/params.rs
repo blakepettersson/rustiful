@@ -34,6 +34,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
     let json_api_id = util::get_json_id(&fields);
+    let json_api_id_ty = &json_api_id.ty;
 
     let attr_fields: Vec<_> = fields.iter().filter(|f| **f != json_api_id).collect();
 
@@ -99,6 +100,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use std::slice::Iter;
             use std::collections::HashMap;
             use jsonapi::try_from::TryFrom;
+            use jsonapi::params::Params;
             use jsonapi::params::TypedParams;
             use jsonapi::sort_order::SortOrder;
             use jsonapi::params::JsonApiResource;
@@ -204,6 +206,8 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 }
             }
 
+            impl Params for #generated_params_type_name {}
+
             impl <'a> QueryString<'a> for #name {
                 type Params = #generated_params_type_name;
                 type SortField = sort;
@@ -211,7 +215,10 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             }
 
             impl JsonApiResource for #name {
+                type JsonApiIdType = #json_api_id_ty;
                 type Params = #generated_params_type_name;
+                type SortField = sort;
+                type FilterField = field;
             }
         }
     }

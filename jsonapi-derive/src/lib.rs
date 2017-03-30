@@ -2,9 +2,6 @@
 #![recursion_limit = "512"]
 
 #[macro_use]
-extern crate serde_derive;
-
-#[macro_use]
 extern crate quote;
 
 extern crate syn;

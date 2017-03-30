@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 
 [dependencies]
-jsonapi = { path = "../jsonapi", features = ["uuid"] }
+jsonapi = { path = "../jsonapi", features = ["uuid", "iron", "router"] }
 jsonapi-derive = { path = "../jsonapi-derive" }
 serde = "0.9"
 serde_derive = "0.9"
@@ -15,6 +15,5 @@ diesel = { version = "0.11.0", features = ["sqlite"] }
 diesel_codegen = { version = "0.11.0", features = ["sqlite"] }
 dotenv = "0.8.0"
 iron = "0.5.*"
-iron-test = "0.5.*"
 router = "0.5.*"
-hyper = "0.10.*"
+iron-test = "0.5.*"

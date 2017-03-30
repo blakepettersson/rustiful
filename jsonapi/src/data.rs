@@ -1,6 +1,5 @@
 use id::JsonApiId;
 use queryspec::ToJson;
-use params::TypedParams;
 use params::JsonApiResource;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,13 +21,13 @@ impl<T> JsonApiData<T> {
 }
 
 impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)>
-    for JsonApiData<T::Json>
+    for JsonApiData<T::Attrs>
     where T: ToJson,
           T: JsonApiResource,
-          T::Json: From<(T, &'a <T as JsonApiResource>::Params)>
+          T::Attrs: From<(T, &'a <T as JsonApiResource>::Params)>
 {
     fn from(tuple: (T, &'a <T as JsonApiResource>::Params)) -> Self {
         let (model, params) = tuple;
-        JsonApiData::new(model.id(), model.type_name(), T::Json::from((model, params)))
+        JsonApiData::new(model.id(), model.type_name(), T::Attrs::from((model, params)))
     }
 }

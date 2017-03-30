@@ -9,7 +9,6 @@ extern crate router;
 extern crate iron_test;
 extern crate uuid;
 extern crate jsonapi;
-extern crate hyper;
 extern crate serde_json;
 
 use self::router::Router;
@@ -29,6 +28,9 @@ use jsonapi::query_string::QueryString;
 use jsonapi::params::JsonApiResource;
 use jsonapi::object::JsonApiObject;
 use jsonapi::service::JsonApiService;
+use jsonapi::iron::IronHandlers;
+use jsonapi::iron::GetHandler;
+use jsonapi::iron::IndexHandler;
 use iron::headers::ContentType;
 use iron::{Handler, Headers, status};
 use iron::IronResult;
@@ -38,22 +40,6 @@ use iron_test::{request, response};
 
 use jsonapi::queryspec::ToJson;
 use iron::prelude::*;
-
-struct IndexHandler;
-
-impl iron::Handler for IndexHandler {
-    fn handle(&self, req: &mut Request) -> IronResult<Response> {
-        self::__fooservice::routes::index(req)
-    }
-}
-
-struct GetHandler;
-
-impl iron::Handler for GetHandler {
-    fn handle(&self, req: &mut Request) -> IronResult<Response> {
-        self::__fooservice::routes::get(req)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
@@ -67,8 +53,8 @@ struct Foo {
 #[resource="tests"]
 struct FooService;
 
-impl FooService {
-    fn new() -> FooService {
+impl Default for FooService {
+    fn default() -> Self {
         FooService {}
     }
 }
@@ -96,7 +82,7 @@ impl JsonApiService for FooService {
     type T = Foo;
     type Error = TestError;
 
-    fn find(&self, id: &str, _: &<Foo as JsonApiResource>::Params) -> Result<Option<Foo>, Self::Error> {
+    fn find(&self, id: String, _: &<Foo as JsonApiResource>::Params) -> Result<Option<Foo>, Self::Error> {
         Ok(Some(Foo {
             id: "1".to_string(),
             body: "test".to_string(),
@@ -118,15 +104,15 @@ impl JsonApiService for FooService {
         Err(TestError("fail".to_string()))
     }
 
-    fn delete(&self, id: &str) -> Result<(), Self::Error> {
+    fn delete(&self, id: String) -> Result<(), Self::Error> {
         Err(TestError("fail".to_string()))
     }
 }
 
 fn app_router() -> Router {
     let mut router = Router::new();
-    router.get("/foos", IndexHandler, "index_foos");
-    router.get("/foos/:id", GetHandler, "get_foo");
+    router.get("/foos", move |r: &mut Request| <FooService as IronHandlers<FooService>>::IndexHandler::index(r), "index_foos");
+    router.get("/foos/:id", move |r: &mut Request| <FooService as IronHandlers<FooService>>::GetHandler::get(r), "get_foo");
     router
 }
 
@@ -137,8 +123,6 @@ fn parse_json_api_index_get() {
     let headers = response.headers.clone();
     let content_type = headers.get::<ContentType>().expect("no content type found!");
     let result = response::extract_body_to_string(response);
-
-    println!("{}", &result);
     let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
     let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
 
@@ -162,9 +146,6 @@ fn parse_json_api_single_get() {
                                 Headers::new(),
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
-
-    println!("{}", &result);
-
     let record: JsonApiObject<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
     let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
 

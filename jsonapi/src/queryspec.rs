@@ -7,8 +7,8 @@ use self::serde::ser::Serialize;
 use self::serde::de::Deserialize;
 
 pub trait ToJson {
-    type Json: Serialize + Deserialize;
-    type Resource: Serialize + Deserialize;
+    type Attrs: Serialize + Deserialize + Debug;
+    type Resource: Serialize + Deserialize + Debug;
 
     fn id(&self) -> JsonApiId;
 
