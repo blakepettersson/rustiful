@@ -1,45 +1,38 @@
 use std::error::Error;
 use std::str::FromStr;
 use data::JsonApiData;
-use params::Params;
-use params::TypedParams;
 use params::JsonApiResource;
-use try_from::TryFrom;
 use queryspec::ToJson;
 use errors::RequestError;
 use object::JsonApiObject;
 use array::JsonApiArray;
-use sort_order::SortOrder;
-use service::JsonApiService;
+use service::JsonGet;
+use service::JsonIndex;
+use service::JsonDelete;
 use query_string::QueryString;
-use queryspec::QueryStringParseError;
 use errors::RepositoryError;
 
-pub trait FromRequest<'a, R, P, S, F>
-    where Self: JsonApiService<T = R>,
-          <Self as JsonApiService>::Error: 'static,
-          P: Params,
-          P: Default,
-          P: TypedParams<SortField = S, FilterField = F>,
-          P: for<'b> TryFrom<(&'b str, SortOrder, P), Err = QueryStringParseError>,
-          P: for<'b> TryFrom<(&'b str, Vec<&'b str>, P), Err = QueryStringParseError>,
-          R: ToJson,
-          R: for<'b> QueryString<'b, Params = P, SortField = S, FilterField = F>,
-          R: JsonApiResource<Params = P>,
-          <R as ToJson>::Attrs: for<'b> From<(R, &'b P)>,
-          <R as JsonApiResource>::JsonApiIdType: FromStr,
-          <<R as JsonApiResource>::JsonApiIdType as FromStr>::Err: Send,
-          <<R as JsonApiResource>::JsonApiIdType as FromStr>::Err: Error,
-          <<R as JsonApiResource>::JsonApiIdType as FromStr>::Err: 'static,
+pub trait FromGet<'a, T> where
+    T: ToJson,
+    T: JsonGet,
+    T: JsonApiResource,
+    T: QueryString<'a>,
+    T::JsonApiIdType: FromStr,
+    <T as JsonGet>::Error : 'static,
+    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+    <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>,
+    <T::JsonApiIdType as FromStr>::Err: Send + Error,
+    <T::JsonApiIdType as FromStr>::Err: 'static,
 {
-    fn get(&self, id: &'a str, query: &'a str) -> Result<JsonApiObject<JsonApiData<<R as ToJson>::Attrs>>, RepositoryError> {
-        match <R as QueryString>::from_str(query) {
+    fn get(id: &'a str, query: &'a str, ctx: T::Context) -> Result<JsonApiObject<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
+        match <T as QueryString>::from_str(query) {
             Ok(params) => {
-                match <<R as JsonApiResource>::JsonApiIdType>::from_str(id) {
+                let params:<T as JsonApiResource>::Params = params.into();
+                match <<T as JsonApiResource>::JsonApiIdType>::from_str(id) {
                     Ok(typed_id) => {
-                        match self.find(typed_id, &params) {
-                            Ok(result) => {
-                                let data: Option<JsonApiData<<R as ToJson>::Attrs>> = result.map(|obj| (obj, &params).into());
+                        match <T as JsonGet>::find(typed_id, &params, ctx) {
+                            Ok(obj) => {
+                                let data: Option<JsonApiData<<T as ToJson>::Attrs>> = obj.map(|obj| (obj, &params).into());
                                 let res = data.ok_or(RequestError::NotFound)?;
                                 Ok(JsonApiObject::<_> { data: res })
                             },
@@ -52,13 +45,38 @@ pub trait FromRequest<'a, R, P, S, F>
             Err(e) => Err(RepositoryError { error: Box::new(e) })
         }
     }
+}
 
-    fn index(&self, query: &'a str) -> Result<JsonApiArray<JsonApiData<<R as ToJson>::Attrs>>, RepositoryError> {
-        match <R as QueryString>::from_str(query) {
+impl <'a, T> FromGet<'a, T> for T where
+        T: ToJson,
+        T: JsonGet,
+        T: JsonApiResource,
+        T: QueryString<'a>,
+        T::JsonApiIdType: FromStr,
+        <T as JsonGet>::Error : 'static,
+        T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+        <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>,
+        <T::JsonApiIdType as FromStr>::Err: Send + Error,
+        <T::JsonApiIdType as FromStr>::Err: 'static {}
+
+pub trait FromIndex<'a, T> where
+    T: ToJson,
+    T: JsonIndex,
+    T: JsonApiResource,
+    T: QueryString<'a>,
+    <T as JsonIndex>::Error: Send,
+    <T as JsonIndex>::Error : 'static,
+    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+    <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>,
+{
+    fn get(query: &'a str, ctx: T::Context) -> Result<JsonApiArray<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
+        match <T as QueryString>::from_str(query) {
             Ok(params) => {
-                match self.find_all(&params) {
+                let params:<T as JsonApiResource>::Params = params.into();
+
+                match <T as JsonIndex>::find(&params, ctx) {
                     Ok(result) => {
-                        let data: Vec<JsonApiData<<R as ToJson>::Attrs>> = result.into_iter()
+                        let data: Vec<JsonApiData<<T as ToJson>::Attrs>> = result.into_iter()
                             .map(|e| (e, &params).into())
                             .collect();
                         Ok(JsonApiArray::<_> { data: data })
@@ -70,3 +88,41 @@ pub trait FromRequest<'a, R, P, S, F>
         }
     }
 }
+
+impl <'a, T> FromIndex<'a, T> for T where
+        T: ToJson,
+        T: JsonIndex,
+        T: JsonApiResource,
+        T: QueryString<'a>,
+        <T as JsonIndex>::Error: Send,
+        <T as JsonIndex>::Error : 'static,
+        T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+        <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>{
+}
+
+pub trait FromDelete<'a, T> where
+    T: ToJson + JsonDelete + JsonApiResource + QueryString<'a>,
+    T::JsonApiIdType: FromStr,
+    <T as JsonDelete>::Error : Send + 'static,
+    <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>,
+    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+{
+    fn delete(id: &'a str, ctx: T::Context) -> Result<(), RepositoryError> {
+        match <<T as JsonApiResource>::JsonApiIdType>::from_str(id) {
+            Ok(typed_id) => {
+                match <T as JsonDelete>::delete(typed_id, ctx) {
+                    Ok(_) => { Ok(()) },
+                    Err(e) => Err(RepositoryError { error: Box::new(e) })
+                }
+            },
+            Err(e) => Err(RepositoryError { error: Box::new(e) })
+        }
+    }
+}
+
+impl <'a, T> FromDelete<'a, T> for T where
+    T: ToJson + JsonDelete + JsonApiResource + QueryString<'a>,
+    T::JsonApiIdType: FromStr,
+    <T as JsonDelete>::Error : Send + 'static,
+    <T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>,
+    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {}

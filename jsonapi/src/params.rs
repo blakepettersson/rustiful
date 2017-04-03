@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-pub trait JsonApiResource {
-    type Params : Params;
+pub trait JsonApiResource: Sized {
+    type Params: Params;
     type SortField;
     type FilterField;
     type JsonApiIdType;
@@ -15,6 +15,4 @@ pub trait TypedParams {
     fn query_params(&mut self) -> &mut HashMap<String, String>;
 }
 
-pub trait Params {
-
-}
+pub trait Params {}

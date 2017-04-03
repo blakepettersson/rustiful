@@ -16,11 +16,10 @@ extern crate jsonapi;
 
 use uuid::Uuid;
 use jsonapi::sort_order::SortOrder::*;
+use jsonapi::query_string::QueryString;
 use jsonapi::service::JsonApiService;
 use jsonapi::params::JsonApiResource;
-use jsonapi::queryspec::QueryStringParseError;
 use diesel::*;
-use std::str::FromStr;
 
 type TestConnection = ::diesel::sqlite::SqliteConnection;
 
@@ -47,9 +46,6 @@ impl Default for TestService {
         TestService {}
     }
 }
-
-//#[derive(JsonApiRepository)]
-//struct Foo;
 
 impl JsonApiService for TestService {
     type T = Test;
@@ -110,8 +106,7 @@ fn test() {
         published: true
     };
     let service = TestService {};
-
-    //let params = <Test as ToParams>::Params::from_str("").unwrap();
-    //service.save(model.clone()).unwrap();
-    //assert_eq!(model, service.find(&id, &params).unwrap().unwrap());
+    let params = <Test as QueryString>::from_str("").unwrap();
+    service.save(model.clone()).unwrap();
+    assert_eq!(model, service.find(id, &params).unwrap().unwrap());
 }

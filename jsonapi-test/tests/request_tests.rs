@@ -14,28 +14,23 @@ extern crate serde_json;
 use self::router::Router;
 
 use jsonapi::array::JsonApiArray;
-use std::str::FromStr;
-use std::net::ToSocketAddrs;
-use iron::Url;
-use iron::Request;
-use iron::typemap::TypeMap;
-use iron::method::Method;
-use uuid::Uuid;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use jsonapi::query_string::QueryString;
 use jsonapi::params::JsonApiResource;
 use jsonapi::object::JsonApiObject;
+use jsonapi::service::JsonGet;
+use jsonapi::service::JsonIndex;
+use jsonapi::service::JsonDelete;
 use jsonapi::service::JsonApiService;
-use jsonapi::iron::IronHandlers;
+use std::marker::PhantomData;
+use jsonapi::iron::DeleteRouter;
 use jsonapi::iron::GetHandler;
 use jsonapi::iron::IndexHandler;
+use jsonapi::iron::DeleteHandler;
 use iron::headers::ContentType;
-use iron::{Handler, Headers, status};
-use iron::IronResult;
-use iron::Response;
-use iron::mime::Mime;
+use iron::Headers;
 use iron_test::{request, response};
 
 use jsonapi::queryspec::ToJson;
@@ -78,11 +73,11 @@ impl Display for TestError {
     }
 }
 
-impl JsonApiService for FooService {
-    type T = Foo;
+impl JsonGet for Foo {
     type Error = TestError;
+    type Context = FooService;
 
-    fn find(&self, id: String, _: &<Foo as JsonApiResource>::Params) -> Result<Option<Foo>, Self::Error> {
+    fn find(id: Self::JsonApiIdType, params: &Self::Params, ctx: Self::Context) -> Result<Option<Self>, Self::Error> {
         Ok(Some(Foo {
             id: "1".to_string(),
             body: "test".to_string(),
@@ -90,8 +85,13 @@ impl JsonApiService for FooService {
             published: true
         }))
     }
+}
 
-    fn find_all(&self, params: &<Foo as JsonApiResource>::Params) -> Result<Vec<Foo>, Self::Error> {
+impl JsonIndex for Foo {
+    type Error = TestError;
+    type Context = FooService;
+
+    fn find(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
         Ok(vec![Foo {
             id: "1".to_string(),
             body: "test".to_string(),
@@ -99,20 +99,27 @@ impl JsonApiService for FooService {
             published: true
         }])
     }
+}
 
-    fn save(&self, record: Foo) -> Result<Foo, Self::Error> {
-        Err(TestError("fail".to_string()))
-    }
+impl JsonDelete for Foo {
+    type Error = TestError;
+    type Context = FooService;
 
-    fn delete(&self, id: String) -> Result<(), Self::Error> {
+    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
         Err(TestError("fail".to_string()))
     }
 }
 
 fn app_router() -> Router {
     let mut router = Router::new();
-    router.get("/foos", move |r: &mut Request| <FooService as IronHandlers<FooService>>::IndexHandler::index(r), "index_foos");
-    router.get("/foos/:id", move |r: &mut Request| <FooService as IronHandlers<FooService>>::GetHandler::get(r), "get_foo");
+    router.get("/foos", move |r: &mut Request| <Foo as IndexHandler<Foo>>::get(r), "index_foos");
+    router.get("/foos/:id", move |r: &mut Request| <Foo as GetHandler<Foo>>::get(r), "get_foo");
+    /*
+    router.delete("/foos/:id", move |r: &mut Request| {
+        <Foo as DeleteHandler<Foo>>::delete(r)
+    }, "delete_foo");
+    */
+    router.jsonapi_delete(PhantomData::<Foo>);
     router
 }
 
