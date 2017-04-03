@@ -6,7 +6,6 @@ pub mod object;
 pub mod data;
 pub mod id;
 pub mod try_from;
-pub mod query_string;
 pub mod params;
 pub mod request;
 pub mod errors;

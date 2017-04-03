@@ -16,10 +16,9 @@ extern crate jsonapi;
 
 use uuid::Uuid;
 use jsonapi::sort_order::SortOrder::*;
-use jsonapi::query_string::QueryString;
-use jsonapi::service::JsonApiService;
 use jsonapi::params::JsonApiResource;
 use diesel::*;
+use jsonapi::service::*;
 
 type TestConnection = ::diesel::sqlite::SqliteConnection;
 
@@ -34,7 +33,7 @@ struct Test {
     id: String,
     title: String,
     body: String,
-    published: bool
+    published: bool,
 }
 
 #[derive(JsonApiRepository)]
@@ -47,52 +46,71 @@ impl Default for TestService {
     }
 }
 
-impl JsonApiService for TestService {
-    type T = Test;
-    type Error = diesel::result::Error;
 
-    fn find(&self, id: String, _: &<Test as JsonApiResource>::Params) -> Result<Option<Test>, Self::Error> {
+impl JsonGet for Test {
+    type Error = diesel::result::Error;
+    type Context = TestService;
+
+    fn find(id: Self::JsonApiIdType,
+            params: &Self::Params,
+            ctx: Self::Context)
+            -> Result<Option<Self>, Self::Error> {
         table.find(id).first(&connection()).optional()
     }
+}
 
-    fn find_all(&self, params: &<Test as JsonApiResource>::Params) -> Result<Vec<Test>, Self::Error> {
+impl JsonIndex for Test {
+    type Error = diesel::result::Error;
+    type Context = TestService;
+
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
         use self::test::sort::*;
 
         let mut query = table.into_boxed();
 
         for order in &params.sort.fields {
             match order {
-                &title(Asc) => { query = query.order(column::title); },
-                &title(Desc) => { query = query.order(column::title.desc()); },
-                &body(Asc) => { query = query.order(column::body); },
-                &body(Desc) => { query = query.order(column::body.desc()); }
-                &published(Asc) => { query = query.order(column::published); },
-                &published(Desc) => { query = query.order(column::published.desc()); }
+                &title(Asc) => {
+                    query = query.order(column::title);
+                }
+                &title(Desc) => {
+                    query = query.order(column::title.desc());
+                }
+                &body(Asc) => {
+                    query = query.order(column::body);
+                }
+                &body(Desc) => {
+                    query = query.order(column::body.desc());
+                }
+                &published(Asc) => {
+                    query = query.order(column::published);
+                }
+                &published(Desc) => {
+                    query = query.order(column::published.desc());
+                }
             };
         }
 
         query.load(&connection())
     }
+}
 
-    fn save(&self, record: Test) -> Result<Test, Self::Error> {
-        diesel::insert(&record).into(table).execute(&connection()).map(|_| record)
-    }
+impl JsonDelete for Test {
+    type Error = diesel::result::Error;
+    type Context = TestService;
 
-    fn delete(&self, id: String) -> Result<(), Self::Error> {
+    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
         diesel::delete(table.find(id)).execute(&connection()).map(|_| ())
     }
 }
 
 fn connection() -> TestConnection {
     let result = connection_without_transaction();
-    //result.begin_test_transaction().unwrap();
     result
 }
 
 fn connection_without_transaction() -> TestConnection {
     let connection = ::diesel::sqlite::SqliteConnection::establish("/tmp/test.db").unwrap();
-    //let migrations_dir = ::diesel::migrations::find_migrations_directory().unwrap().join("sqlite");
-    //::diesel::migrations::run_pending_migrations_in_directory(&connection, &migrations_dir, &mut io::sink()).unwrap();
     connection
 }
 
@@ -103,10 +121,10 @@ fn test() {
         id: id.clone(),
         title: "1".to_string(),
         body: "1".to_string(),
-        published: true
+        published: true,
     };
     let service = TestService {};
-    let params = <Test as QueryString>::from_str("").unwrap();
-    service.save(model.clone()).unwrap();
-    assert_eq!(model, service.find(id, &params).unwrap().unwrap());
+    let params = <Test as JsonApiResource>::from_str("").unwrap();
+    //service.save(model.clone()).unwrap();
+    //assert_eq!(model, Test::find(id, &params, Default::default()).unwrap().unwrap());
 }

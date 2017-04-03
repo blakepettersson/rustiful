@@ -6,20 +6,18 @@ static NOT_FOUND: &'static str = "Not found";
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum RequestError {
-    NotFound
+    NotFound,
 }
 
 impl Display for RequestError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
-            RequestError::NotFound => {
-                write!(f, "{}", NOT_FOUND)
-            },
+            RequestError::NotFound => write!(f, "{}", NOT_FOUND),
         }
     }
 }
 
-impl Error for RequestError  {
+impl Error for RequestError {
     fn description(&self) -> &str {
         match *self {
             //RequestError::NotFound(ref id) => id,
@@ -34,7 +32,7 @@ impl Error for RequestError  {
 
 #[derive(Debug)]
 pub struct RepositoryError {
-    pub error: Box<Error + Send>
+    pub error: Box<Error + Send>,
 }
 
 impl Display for RepositoryError {

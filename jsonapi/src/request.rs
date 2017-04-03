@@ -12,22 +12,18 @@ use params::TypedParams;
 use service::JsonDelete;
 use try_from::TryFrom;
 use sort_order::SortOrder;
-use query_string::QueryString;
 use queryspec::QueryStringParseError;
 use errors::RepositoryError;
 
 pub trait FromGet<'a, T> where
-    T: ToJson,
-    T: JsonGet,
-    T: JsonApiResource,
+    T: ToJson + JsonGet + JsonApiResource,
     T::JsonApiIdType: FromStr,
     <T as JsonGet>::Error : 'static,
     T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-    <T::JsonApiIdType as FromStr>::Err: Send + Error,
-    <T::JsonApiIdType as FromStr>::Err: 'static,
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
 {
     fn get(id: &'a str, query: &'a str, ctx: T::Context) -> Result<JsonApiObject<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
         match <T as JsonApiResource>::from_str(query) {
@@ -52,27 +48,21 @@ pub trait FromGet<'a, T> where
 }
 
 impl <'a, T> FromGet<'a, T> for T where
-        T: ToJson,
-        T: JsonGet,
-        T: JsonApiResource,
-        T::JsonApiIdType: FromStr,
-        <T as JsonGet>::Error : 'static,
-        <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-        T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error,
-        <T::JsonApiIdType as FromStr>::Err: 'static {}
-
-pub trait FromIndex<'a, T> where
-    T: ToJson,
-    T: JsonIndex,
-    T: JsonApiResource,
+    T: ToJson + JsonGet + JsonApiResource,
+    T::JsonApiIdType: FromStr,
+    <T as JsonGet>::Error : 'static,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-    <T as JsonIndex>::Error: Send,
-    <T as JsonIndex>::Error : 'static,
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {}
+
+pub trait FromIndex<'a, T> where
+    T: ToJson + JsonIndex + JsonApiResource,
+    <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
+    <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    <T as JsonIndex>::Error: Send + 'static,
     T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
 {
     fn get(query: &'a str, ctx: T::Context) -> Result<JsonApiArray<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
@@ -80,7 +70,7 @@ pub trait FromIndex<'a, T> where
             Ok(params) => {
                 let params:<T as JsonApiResource>::Params = params.into();
 
-                match <T as JsonIndex>::find(&params, ctx) {
+                match <T as JsonIndex>::find_all(&params, ctx) {
                     Ok(result) => {
                         let data: Vec<JsonApiData<<T as ToJson>::Attrs>> = result.into_iter()
                             .map(|e| (e, &params).into())
@@ -96,23 +86,20 @@ pub trait FromIndex<'a, T> where
 }
 
 impl <'a, T> FromIndex<'a, T> for T where
-        T: ToJson,
-        T: JsonIndex,
-        T: JsonApiResource,
+        T: ToJson + JsonIndex + JsonApiResource,
         <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
         <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-        <T as JsonIndex>::Error: Send,
-        <T as JsonIndex>::Error : 'static,
+        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+        <T as JsonIndex>::Error: Send + 'static,
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>
 {
 }
 
-pub trait FromDelete<'a, T> where
-    T: ToJson + JsonDelete + JsonApiResource,
-    T::JsonApiIdType: FromStr,
-    <T as JsonDelete>::Error : Send + 'static,
-    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+pub trait FromDelete<'a, T>
+    where T: ToJson + JsonDelete + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          <T as JsonDelete>::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
 {
     fn delete(id: &'a str, ctx: T::Context) -> Result<(), RepositoryError> {
         match <<T as JsonApiResource>::JsonApiIdType>::from_str(id) {
@@ -127,8 +114,10 @@ pub trait FromDelete<'a, T> where
     }
 }
 
-impl <'a, T> FromDelete<'a, T> for T where
-    T: ToJson + JsonDelete + JsonApiResource + QueryString<'a>,
-    T::JsonApiIdType: FromStr,
-    <T as JsonDelete>::Error : Send + 'static,
-    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {}
+impl<'a, T> FromDelete<'a, T> for T
+    where T: ToJson + JsonDelete + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          <T as JsonDelete>::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+{
+}

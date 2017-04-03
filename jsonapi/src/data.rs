@@ -20,14 +20,15 @@ impl<T> JsonApiData<T> {
     }
 }
 
-impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)>
-    for JsonApiData<T::Attrs>
+impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)> for JsonApiData<T::Attrs>
     where T: ToJson,
           T: JsonApiResource,
           T::Attrs: From<(T, &'a <T as JsonApiResource>::Params)>
 {
     fn from(tuple: (T, &'a <T as JsonApiResource>::Params)) -> Self {
         let (model, params) = tuple;
-        JsonApiData::new(model.id(), model.type_name(), T::Attrs::from((model, params)))
+        JsonApiData::new(model.id(),
+                         model.type_name(),
+                         T::Attrs::from((model, params)))
     }
 }

@@ -4,12 +4,16 @@ use queryspec::QueryStringParseError;
 use sort_order::SortOrder;
 
 pub trait JsonApiResource: Sized {
-    type Params: Params;
+    type Params: Default + TypedParams<Self::SortField, Self::FilterField>;
     type SortField;
     type FilterField;
     type JsonApiIdType;
 
-    fn from_str<'a>(query_string: &'a str) -> Result<Self::Params, QueryStringParseError> where Self::Params : Default + Params + TypedParams<SortField = Self::SortField, FilterField = Self::FilterField> + TryFrom<(&'a str, SortOrder, Self::Params), Err = QueryStringParseError> + TryFrom<(&'a str, Vec<&'a str>, Self::Params), Err = QueryStringParseError>
+    fn from_str<'a>(query_string: &'a str) -> Result<Self::Params, QueryStringParseError>
+        where
+            Self::Params :
+            TryFrom<(&'a str, SortOrder, Self::Params), Err = QueryStringParseError> +
+            TryFrom<(&'a str, Vec<&'a str>, Self::Params), Err = QueryStringParseError>
     {
         let mut params: Self::Params = Default::default();
 
@@ -95,11 +99,9 @@ pub trait JsonApiResource: Sized {
     }
 }
 
-pub trait TypedParams {
-    type SortField;
-    type FilterField;
-    fn sort(&mut self) -> &mut Vec<Self::SortField>;
-    fn filter(&mut self) -> &mut Vec<Self::FilterField>;
+pub trait TypedParams<SortField, FilterField> {
+    fn sort(&mut self) -> &mut Vec<SortField>;
+    fn filter(&mut self) -> &mut Vec<FilterField>;
     fn query_params(&mut self) -> &mut HashMap<String, String>;
 }
 

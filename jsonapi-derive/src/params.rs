@@ -104,7 +104,6 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use jsonapi::params::TypedParams;
             use jsonapi::sort_order::SortOrder;
             use jsonapi::params::JsonApiResource;
-            use jsonapi::query_string::QueryString;
             use jsonapi::queryspec::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
@@ -144,10 +143,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 pub query_params: HashMap<String, String>
             }
 
-            impl TypedParams for #generated_params_type_name {
-                type SortField = sort;
-                type FilterField = field;
-
+            impl TypedParams<sort, field> for #generated_params_type_name {
                 fn filter(&mut self) -> &mut Vec<field> {
                     &mut self.filter.fields
                 }
@@ -165,7 +161,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             impl<'a> TryFrom<(&'a str, SortOrder, #generated_params_type_name)> for #generated_params_type_name {
                 type Err = QueryStringParseError;
 
-                fn try_from(mut tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                fn try_from(tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Err> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
 
                     let (field, order, mut params) = tuple;
@@ -182,7 +178,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             impl<'a> TryFrom<(&'a str, Vec<&'a str>, #generated_params_type_name)> for #generated_params_type_name {
                 type Err = QueryStringParseError;
 
-                fn try_from(mut tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                fn try_from(tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Err> {
                     let (model, fields, mut params) = tuple;
                     match model {
                         #json_name => {
@@ -204,14 +200,6 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
                     Ok(params)
                 }
-            }
-
-            impl Params for #generated_params_type_name {}
-
-            impl <'a> QueryString<'a> for #name {
-                type Params = #generated_params_type_name;
-                type SortField = sort;
-                type FilterField = field;
             }
 
             impl JsonApiResource for #name {

@@ -10,7 +10,6 @@ use self::iron::prelude::*;
 use self::iron::status;
 use self::iron::mime::Mime;
 use queryspec::ToJson;
-use query_string::QueryString;
 use params::JsonApiResource;
 use params::TypedParams;
 use queryspec::QueryStringParseError;
@@ -45,7 +44,7 @@ pub trait GetHandler<'a, T> where
     T::JsonApiIdType: FromStr,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
     T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
     <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
 {
@@ -80,21 +79,19 @@ impl <'a, T> GetHandler<'a, T> for T where
     T::JsonApiIdType: FromStr,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
     T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
     <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {}
 
 pub trait IndexHandler<'a, T> where
     T: JsonIndex + ToJson +
-    //QueryString<'a> +
     FromIndex<'a, T>,
     T::Context : Default,
     T::Error: Send + 'static,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
-    //<T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>
 {
     fn get(req: &'a mut Request) -> IronResult<Response> {
         let content_type:Mime = "application/vnd.api+json".parse().unwrap();
@@ -114,82 +111,79 @@ pub trait IndexHandler<'a, T> where
 }
 
 impl <'a, T> IndexHandler<'a, T> for T where
-    T: JsonIndex + ToJson +
-    //QueryString<'a> +
-    FromIndex<'a, T>,
+    T: JsonIndex + ToJson + FromIndex<'a, T>,
     T::Context : Default,
     T::Error: Send + 'static,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
     <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
-    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
-    //<T as JsonApiResource>::Params: From<<T as QueryString<'a>>::Params>
-{}
+    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)> {}
 
-pub trait DeleteHandler<'a, T> where
-    T: JsonDelete + ToJson + QueryString<'a> + FromDelete<'a, T>,
-    T::Error : Send + 'static,
-    T::Context: Default,
-    T::JsonApiIdType: FromStr,
-    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+pub trait DeleteHandler<'a, T>
+    where T: JsonDelete + ToJson + FromDelete<'a, T>,
+          T::Error: Send + 'static,
+          T::Context: Default,
+          T::JsonApiIdType: FromStr,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
 {
     fn delete(req: &'a mut Request) -> IronResult<Response> {
-        let content_type:Mime = "application/vnd.api+json".parse().unwrap();
+        let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
         let router = req.extensions
             .get::<router::Router>()
             .expect("Expected to get a Router from the request extensions.");
 
-        let repository:<T as JsonDelete>::Context = Default::default();
+        let repository: <T as JsonDelete>::Context = Default::default();
         let id = router.find("id").unwrap();
         match <T as FromDelete<T>>::delete(id, repository) {
-            Ok(_) => {
-                Ok(Response::with((content_type, status::NoContent)))
-            },
-            Err(e) => Err(IronError::new(e, status::InternalServerError))
+            Ok(_) => Ok(Response::with((content_type, status::NoContent))),
+            Err(e) => Err(IronError::new(e, status::InternalServerError)),
         }
 
     }
 }
 
-impl <'a, T> DeleteHandler<'a, T> for T where
-    T: JsonDelete + ToJson + QueryString<'a> + FromDelete<'a, T>,
-    T::Error : Send + 'static,
-    T::Context: Default,
-    T::JsonApiIdType: FromStr,
-    <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
-    {}
+impl<'a, T> DeleteHandler<'a, T> for T
+    where T: JsonDelete + ToJson + FromDelete<'a, T>,
+          T::Error: Send + 'static,
+          T::Context: Default,
+          T::JsonApiIdType: FromStr,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+{
+}
 
 pub trait DeleteRouter {
-    fn jsonapi_delete<'a, T>(&mut self, _: PhantomData<T>) where
-        T: JsonDelete + JsonApiResource + ToJson + for<'b> QueryString<'b> + for<'b> DeleteHandler<'b, T>,
-        T::Error : Send + 'static,
-        T::JsonApiIdType: FromStr,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
+    fn jsonapi_delete<'a, T>(&mut self, _: PhantomData<T>)
+        where T: JsonDelete + JsonApiResource + ToJson + for<'b> DeleteHandler<'b, T>,
+              T::Error: Send + 'static,
+              T::JsonApiIdType: FromStr,
+              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
 
 impl DeleteRouter for Router {
-    fn jsonapi_delete<'a, T>(&mut self, _: PhantomData<T>) where
-        T: JsonDelete + JsonApiResource + ToJson + for<'b> QueryString<'b> + for<'b> DeleteHandler<'b, T>,
-        T::Error : Send + 'static,
-        T::JsonApiIdType: FromStr,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
+    fn jsonapi_delete<'a, T>(&mut self, _: PhantomData<T>)
+        where T: JsonDelete + JsonApiResource + ToJson + for<'b> DeleteHandler<'b, T>,
+              T::Error: Send + 'static,
+              T::JsonApiIdType: FromStr,
+              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+    {
 
-        self.delete("/foos/:id", move |r: &mut Request| {
-            <T as DeleteHandler<T>>::delete(r)
-        }, "delete_foo");
+        self.delete("/foos/:id",
+                    move |r: &mut Request| {
+                        <T as DeleteHandler<T>>::delete(r)
+                    },
+                    "delete_foo");
     }
 }
 
 pub trait GetRouter {
     fn jsonapi_get<'a, T>(&mut self, _: PhantomData<T>) where
-        T: JsonGet + JsonApiResource + ToJson +
-            for<'b> GetHandler<'b, T>,
+        T: JsonGet + JsonApiResource + ToJson + for<'b> GetHandler<'b, T>,
         T::Error : Send + 'static,
         T::JsonApiIdType: FromStr,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
@@ -201,25 +195,24 @@ impl GetRouter for Router {
         T::JsonApiIdType: FromStr,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
-        self.get("/foos/:id", move |r: &mut Request| {
-            <T as GetHandler<T>>::get(r)
-        }, "get_foo");
+        self.get("/foos/:id",
+                 move |r: &mut Request| <T as GetHandler<T>>::get(r),
+                 "get_foo");
     }
 }
 
 pub trait IndexRouter {
     fn jsonapi_index<'a, T>(&mut self, _: PhantomData<T>) where
-        T: JsonIndex + JsonApiResource + ToJson +
-            for<'b> IndexHandler<'b, T>,
+        T: JsonIndex + JsonApiResource + ToJson + for<'b> IndexHandler<'b, T>,
         T::Error : Send + 'static,
         T::JsonApiIdType: FromStr,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
@@ -231,12 +224,12 @@ impl IndexRouter for Router {
         T::JsonApiIdType: FromStr,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
         <T as JsonApiResource>::Params: for<'b> TryFrom<(&'b str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<SortField = <T as JsonApiResource>::SortField, FilterField = <T as JsonApiResource>::FilterField> + Default,
+        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
-        self.get("/foos", move |r: &mut Request| {
-            <T as IndexHandler<T>>::get(r)
-        }, "index_foos");
+        self.get("/foos",
+                 move |r: &mut Request| <T as IndexHandler<T>>::get(r),
+                 "index_foos");
     }
 }

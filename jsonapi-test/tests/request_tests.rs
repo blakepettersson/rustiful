@@ -17,13 +17,11 @@ use jsonapi::array::JsonApiArray;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use jsonapi::query_string::QueryString;
 use jsonapi::params::JsonApiResource;
 use jsonapi::object::JsonApiObject;
 use jsonapi::service::JsonGet;
 use jsonapi::service::JsonIndex;
 use jsonapi::service::JsonDelete;
-use jsonapi::service::JsonApiService;
 use std::marker::PhantomData;
 use jsonapi::iron::DeleteRouter;
 use jsonapi::iron::GetHandler;
@@ -79,12 +77,15 @@ impl JsonGet for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn find(id: Self::JsonApiIdType, params: &Self::Params, ctx: Self::Context) -> Result<Option<Self>, Self::Error> {
+    fn find(id: Self::JsonApiIdType,
+            params: &Self::Params,
+            ctx: Self::Context)
+            -> Result<Option<Self>, Self::Error> {
         Ok(Some(Foo {
             id: "1".to_string(),
             body: "test".to_string(),
             title: "test".to_string(),
-            published: true
+            published: true,
         }))
     }
 }
@@ -93,13 +94,13 @@ impl JsonIndex for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn find(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
         Ok(vec![Foo {
-            id: "1".to_string(),
-            body: "test".to_string(),
-            title: "test".to_string(),
-            published: true
-        }])
+                    id: "1".to_string(),
+                    body: "test".to_string(),
+                    title: "test".to_string(),
+                    published: true,
+                }])
     }
 }
 
@@ -128,18 +129,16 @@ fn parse_json_api_index_get() {
     let content_type = headers.get::<ContentType>().expect("no content type found!");
     let result = response::extract_body_to_string(response);
     let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
+    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),
         body: "test".to_string(),
         title: "test".to_string(),
-        published: true
+        published: true,
     };
-    let data:<Foo as ToJson>::Resource = (test, &params).into();
-    let expected:JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray {
-        data: vec![data]
-    };
+    let data: <Foo as ToJson>::Resource = (test, &params).into();
+    let expected: JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray { data: vec![data] };
 
     assert_eq!(expected, records);
 }
@@ -151,18 +150,16 @@ fn parse_json_api_single_get() {
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
     let record: JsonApiObject<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as QueryString>::from_str("").expect("failed to unwrap params");
+    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),
         body: "test".to_string(),
         title: "test".to_string(),
-        published: true
+        published: true,
     };
-    let data:<Foo as ToJson>::Resource = (test, &params).into();
-    let expected:JsonApiObject<<Foo as ToJson>::Resource> = JsonApiObject {
-        data: data
-    };
+    let data: <Foo as ToJson>::Resource = (test, &params).into();
+    let expected: JsonApiObject<<Foo as ToJson>::Resource> = JsonApiObject { data: data };
 
     assert_eq!(expected, record);
 }
