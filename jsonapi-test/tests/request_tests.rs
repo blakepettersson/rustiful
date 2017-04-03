@@ -31,6 +31,8 @@ use jsonapi::iron::IndexHandler;
 use jsonapi::iron::DeleteHandler;
 use iron::headers::ContentType;
 use iron::Headers;
+use jsonapi::iron::GetRouter;
+use jsonapi::iron::IndexRouter;
 use iron_test::{request, response};
 
 use jsonapi::queryspec::ToJson;
@@ -112,13 +114,8 @@ impl JsonDelete for Foo {
 
 fn app_router() -> Router {
     let mut router = Router::new();
-    router.get("/foos", move |r: &mut Request| <Foo as IndexHandler<Foo>>::get(r), "index_foos");
-    router.get("/foos/:id", move |r: &mut Request| <Foo as GetHandler<Foo>>::get(r), "get_foo");
-    /*
-    router.delete("/foos/:id", move |r: &mut Request| {
-        <Foo as DeleteHandler<Foo>>::delete(r)
-    }, "delete_foo");
-    */
+    router.jsonapi_get(PhantomData::<Foo>);
+    router.jsonapi_index(PhantomData::<Foo>);
     router.jsonapi_delete(PhantomData::<Foo>);
     router
 }
