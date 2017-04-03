@@ -168,11 +168,11 @@ impl DeleteRouter for Router {
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
 
-        self.delete("/foos/:id",
+        self.delete(format!("/{}/:id", T::resource_name()),
                     move |r: &mut Request| {
                         <T as DeleteHandler<T>>::delete(r)
                     },
-                    "delete_foo");
+                    format!("delete_{}", T::resource_name()));
     }
 }
 
@@ -199,9 +199,9 @@ impl GetRouter for Router {
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
-        self.get("/foos/:id",
+        self.get(format!("/{}/:id", T::resource_name()),
                  move |r: &mut Request| <T as GetHandler<T>>::get(r),
-                 "get_foo");
+                 format!("get_{}", T::resource_name()));
     }
 }
 
@@ -228,8 +228,8 @@ impl IndexRouter for Router {
         T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
-        self.get("/foos",
+        self.get(format!("/{}", T::resource_name()),
                  move |r: &mut Request| <T as IndexHandler<T>>::get(r),
-                 "index_foos");
+                 format!("index_{}", T::resource_name()));
     }
 }

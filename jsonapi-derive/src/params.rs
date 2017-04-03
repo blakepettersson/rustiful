@@ -42,6 +42,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
     let json_name = lower_case_name.to_string();
     // Shadows the json_name above - the variable above is only used for the unwrapping on the line below.
     let json_name = struct_rename_attr.first().unwrap_or(&json_name);
+    let pluralized_name = lower_case_name.to_string().to_plural().to_kebab_case();
 
     // Used in the quasi-quotation below as `#generated_field_type_name`; append name + `Fields` to the new struct name
     let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
@@ -207,6 +208,10 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
                 type Params = #generated_params_type_name;
                 type SortField = sort;
                 type FilterField = field;
+
+                fn resource_name() -> &'static str {
+                    #pluralized_name.as_ref()
+                }
             }
         }
     }

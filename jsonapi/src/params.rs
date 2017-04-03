@@ -9,6 +9,8 @@ pub trait JsonApiResource: Sized {
     type FilterField;
     type JsonApiIdType;
 
+    fn resource_name() -> &'static str;
+
     fn from_str<'a>(query_string: &'a str) -> Result<Self::Params, QueryStringParseError>
         where
             Self::Params :
