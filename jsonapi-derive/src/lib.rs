@@ -10,7 +10,6 @@ extern crate proc_macro;
 mod util;
 mod json;
 mod params;
-mod request;
 
 use syn::DeriveInput;
 use proc_macro::TokenStream;
@@ -36,11 +35,6 @@ pub fn generate_json_api_models(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(JsonApiParams)]
 pub fn generate_json_api_request_parameters(input: TokenStream) -> TokenStream {
     params::expand_json_api_fields(&parse_derive_input(input)).parse().unwrap()
-}
-
-#[proc_macro_derive(JsonApiRepository, attributes(resource))]
-pub fn generate_jsonapi_req_handlers(input: TokenStream) -> TokenStream {
-    request::expand_iron_request_methods(&parse_derive_input(input)).parse().unwrap()
 }
 
 fn parse_derive_input(input: TokenStream) -> DeriveInput {
