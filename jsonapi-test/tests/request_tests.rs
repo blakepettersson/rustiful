@@ -22,7 +22,8 @@ use jsonapi::object::JsonApiObject;
 use jsonapi::service::JsonGet;
 use jsonapi::service::JsonIndex;
 use jsonapi::service::JsonDelete;
-use std::marker::PhantomData;
+use jsonapi::iron::PostRouter;
+use jsonapi::service::JsonPost;
 use jsonapi::iron::DeleteRouter;
 use jsonapi::iron::GetHandler;
 use jsonapi::iron::IndexHandler;
@@ -44,8 +45,6 @@ struct Foo {
     published: bool,
 }
 
-#[derive(JsonApiRepository)]
-#[resource="tests"]
 struct FooService;
 
 impl Default for FooService {
@@ -113,11 +112,26 @@ impl JsonDelete for Foo {
     }
 }
 
+impl JsonPost for Foo {
+    type Error = TestError;
+    type Context = FooService;
+
+    fn create(id: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+        Ok(Foo {
+            id: "1".to_string(),
+            body: "test".to_string(),
+            title: "test".to_string(),
+            published: true,
+        })
+    }
+}
+
 fn app_router() -> Router {
     let mut router = Router::new();
-    router.jsonapi_get(PhantomData::<Foo>);
-    router.jsonapi_index(PhantomData::<Foo>);
-    router.jsonapi_delete(PhantomData::<Foo>);
+    router.jsonapi_get::<Foo>();
+    router.jsonapi_post::<Foo>();
+    router.jsonapi_index::<Foo>();
+    router.jsonapi_delete::<Foo>();
     router
 }
 

@@ -1,10 +1,8 @@
-extern crate serde;
-
 use std::fmt::*;
 use std::error::Error;
 use id::JsonApiId;
-use self::serde::ser::Serialize;
-use self::serde::de::Deserialize;
+use serde::ser::Serialize;
+use serde::de::Deserialize;
 
 pub trait ToJson {
     type Attrs: Serialize + Deserialize + Debug;

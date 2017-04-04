@@ -10,29 +10,36 @@ use service::JsonGet;
 use service::JsonIndex;
 use params::TypedParams;
 use service::JsonDelete;
+use service::JsonPatch;
+use service::JsonPost;
 use try_from::TryFrom;
 use sort_order::SortOrder;
 use queryspec::QueryStringParseError;
 use errors::RepositoryError;
 
+type JsonApiArrayResult<T> = Result<JsonApiArray<JsonApiData<T>>, RepositoryError>;
+type JsonApiSingleResult<T> = Result<JsonApiObject<JsonApiData<T>>, RepositoryError>;
+
 pub trait FromGet<'a, T> where
     T: ToJson + JsonGet + JsonApiResource,
     T::JsonApiIdType: FromStr,
-    <T as JsonGet>::Error : 'static,
-    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
+    T::Error : 'static,
+    T::Attrs: for<'b> From<(T, &'b T::Params)>,
+    T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
+    T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
+    T::Params: TypedParams<T::SortField, T::FilterField> + Default,
     <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
 {
-    fn get(id: &'a str, query: &'a str, ctx: T::Context) -> Result<JsonApiObject<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
-        match <T as JsonApiResource>::from_str(query) {
+    fn get(id: &'a str, query: &'a str, ctx: T::Context) -> JsonApiSingleResult<T::Attrs> {
+        match T::from_str(query) {
             Ok(params) => {
-                match <<T as JsonApiResource>::JsonApiIdType>::from_str(id) {
+                match <T::JsonApiIdType>::from_str(id) {
                     Ok(typed_id) => {
-                        match <T as JsonGet>::find(typed_id, &params, ctx) {
+                        match T::find(typed_id, &params, ctx) {
                             Ok(obj) => {
-                                let data: Option<JsonApiData<<T as ToJson>::Attrs>> = obj.map(|obj| (obj, &params).into());
+                                let data: Option<JsonApiData<T::Attrs>> = obj.map(|obj| {
+                                    (obj, &params).into()
+                                });
                                 let res = data.ok_or(RequestError::NotFound)?;
                                 Ok(JsonApiObject::<_> { data: res })
                             },
@@ -50,29 +57,27 @@ pub trait FromGet<'a, T> where
 impl <'a, T> FromGet<'a, T> for T where
     T: ToJson + JsonGet + JsonApiResource,
     T::JsonApiIdType: FromStr,
-    <T as JsonGet>::Error : 'static,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
-    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+    T::Error : 'static,
+    T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
+    T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
+    T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+    T::Attrs: for<'b> From<(T, &'b T::Params)>,
     <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {}
 
 pub trait FromIndex<'a, T> where
     T: ToJson + JsonIndex + JsonApiResource,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-    <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
-    <T as JsonIndex>::Error: Send + 'static,
-    T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>,
+    T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
+    T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
+    T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+    T::Error: Send + 'static,
+    T::Attrs: for<'b> From<(T, &'b T::Params)>,
 {
-    fn get(query: &'a str, ctx: T::Context) -> Result<JsonApiArray<JsonApiData<<T as ToJson>::Attrs>>, RepositoryError> {
-        match <T as JsonApiResource>::from_str(query) {
+    fn get(query: &'a str, ctx: T::Context) -> JsonApiArrayResult<T::Attrs> {
+        match T::from_str(query) {
             Ok(params) => {
-                let params:<T as JsonApiResource>::Params = params.into();
-
-                match <T as JsonIndex>::find_all(&params, ctx) {
+                match T::find_all(&params, ctx) {
                     Ok(result) => {
-                        let data: Vec<JsonApiData<<T as ToJson>::Attrs>> = result.into_iter()
+                        let data: Vec<JsonApiData<T::Attrs>> = result.into_iter()
                             .map(|e| (e, &params).into())
                             .collect();
                         Ok(JsonApiArray::<_> { data: data })
@@ -87,24 +92,75 @@ pub trait FromIndex<'a, T> where
 
 impl <'a, T> FromIndex<'a, T> for T where
         T: ToJson + JsonIndex + JsonApiResource,
-        <T as JsonApiResource>::Params: TryFrom<(&'a str, Vec<&'a str>, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TryFrom<(&'a str, SortOrder, <T as JsonApiResource>::Params), Err = QueryStringParseError>,
-        <T as JsonApiResource>::Params: TypedParams<<T as JsonApiResource>::SortField, <T as JsonApiResource>::FilterField> + Default,
-        <T as JsonIndex>::Error: Send + 'static,
-        T::Attrs: for<'b> From<(T, &'b <T as JsonApiResource>::Params)>
+        T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
+        T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
+        T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+        T::Error: Send + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> {}
+
+pub trait FromPost<'a, T>
+    where T: ToJson + JsonPost + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          T::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
+          T::Attrs: for<'b> From<(T, &'b T::Params)>,
+{
+    fn create(json: T::Resource, ctx: T::Context) -> JsonApiSingleResult<T::Attrs> {
+        match <T as JsonPost>::create(json, ctx) {
+            Ok(result) => Ok(JsonApiObject::<_> { data: result.into() }),
+            Err(e) => Err(RepositoryError { error: Box::new(e) })
+        }
+    }
+}
+
+impl<'a, T> FromPost<'a, T> for T
+    where T: ToJson + JsonPost + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          T::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
+          T::Attrs: for<'b> From<(T, &'b T::Params)>
+{
+}
+
+pub trait FromPatch<'a, T>
+    where T: ToJson + JsonPatch + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          T::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
+          T::Attrs: for<'b> From<(T, &'b T::Params)>,
+{
+    fn patch(id: &'a str, json: T::Resource, ctx: T::Context) -> JsonApiSingleResult<T::Attrs> {
+        match <T::JsonApiIdType>::from_str(id) {
+            Ok(typed_id) => {
+                match <T as JsonPatch>::update(typed_id, json, ctx) {
+                    Ok(result) => Ok(JsonApiObject::<_> { data: result.into() }),
+                    Err(e) => Err(RepositoryError { error: Box::new(e) })
+                }
+            },
+            Err(e) => Err(RepositoryError { error: Box::new(e) })
+        }
+    }
+}
+
+impl<'a, T> FromPatch<'a, T> for T
+    where T: ToJson + JsonPatch + JsonApiResource,
+          T::JsonApiIdType: FromStr,
+          T::Error: Send + 'static,
+          <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
+          T::Attrs: for<'b> From<(T, &'b T::Params)>
 {
 }
 
 pub trait FromDelete<'a, T>
     where T: ToJson + JsonDelete + JsonApiResource,
           T::JsonApiIdType: FromStr,
-          <T as JsonDelete>::Error: Send + 'static,
+          T::Error: Send + 'static,
           <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
 {
     fn delete(id: &'a str, ctx: T::Context) -> Result<(), RepositoryError> {
-        match <<T as JsonApiResource>::JsonApiIdType>::from_str(id) {
+        match <T::JsonApiIdType>::from_str(id) {
             Ok(typed_id) => {
-                match <T as JsonDelete>::delete(typed_id, ctx) {
+                match T::delete(typed_id, ctx) {
                     Ok(_) => { Ok(()) },
                     Err(e) => Err(RepositoryError { error: Box::new(e) })
                 }
@@ -117,7 +173,7 @@ pub trait FromDelete<'a, T>
 impl<'a, T> FromDelete<'a, T> for T
     where T: ToJson + JsonDelete + JsonApiResource,
           T::JsonApiIdType: FromStr,
-          <T as JsonDelete>::Error: Send + 'static,
+          T::Error: Send + 'static,
           <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
 {
 }

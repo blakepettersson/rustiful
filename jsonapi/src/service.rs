@@ -1,9 +1,8 @@
 extern crate serde;
 
 use std;
+use queryspec::ToJson;
 use params::JsonApiResource;
-
-//fn save(&self, record: Self::T) -> Result<Self::T, Self::Error>;
 
 pub trait JsonGet
     where Self: JsonApiResource
@@ -15,6 +14,24 @@ pub trait JsonGet
             params: &Self::Params,
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error>;
+}
+
+pub trait JsonPost
+    where Self: JsonApiResource + ToJson
+{
+    type Error: std::error::Error;
+    type Context: Default;
+
+    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error>;
+}
+
+pub trait JsonPatch
+    where Self: JsonApiResource + ToJson
+{
+    type Error: std::error::Error;
+    type Context: Default;
+
+    fn update(id: Self::JsonApiIdType, json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error>;
 }
 
 pub trait JsonIndex

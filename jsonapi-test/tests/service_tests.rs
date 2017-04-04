@@ -15,6 +15,10 @@ extern crate uuid;
 extern crate jsonapi;
 
 use uuid::Uuid;
+use jsonapi::queryspec::ToJson;
+use jsonapi::queryspec::QueryStringParseError;
+use jsonapi::try_from::TryFrom;
+use jsonapi::service::JsonPost;
 use jsonapi::sort_order::SortOrder::*;
 use jsonapi::params::JsonApiResource;
 use diesel::*;
@@ -36,8 +40,6 @@ struct Test {
     published: bool,
 }
 
-#[derive(JsonApiRepository)]
-#[resource="tests"]
 struct TestService;
 
 impl Default for TestService {
@@ -45,7 +47,6 @@ impl Default for TestService {
         TestService {}
     }
 }
-
 
 impl JsonGet for Test {
     type Error = diesel::result::Error;
@@ -56,6 +57,22 @@ impl JsonGet for Test {
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error> {
         table.find(id).first(&connection()).optional()
+    }
+}
+
+impl JsonPost for Test {
+    type Error = diesel::result::Error;
+    type Context = TestService;
+
+    fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+        //diesel::insert(&record).into(table).execute(&connection()).map(|_| record)
+        // TODO: Add try_into for test
+        Ok(Test {
+            id: "1".to_string(),
+            title: "1".to_string(),
+            body: "1".to_string(),
+            published: true
+        })
     }
 }
 
@@ -104,6 +121,15 @@ impl JsonDelete for Test {
     }
 }
 
+
+impl TryFrom<<Test as ToJson>::Resource> for Test {
+    type Error = QueryStringParseError;
+
+    fn try_from(json: <Test as ToJson>::Resource) -> Result<Self, Self::Error> {
+        Err(QueryStringParseError::UnImplementedError)
+    }
+}
+
 fn connection() -> TestConnection {
     let result = connection_without_transaction();
     result
@@ -125,6 +151,6 @@ fn test() {
     };
     let service = TestService {};
     let params = <Test as JsonApiResource>::from_str("").unwrap();
-    //service.save(model.clone()).unwrap();
-    //assert_eq!(model, Test::find(id, &params, Default::default()).unwrap().unwrap());
+    Test::create(model.clone().into(), service).unwrap();
+    assert_eq!(model, Test::find(id, &params, Default::default()).unwrap().unwrap());
 }

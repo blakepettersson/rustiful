@@ -1,3 +1,5 @@
+extern crate serde;
+
 pub mod queryspec;
 pub mod service;
 pub mod sort_order;
