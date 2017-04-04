@@ -101,7 +101,6 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use std::slice::Iter;
             use std::collections::HashMap;
             use jsonapi::try_from::TryFrom;
-            use jsonapi::params::Params;
             use jsonapi::params::TypedParams;
             use jsonapi::sort_order::SortOrder;
             use jsonapi::params::JsonApiResource;
@@ -160,9 +159,9 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
             /// Parses the sort query parameter.
             impl<'a> TryFrom<(&'a str, SortOrder, #generated_params_type_name)> for #generated_params_type_name {
-                type Err = QueryStringParseError;
+                type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                fn try_from(tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Error> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
 
                     let (field, order, mut params) = tuple;
@@ -177,9 +176,9 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
             /// Parses the field query parameter(s).
             impl<'a> TryFrom<(&'a str, Vec<&'a str>, #generated_params_type_name)> for #generated_params_type_name {
-                type Err = QueryStringParseError;
+                type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Err> {
+                fn try_from(tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Error> {
                     let (model, fields, mut params) = tuple;
                     match model {
                         #json_name => {

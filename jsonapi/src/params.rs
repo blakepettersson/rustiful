@@ -14,8 +14,8 @@ pub trait JsonApiResource: Sized {
     fn from_str<'a>(query_string: &'a str) -> Result<Self::Params, QueryStringParseError>
         where
             Self::Params :
-            TryFrom<(&'a str, SortOrder, Self::Params), Err = QueryStringParseError> +
-            TryFrom<(&'a str, Vec<&'a str>, Self::Params), Err = QueryStringParseError>
+            TryFrom<(&'a str, SortOrder, Self::Params), Error = QueryStringParseError> +
+            TryFrom<(&'a str, Vec<&'a str>, Self::Params), Error = QueryStringParseError>
     {
         let mut params: Self::Params = Default::default();
 
@@ -106,5 +106,3 @@ pub trait TypedParams<SortField, FilterField> {
     fn filter(&mut self) -> &mut Vec<FilterField>;
     fn query_params(&mut self) -> &mut HashMap<String, String>;
 }
-
-pub trait Params {}
