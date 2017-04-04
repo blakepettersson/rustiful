@@ -104,7 +104,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use jsonapi::params::TypedParams;
             use jsonapi::sort_order::SortOrder;
             use jsonapi::params::JsonApiResource;
-            use jsonapi::queryspec::QueryStringParseError;
+            use jsonapi::errors::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]

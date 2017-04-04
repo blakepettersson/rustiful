@@ -16,7 +16,7 @@ extern crate jsonapi;
 
 use uuid::Uuid;
 use jsonapi::queryspec::ToJson;
-use jsonapi::queryspec::QueryStringParseError;
+use jsonapi::errors::QueryStringParseError;
 use jsonapi::try_from::TryFrom;
 use jsonapi::service::JsonPost;
 use jsonapi::sort_order::SortOrder::*;

@@ -14,8 +14,8 @@ use service::JsonPatch;
 use service::JsonPost;
 use try_from::TryFrom;
 use sort_order::SortOrder;
-use queryspec::QueryStringParseError;
 use errors::RepositoryError;
+use errors::QueryStringParseError;
 
 type JsonApiArrayResult<T> = Result<JsonApiArray<JsonApiData<T>>, RepositoryError>;
 type JsonApiSingleResult<T> = Result<JsonApiObject<JsonApiData<T>>, RepositoryError>;

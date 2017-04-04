@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use try_from::TryFrom;
-use queryspec::QueryStringParseError;
+use errors::QueryStringParseError;
 use sort_order::SortOrder;
 
 pub trait JsonApiResource: Sized {

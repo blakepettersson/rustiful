@@ -1,18 +1,61 @@
 use std::fmt::*;
 use std::error::Error;
-use queryspec::QueryStringParseError;
 
+static NO_BODY: &'static str = "No body";
 static NOT_FOUND: &'static str = "Not found";
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum QueryStringParseError {
+    InvalidParam(String),
+    InvalidKeyParam(String),
+    InvalidValue(String),
+    ParseError(String),
+    DuplicateSortKey(String),
+    UnImplementedError,
+}
+
+static UNIMPLEMENTED: &'static str = "Unimplemented";
+
+impl Display for QueryStringParseError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "Query string parse error: {}", description(self))
+    }
+}
+
+impl Error for QueryStringParseError {
+    fn description(&self) -> &str {
+        description(self)
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        None
+    }
+}
+
+fn description<'a>(error: &'a QueryStringParseError) -> &'a str {
+    use self::QueryStringParseError::*;
+
+    match *error {
+        InvalidParam(ref desc) => desc,
+        InvalidKeyParam(ref desc) => desc,
+        InvalidValue(ref desc) => desc,
+        ParseError(ref desc) => desc,
+        DuplicateSortKey(ref desc) => desc,
+        UnImplementedError => UNIMPLEMENTED,
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum RequestError {
-    NotFound,
+    NoBody,
+    NotFound
 }
 
 impl Display for RequestError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
-            RequestError::NotFound => write!(f, "{}", NOT_FOUND),
+            RequestError::NoBody => write!(f, "{}", self.description()),
+            RequestError::NotFound => write!(f, "{}", self.description()),
         }
     }
 }
@@ -20,7 +63,7 @@ impl Display for RequestError {
 impl Error for RequestError {
     fn description(&self) -> &str {
         match *self {
-            //RequestError::NotFound(ref id) => id,
+            RequestError::NoBody => NO_BODY,
             RequestError::NotFound => NOT_FOUND,
         }
     }
