@@ -6,9 +6,9 @@ extern crate jsonapi_derive;
 
 extern crate jsonapi;
 
-use jsonapi::params::JsonApiResource;
-use jsonapi::sort_order::SortOrder::*;
-use jsonapi::errors::QueryStringParseError;
+use jsonapi::SortOrder::*;
+use jsonapi::JsonApiResource;
+use jsonapi::QueryStringParseError;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {

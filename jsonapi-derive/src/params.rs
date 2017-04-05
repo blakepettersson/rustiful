@@ -100,11 +100,11 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use super::#name;
             use std::slice::Iter;
             use std::collections::HashMap;
-            use jsonapi::try_from::TryFrom;
-            use jsonapi::params::TypedParams;
-            use jsonapi::sort_order::SortOrder;
-            use jsonapi::params::JsonApiResource;
-            use jsonapi::errors::QueryStringParseError;
+            use jsonapi::TryFrom;
+            use jsonapi::SortOrder;
+            use jsonapi::TypedParams;
+            use jsonapi::JsonApiResource;
+            use jsonapi::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]

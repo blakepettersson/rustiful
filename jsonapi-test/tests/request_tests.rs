@@ -13,28 +13,25 @@ extern crate serde_json;
 
 use self::router::Router;
 
-use jsonapi::array::JsonApiArray;
+use jsonapi::JsonApiArray;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use jsonapi::params::JsonApiResource;
-use jsonapi::object::JsonApiObject;
-use jsonapi::service::JsonGet;
-use jsonapi::service::JsonIndex;
-use jsonapi::service::JsonDelete;
-use jsonapi::iron::PostRouter;
-use jsonapi::service::JsonPost;
-use jsonapi::iron::DeleteRouter;
-use jsonapi::iron::GetHandler;
-use jsonapi::iron::IndexHandler;
-use jsonapi::iron::DeleteHandler;
-use iron::headers::ContentType;
-use iron::Headers;
+use jsonapi::JsonApiResource;
+use jsonapi::JsonApiObject;
+use jsonapi::JsonGet;
+use jsonapi::JsonPost;
+use jsonapi::JsonIndex;
+use jsonapi::JsonDelete;
 use jsonapi::iron::GetRouter;
 use jsonapi::iron::IndexRouter;
+use jsonapi::iron::PostRouter;
+use jsonapi::iron::DeleteRouter;
+use iron::headers::ContentType;
+use iron::Headers;
 use iron_test::{request, response};
 
-use jsonapi::to_json::ToJson;
+use jsonapi::ToJson;
 use iron::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]

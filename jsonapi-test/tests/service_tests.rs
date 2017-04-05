@@ -15,14 +15,9 @@ extern crate uuid;
 extern crate jsonapi;
 
 use uuid::Uuid;
-use jsonapi::to_json::ToJson;
-use jsonapi::errors::QueryStringParseError;
-use jsonapi::try_from::TryFrom;
-use jsonapi::service::JsonPost;
-use jsonapi::sort_order::SortOrder::*;
-use jsonapi::params::JsonApiResource;
+use jsonapi::SortOrder::*;
 use diesel::*;
-use jsonapi::service::*;
+use jsonapi::*;
 
 type TestConnection = ::diesel::sqlite::SqliteConnection;
 

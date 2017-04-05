@@ -71,9 +71,9 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             use super::#name;
             use super::#lower_case_name::#generated_params_type_name;
 
-            use jsonapi::id::JsonApiId;
-            use jsonapi::data::JsonApiData;
-            use jsonapi::to_json::ToJson;
+            use jsonapi::ToJson;
+            use jsonapi::JsonApiId;
+            use jsonapi::JsonApiData;
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
             pub struct #generated_jsonapi_attrs {
