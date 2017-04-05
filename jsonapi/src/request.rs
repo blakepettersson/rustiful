@@ -2,7 +2,7 @@ use std::error::Error;
 use std::str::FromStr;
 use data::JsonApiData;
 use params::JsonApiResource;
-use queryspec::ToJson;
+use to_json::ToJson;
 use errors::RequestError;
 use object::JsonApiObject;
 use array::JsonApiArray;

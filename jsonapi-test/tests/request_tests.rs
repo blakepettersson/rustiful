@@ -34,7 +34,7 @@ use jsonapi::iron::GetRouter;
 use jsonapi::iron::IndexRouter;
 use iron_test::{request, response};
 
-use jsonapi::queryspec::ToJson;
+use jsonapi::to_json::ToJson;
 use iron::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]

@@ -15,7 +15,7 @@ extern crate uuid;
 extern crate jsonapi;
 
 use uuid::Uuid;
-use jsonapi::queryspec::ToJson;
+use jsonapi::to_json::ToJson;
 use jsonapi::errors::QueryStringParseError;
 use jsonapi::try_from::TryFrom;
 use jsonapi::service::JsonPost;

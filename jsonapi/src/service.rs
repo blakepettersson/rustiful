@@ -1,7 +1,7 @@
 extern crate serde;
 
 use std;
-use queryspec::ToJson;
+use to_json::ToJson;
 use params::JsonApiResource;
 
 pub trait JsonGet

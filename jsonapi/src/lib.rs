@@ -1,6 +1,6 @@
 extern crate serde;
 
-pub mod queryspec;
+pub mod to_json;
 pub mod service;
 pub mod sort_order;
 pub mod array;

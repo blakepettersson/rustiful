@@ -1,5 +1,5 @@
 use id::JsonApiId;
-use queryspec::ToJson;
+use to_json::ToJson;
 use params::JsonApiResource;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

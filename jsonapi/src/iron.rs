@@ -10,7 +10,7 @@ use std::error::Error;
 use self::iron::prelude::*;
 use self::iron::status;
 use self::iron::mime::Mime;
-use queryspec::ToJson;
+use to_json::ToJson;
 use errors::RequestError;
 use params::JsonApiResource;
 use serde::Serialize;
