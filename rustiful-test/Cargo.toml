@@ -1,11 +1,11 @@
 [package]
-name = "jsonapi-test"
+name = "rustiful-test"
 version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 
 [dependencies]
-jsonapi = { path = "../jsonapi", features = ["uuid", "iron", "router", "bodyparser"] }
-jsonapi-derive = { path = "../jsonapi-derive" }
+rustiful = { path = "../rustiful", features = ["uuid", "iron", "router", "bodyparser"] }
+rustiful-derive = { path = "../rustiful-derive" }
 serde = "0.9"
 serde_derive = "0.9"
 serde_json = "0.9"

@@ -1,5 +1,5 @@
 [package]
-name = "jsonapi"
+name = "rustiful"
 version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 

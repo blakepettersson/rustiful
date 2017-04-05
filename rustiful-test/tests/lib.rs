@@ -2,13 +2,13 @@
 extern crate serde_derive;
 
 #[macro_use]
-extern crate jsonapi_derive;
+extern crate rustiful_derive;
 
-extern crate jsonapi;
+extern crate rustiful;
 
-use jsonapi::SortOrder::*;
-use jsonapi::JsonApiResource;
-use jsonapi::QueryStringParseError;
+use rustiful::SortOrder::*;
+use rustiful::JsonApiResource;
+use rustiful::QueryStringParseError;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {

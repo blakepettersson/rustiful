@@ -1,5 +1,5 @@
 extern crate syn;
-extern crate jsonapi;
+extern crate rustiful;
 extern crate inflector;
 
 use super::quote::*;
@@ -100,11 +100,11 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             use super::#name;
             use std::slice::Iter;
             use std::collections::HashMap;
-            use jsonapi::TryFrom;
-            use jsonapi::SortOrder;
-            use jsonapi::TypedParams;
-            use jsonapi::JsonApiResource;
-            use jsonapi::QueryStringParseError;
+            use rustiful::TryFrom;
+            use rustiful::SortOrder;
+            use rustiful::TypedParams;
+            use rustiful::JsonApiResource;
+            use rustiful::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]

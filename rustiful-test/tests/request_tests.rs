@@ -2,36 +2,36 @@
 extern crate serde_derive;
 
 #[macro_use]
-extern crate jsonapi_derive;
+extern crate rustiful_derive;
 
 extern crate iron;
 extern crate router;
 extern crate iron_test;
 extern crate uuid;
-extern crate jsonapi;
+extern crate rustiful;
 extern crate serde_json;
 
 use self::router::Router;
 
-use jsonapi::JsonApiArray;
+use rustiful::JsonApiArray;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use jsonapi::JsonApiResource;
-use jsonapi::JsonApiObject;
-use jsonapi::JsonGet;
-use jsonapi::JsonPost;
-use jsonapi::JsonIndex;
-use jsonapi::JsonDelete;
-use jsonapi::iron::GetRouter;
-use jsonapi::iron::IndexRouter;
-use jsonapi::iron::PostRouter;
-use jsonapi::iron::DeleteRouter;
+use rustiful::JsonApiResource;
+use rustiful::JsonApiObject;
+use rustiful::JsonGet;
+use rustiful::JsonPost;
+use rustiful::JsonIndex;
+use rustiful::JsonDelete;
+use rustiful::iron::GetRouter;
+use rustiful::iron::IndexRouter;
+use rustiful::iron::PostRouter;
+use rustiful::iron::DeleteRouter;
 use iron::headers::ContentType;
 use iron::Headers;
 use iron_test::{request, response};
 
-use jsonapi::ToJson;
+use rustiful::ToJson;
 use iron::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]

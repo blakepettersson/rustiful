@@ -2,7 +2,7 @@
 extern crate serde_derive;
 
 #[macro_use]
-extern crate jsonapi_derive;
+extern crate rustiful_derive;
 
 #[macro_use]
 extern crate diesel;
@@ -12,12 +12,12 @@ extern crate diesel_codegen;
 
 extern crate uuid;
 
-extern crate jsonapi;
+extern crate rustiful;
 
 use uuid::Uuid;
-use jsonapi::SortOrder::*;
+use rustiful::SortOrder::*;
 use diesel::*;
-use jsonapi::*;
+use rustiful::*;
 
 type TestConnection = ::diesel::sqlite::SqliteConnection;
 
