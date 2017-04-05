@@ -57,15 +57,9 @@ pub trait GetHandler<'a, T> where
 {
     fn get(req: &'a mut Request) -> IronResult<Response> {
         let content_type:Mime = "application/vnd.api+json".parse().unwrap();
-
-        let router = req.extensions
-            .get::<router::Router>()
-            .expect("Expected to get a Router from the request extensions.");
-
         let query = req.url.query().unwrap_or("");
         let repository:T::Context = Default::default();
-        let id = router.find("id").unwrap();
-        match T::get(id, query, repository) {
+        match T::get(id(req), query, repository) {
             Ok(json) => {
                 match serde_json::to_string(&json) {
                     Ok(serialized) => Ok(Response::with((content_type, status::Ok, serialized))),
@@ -74,7 +68,6 @@ pub trait GetHandler<'a, T> where
             },
             Err(e) => Err(IronError::new(e, status::InternalServerError))
         }
-
     }
 }
 
@@ -158,13 +151,8 @@ pub trait PatchHandler<'a, T> where
 
         match req.get::<bodyparser::Struct<T::Resource>>() {
             Ok(Some(result)) => {
-                let router = req.extensions
-                    .get::<router::Router>()
-                    .expect("Expected to get a Router from the request extensions.");
-
                 let repository: T::Context = Default::default();
-                let id = router.find("id").unwrap();
-                match <T as FromPatch<T>>::patch(id, result, repository) {
+                match <T as FromPatch<T>>::patch(id(req), result, repository) {
                     Ok(json) => {
                         match serde_json::to_string(&json) {
                             Ok(serialized) => {
@@ -241,14 +229,8 @@ pub trait DeleteHandler<'a, T>
 {
     fn delete(req: &'a mut Request) -> IronResult<Response> {
         let content_type: Mime = "application/vnd.api+json".parse().unwrap();
-
-        let router = req.extensions
-            .get::<router::Router>()
-            .expect("Expected to get a Router from the request extensions.");
-
         let repository: T::Context = Default::default();
-        let id = router.find("id").unwrap();
-        match <T as FromDelete<T>>::delete(id, repository) {
+        match <T as FromDelete<T>>::delete(id(req), repository) {
             Ok(_) => Ok(Response::with((content_type, status::NoContent))),
             Err(e) => Err(IronError::new(e, status::InternalServerError)),
         }
@@ -403,4 +385,11 @@ impl PatchRouter for Router {
                   move |r: &mut Request| T::patch(r),
                   format!("update_{}", T::resource_name()));
     }
+}
+
+fn id<'a>(req: &'a Request) -> &'a str {
+    let router = req.extensions
+        .get::<router::Router>()
+        .expect("Expected to get a Router from the request extensions.");
+    router.find("id").expect("No id param found in method that expects one!")
 }
