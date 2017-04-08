@@ -18,6 +18,10 @@ use uuid::Uuid;
 use rustiful::SortOrder::*;
 use diesel::*;
 use rustiful::*;
+use std::error::Error;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use rustiful::status::Status;
 
 type TestConnection = ::diesel::sqlite::SqliteConnection;
 
@@ -37,26 +41,51 @@ struct Test {
 
 struct TestService;
 
+#[derive(Debug)]
+struct MyDieselError(diesel::result::Error);
+
+impl Error for MyDieselError {
+    fn description(&self) -> &str {
+        self.0.description()
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        self.0.cause()
+    }
+}
+
+impl Display for MyDieselError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl Default for TestService {
     fn default() -> Self {
         TestService {}
     }
 }
 
+impl <'a> From<&'a MyDieselError> for Status {
+    fn from(error: &'a MyDieselError) -> Self {
+        rustiful::status::InternalServerError
+    }
+}
+
 impl JsonGet for Test {
-    type Error = diesel::result::Error;
+    type Error = MyDieselError;
     type Context = TestService;
 
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error> {
-        table.find(id).first(&connection()).optional()
+        table.find(id).first(&connection()).optional().map_err(|e| MyDieselError(e))
     }
 }
 
 impl JsonPost for Test {
-    type Error = diesel::result::Error;
+    type Error = MyDieselError;
     type Context = TestService;
 
     fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
@@ -72,7 +101,7 @@ impl JsonPost for Test {
 }
 
 impl JsonIndex for Test {
-    type Error = diesel::result::Error;
+    type Error = MyDieselError;
     type Context = TestService;
 
     fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
@@ -103,16 +132,16 @@ impl JsonIndex for Test {
             };
         }
 
-        query.load(&connection())
+        query.load(&connection()).map_err(|e| MyDieselError(e))
     }
 }
 
 impl JsonDelete for Test {
-    type Error = diesel::result::Error;
+    type Error = MyDieselError;
     type Context = TestService;
 
     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
-        diesel::delete(table.find(id)).execute(&connection()).map(|_| ())
+        diesel::delete(table.find(id)).execute(&connection()).map(|_| ()).map_err(|e| MyDieselError(e))
     }
 }
 

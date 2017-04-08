@@ -1,5 +1,6 @@
 use std::fmt::*;
 use std::error::Error;
+use status::Status;
 
 static NO_BODY: &'static str = "No body";
 static NOT_FOUND: &'static str = "Not found";
@@ -45,26 +46,47 @@ fn description<'a>(error: &'a QueryStringParseError) -> &'a str {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum RequestError {
+#[derive(Debug)]
+pub enum RequestError<T> where T: Error + Sized + Send {
     NoBody,
-    NotFound
+    NotFound,
+    IdParseError(Box<Error + Send + 'static>),
+    RepositoryError(RepositoryError<T>),
+    QueryStringParseError(QueryStringParseError)
 }
 
-impl Display for RequestError {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        match *self {
-            RequestError::NoBody => write!(f, "{}", self.description()),
-            RequestError::NotFound => write!(f, "{}", self.description()),
+impl <T> RequestError<T> where T: Error + Sized + Send {
+    pub fn status(&self) -> Status {
+        match self {
+            &RequestError::NotFound => Status::NotFound,
+            &RequestError::NoBody => Status::BadRequest,
+            &RequestError::IdParseError(_) => Status::BadRequest,
+            &RequestError::QueryStringParseError(_) => Status::BadRequest,
+            &RequestError::RepositoryError(ref err) => err.status
         }
     }
 }
 
-impl Error for RequestError {
+impl <T> Display for RequestError<T> where T: Error + Sized + Send {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match *self {
+            RequestError::NoBody => write!(f, "{}", self.description()),
+            RequestError::NotFound => write!(f, "{}", self.description()),
+            RequestError::IdParseError(ref err) => write!(f, "{}", err.description()),
+            RequestError::RepositoryError(ref err) => write!(f, "{}", err.description()),
+            RequestError::QueryStringParseError(ref err) => write!(f, "{}", err.description())
+        }
+    }
+}
+
+impl <T> Error for RequestError<T> where T: Error + Sized + Send {
     fn description(&self) -> &str {
         match *self {
             RequestError::NoBody => NO_BODY,
             RequestError::NotFound => NOT_FOUND,
+            RequestError::IdParseError(ref err) => err.description(),
+            RequestError::RepositoryError(ref err) => err.description(),
+            RequestError::QueryStringParseError(ref err) => err.description()
         }
     }
 
@@ -73,30 +95,31 @@ impl Error for RequestError {
     }
 }
 
-#[derive(Debug)]
-pub struct RepositoryError {
-    pub error: Box<Error + Send>,
+#[derive(Debug, PartialEq, Eq)]
+pub struct RepositoryError<T: Error + Sized + Send> {
+    pub error: T,
+    pub status: Status
 }
 
-impl Display for RepositoryError {
+impl <'a, T> RepositoryError<T> where T: 'a + Error + Sized + Send, Status: for <'b> From<&'b T> {
+    pub fn new(error: T) -> RepositoryError<T>
+    {
+        let status:Status = Status::from(&error);
+
+        RepositoryError {
+            error: error,
+            status: status
+        }
+    }
+}
+
+impl <T> Display for RepositoryError<T> where T: Error + Sized + Send {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "Error in repository: {}", self.error.description())
     }
 }
 
-impl From<RequestError> for RepositoryError {
-    fn from(value: RequestError) -> Self {
-        RepositoryError { error: Box::new(value) }
-    }
-}
-
-impl From<QueryStringParseError> for RepositoryError {
-    fn from(value: QueryStringParseError) -> Self {
-        RepositoryError { error: Box::new(value) }
-    }
-}
-
-impl Error for RepositoryError {
+impl <T> Error for RepositoryError<T> where T: Error + Sized + Send {
     fn description(&self) -> &str {
         self.error.description()
     }
