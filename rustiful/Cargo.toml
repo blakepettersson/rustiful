@@ -9,8 +9,19 @@ authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 serde = "0.9.*"
 serde_derive = "0.9.*"
 serde_json = "0.9.*"
+hyper = "0.10"
 uuid = { version = "0.4.*", optional = true, features = ["serde"] }
+autoimpl = "0.1"
 
 router = { version = "0.5.*", optional = true }
 iron = { version = "0.5.*", optional = true }
 bodyparser = { version = "0.6.*", optional = true }
+
+[features]
+default = ["iron", "router", "bodyparser"]
+
+[dev-dependencies]
+iron = "0.5.*"
+router = "0.5.*"
+iron-test = "0.5.*"
+uuid = { version = "0.4", features = ["serde", "v4"] }

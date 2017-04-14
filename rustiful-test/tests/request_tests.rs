@@ -32,6 +32,9 @@ use iron::Headers;
 use iron_test::{request, response};
 
 use rustiful::ToJson;
+use rustiful::status::Status;
+use rustiful::JsonApiError;
+use rustiful::JsonApiErrorArray;
 use iron::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
@@ -69,6 +72,12 @@ impl Display for TestError {
     }
 }
 
+impl <'a> From<&'a TestError> for Status {
+    fn from(error: &'a TestError) -> Self {
+        rustiful::status::ImATeapot
+    }
+}
+
 impl JsonGet for Foo {
     type Error = TestError;
     type Context = FooService;
@@ -77,12 +86,17 @@ impl JsonGet for Foo {
             params: &Self::Params,
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error> {
-        Ok(Some(Foo {
-            id: "1".to_string(),
-            body: "test".to_string(),
-            title: "test".to_string(),
-            published: true,
-        }))
+
+        if id == "fail" {
+            Err(TestError("test fail".to_string()))
+        } else {
+            Ok(Some(Foo {
+                id: "1".to_string(),
+                body: "test".to_string(),
+                title: "test".to_string(),
+                published: true,
+            }))
+        }
     }
 }
 
@@ -173,4 +187,23 @@ fn parse_json_api_single_get() {
     let expected: JsonApiObject<<Foo as ToJson>::Resource> = JsonApiObject { data: data };
 
     assert_eq!(expected, record);
+}
+
+#[test]
+fn parse_json_api_custom_failure() {
+    let response = request::get("http://localhost:3000/foos/fail",
+                                Headers::new(),
+                                &app_router());
+    let result = response::extract_body_to_string(response.unwrap());
+    let record: JsonApiErrorArray = serde_json::from_str(&result).unwrap();
+
+    let expected = JsonApiErrorArray {
+        errors: vec![JsonApiError {
+            detail: "fail".to_string(),
+            status: "418".to_string(),
+            title: "fail".to_string()
+        }]
+    };
+
+   assert_eq!(expected, record);
 }

@@ -4,7 +4,7 @@ use serde::de::Deserialize;
 
 pub trait ToJson {
     type Attrs: Serialize + Deserialize;
-    type Resource: Serialize + Deserialize;
+    type Resource: Clone + Serialize + Deserialize;
 
     fn id(&self) -> JsonApiId;
 

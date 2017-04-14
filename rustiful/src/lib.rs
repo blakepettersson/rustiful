@@ -30,13 +30,22 @@ pub use array::*;
 mod object;
 pub use object::*;
 
+mod error;
+pub use error::*;
+
 mod request;
 
-#[cfg(feature = "iron")]
-mod iron_handlers;
+#[cfg(feature = "iron")] pub mod iron;
 
-#[cfg(feature = "iron")]
-pub mod iron;
+#[macro_use] extern crate serde_derive;
 
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate autoimpl;
+
+extern crate hyper;
+
+/// Status Codes
+pub mod status {
+    pub use hyper::status::StatusCode as Status;
+    pub use hyper::status::StatusCode::*;
+    pub use hyper::status::StatusClass;
+}
