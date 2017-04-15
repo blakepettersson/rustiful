@@ -1,14 +1,14 @@
 extern crate iron;
 
+use self::iron::prelude::*;
+use super::Status;
+use super::super::RequestResult;
+use iron::id;
+use request::FromDelete;
+use service::JsonDelete;
 use std::error::Error;
 use std::str::FromStr;
-use self::iron::prelude::*;
-use service::JsonDelete;
-use request::FromDelete;
-use iron::id;
-use super::Status;
 use try_from::TryInto;
-use super::super::RequestResult;
 
 autoimpl! {
     pub trait DeleteHandler<'a, T>

@@ -4,16 +4,16 @@ extern crate serde;
 extern crate serde_json;
 
 use self::iron::prelude::*;
-use service::JsonIndex;
-use to_json::ToJson;
-use status::Status;
-use try_from::TryFrom;
-use sort_order::SortOrder;
-use request::FromIndex;
+use super::super::RequestResult;
 use errors::QueryStringParseError;
 use params::TypedParams;
+use request::FromIndex;
+use service::JsonIndex;
+use sort_order::SortOrder;
+use status::Status;
+use to_json::ToJson;
+use try_from::TryFrom;
 use try_from::TryInto;
-use super::super::RequestResult;
 
 autoimpl! {
     pub trait IndexHandler<'a, T> where

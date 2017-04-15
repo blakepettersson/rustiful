@@ -17,7 +17,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         syn::Body::Enum(_) => panic!("#[derive(JsonApi)] can only be used with structs"),
     };
 
-    let json_api_id = util::get_json_id(&fields);
+    let json_api_id = util::get_json_id(fields.as_slice());
     let json_api_id_ident = &json_api_id.ident;
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
 

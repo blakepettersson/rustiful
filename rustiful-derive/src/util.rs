@@ -1,7 +1,7 @@
 use syn::Field;
 
-pub fn get_json_id<'a>(fields: &'a Vec<&'a Field>) -> &'a Field {
-    let id = fields.iter().find(|f| f.ident.iter().any(|i| i.to_string() == "id"));
+pub fn get_json_id<'a>(fields: &'a[&'a Field]) -> &'a Field {
+    let id = fields.iter().find(|f| f.ident.iter().any(|i| i == "id"));
     let json_api_id_attrs: Vec<_> = fields.iter().filter(|f| f.attrs.iter().any(|a| a.name() == "JsonApiId")).collect();
 
     if json_api_id_attrs.len() > 1 {
@@ -15,6 +15,6 @@ pub fn get_json_id<'a>(fields: &'a Vec<&'a Field>) -> &'a Field {
                 time.")
     }
 
-    id.or(json_api_attr_id.cloned())
+    id.or_else(|| json_api_attr_id.cloned())
         .expect("No JsonApiId attribute defined! (or no field named id)")
 }

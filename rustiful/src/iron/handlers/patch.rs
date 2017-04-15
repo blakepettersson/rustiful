@@ -3,22 +3,22 @@ extern crate bodyparser;
 extern crate serde;
 extern crate serde_json;
 
-use std::error::Error;
-use std::str::FromStr;
-use errors::RequestError;
 use self::iron::prelude::*;
 use self::iron::status;
-use service::JsonPatch;
-use to_json::ToJson;
-use status::Status;
-use try_from::TryFrom;
-use sort_order::SortOrder;
-use request::FromPatch;
-use iron::id;
-use errors::QueryStringParseError;
-use params::TypedParams;
-use try_from::TryInto;
 use super::super::RequestResult;
+use errors::QueryStringParseError;
+use errors::RequestError;
+use iron::id;
+use params::TypedParams;
+use request::FromPatch;
+use service::JsonPatch;
+use sort_order::SortOrder;
+use status::Status;
+use std::error::Error;
+use std::str::FromStr;
+use to_json::ToJson;
+use try_from::TryFrom;
+use try_from::TryInto;
 
 autoimpl! {
     pub trait PatchHandler<'a, T> where

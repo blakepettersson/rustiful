@@ -1,6 +1,6 @@
 use id::JsonApiId;
-use serde::ser::Serialize;
 use serde::de::Deserialize;
+use serde::ser::Serialize;
 
 pub trait ToJson {
     type Attrs: Serialize + Deserialize;
@@ -10,4 +10,3 @@ pub trait ToJson {
 
     fn type_name(&self) -> String;
 }
-

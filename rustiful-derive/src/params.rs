@@ -18,8 +18,8 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
     let struct_rename_attr: Vec<_> = ast.attrs
         .iter()
-        .filter_map(|a| match &a.value {
-            &List(ref ident, ref values) if ident == "serde" => {
+        .filter_map(|a| match a.value {
+            List(ref ident, ref values) if ident == "serde" => {
                 match values.first() {
                     Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
                         Some(value.to_string())
@@ -33,7 +33,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
-    let json_api_id = util::get_json_id(&fields);
+    let json_api_id = util::get_json_id(fields.as_slice());
     let json_api_id_ty = &json_api_id.ty;
 
     let attr_fields: Vec<_> = fields.iter().filter(|f| **f != json_api_id).collect();
