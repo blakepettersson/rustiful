@@ -16,8 +16,8 @@ mod util;
 mod json;
 mod params;
 
-use syn::DeriveInput;
 use proc_macro::TokenStream;
+use syn::DeriveInput;
 
 #[proc_macro_derive(JsonApi, attributes(JsonApiId))]
 pub fn generate_json_api(input: TokenStream) -> TokenStream {

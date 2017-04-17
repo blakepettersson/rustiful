@@ -1,68 +1,61 @@
 extern crate syn;
 extern crate inflector;
 
+use self::inflector::Inflector;
 use super::util;
-use syn::Ty;
-use syn::DeriveInput;
 use quote::Ident;
 use quote::Tokens;
-use self::inflector::Inflector;
+use syn::DeriveInput;
+use syn::Ty;
 
 pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
 
-    let fields: Vec<_> = match ast.body {
-        syn::Body::Struct(ref data) => data.fields().iter().collect(),
-        syn::Body::Enum(_) => panic!("#[derive(JsonApi)] can only be used with structs"),
-    };
+    let (id, fields) = util::get_attrs_and_id(&ast.body);
 
-    let json_api_id = util::get_json_id(fields.as_slice());
-    let json_api_id_ident = &json_api_id.ident;
+    let json_api_id_ident =
+        &id.clone().ident.expect("#[derive(JsonApi)] is not supported for tuple structs");
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
 
     let lower_case_name = Ident::new(name.to_string().to_snake_case());
     let lower_case_name_as_str = lower_case_name.to_string();
-    // Used in the quasi-quotation below as `#generated_field_type_name`;
-    // append name + `Fields` to the new struct name
+
+    // Used in the quasi-quotation below as `#generated_params_type_name`;
+    // append name + `Params` to the new struct name
     let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
-    let attr_fields: Vec<_> = fields.iter().filter(|f| **f != json_api_id).collect();
+
+    let attr_fields: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident =
+                f.ident.clone().expect("#[derive(JsonApi)] is not supported for tuple structs");
+            (f, ident)
+        })
+        .collect();
 
     let jsonapi_attrs: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            let ty = &f.ty;
+        .map(|&(field, ref ident)| {
+            let ty = &field.ty;
             let option_ty = inner_of_option_ty(ty).unwrap_or(ty);
             quote!(#ident: Option<#option_ty>)
         })
         .collect();
 
     let filtered_option_vars: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            let model_value = Ident::new(format!("model.{}", ident.clone().expect("fail").to_string()));
-            quote!(let mut #ident = Some(#model_value);)
-        })
+        .map(|&(_, ref ident)| quote!(let mut #ident = Some(model.#ident);))
         .collect();
 
     let filtered_option_fields: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(#ident: #ident)
-        })
+        .map(|&(_, ref ident)| quote!(#ident: #ident))
         .collect();
 
     let filtered_option_cases: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident.clone().expect("fail");
-            let enum_variant = Ident::new(format!("&super::{}::field::{}", lower_case_name.to_string(), ident));
+        .map(|&(_, ref ident)| {
             quote! {
-                #enum_variant => #ident = None
+                &super::#lower_case_name::field::#ident => #ident = None
             }
         })
         .collect();
-
-    let model_id_field = Ident::new(format!("self.{}", json_api_id_ident.clone().expect("fail").to_string()));
 
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
@@ -85,7 +78,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                 type Resource = JsonApiData<#generated_jsonapi_attrs>;
 
                 fn id(&self) -> JsonApiId {
-                    #model_id_field.clone().into()
+                    self.#json_api_id_ident.clone().into()
                 }
 
                 fn type_name(&self) -> String {
