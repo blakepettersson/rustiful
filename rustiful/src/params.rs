@@ -1,8 +1,8 @@
-use std::str::FromStr;
-use std::collections::HashMap;
-use try_from::TryFrom;
 use errors::QueryStringParseError;
 use sort_order::SortOrder;
+use std::collections::HashMap;
+use std::str::FromStr;
+use try_from::TryFrom;
 
 pub trait JsonApiResource: Sized {
     type Params: Default + TypedParams<Self::SortField, Self::FilterField>;

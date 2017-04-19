@@ -1,3 +1,9 @@
+#![cfg_attr(feature = "dev", allow(unstable_features))]
+#![cfg_attr(feature = "dev", feature(plugin))]
+#![cfg_attr(feature = "dev", plugin(clippy))]
+#![warn(missing_debug_implementations, missing_copy_implementations, trivial_casts,
+trivial_numeric_casts, unused_import_braces, unused_qualifications)]
+
 extern crate serde;
 
 mod to_json;
@@ -35,17 +41,20 @@ pub use error::*;
 
 mod request;
 
-#[cfg(feature = "iron")] pub mod iron;
+#[cfg(feature = "iron")]
+pub mod iron;
 
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
-#[macro_use] extern crate autoimpl;
+#[macro_use]
+extern crate autoimpl;
 
 extern crate hyper;
 
 /// Status Codes
 pub mod status {
+    pub use hyper::status::StatusClass;
     pub use hyper::status::StatusCode as Status;
     pub use hyper::status::StatusCode::*;
-    pub use hyper::status::StatusClass;
 }

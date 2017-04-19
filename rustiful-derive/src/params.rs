@@ -2,101 +2,50 @@ extern crate syn;
 extern crate rustiful;
 extern crate inflector;
 
+use self::inflector::Inflector;
 use super::quote::*;
 use super::util;
+use syn::Attribute;
 use syn::DeriveInput;
 use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
-use self::inflector::Inflector;
 
 pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
-    let fields: Vec<_> = match ast.body {
-        syn::Body::Struct(ref data) => data.fields().iter().collect(),
-        syn::Body::Enum(_) => panic!("#[derive(JsonApi)] can only be used with structs"),
-    };
-
-    let struct_rename_attr: Vec<_> = ast.attrs
-        .iter()
-        .filter_map(|a| match &a.value {
-            &List(ref ident, ref values) if ident == "serde" => {
-                match values.first() {
-                    Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
-                        Some(value.to_string())
-                    }
-                    _ => None,
-                }
-            }
-            _ => None,
-        })
-        .collect();
+    let (id, fields) = util::get_attrs_and_id(&ast.body);
 
     // Used in the quasi-quotation below as `#name`
     let name = &ast.ident;
-    let json_api_id = util::get_json_id(&fields);
-    let json_api_id_ty = &json_api_id.ty;
+    let lower_case_name = name.to_string().to_snake_case();
+    let json_api_id_ty = &id.ty;
 
-    let attr_fields: Vec<_> = fields.iter().filter(|f| **f != json_api_id).collect();
-
-    let lower_case_name = Ident::new(name.to_string().to_snake_case());
-    let json_name = lower_case_name.to_string();
-    // Shadows the json_name above - the variable above is only used for the unwrapping on the line below.
-    let json_name = struct_rename_attr.first().unwrap_or(&json_name);
-    let pluralized_name = lower_case_name.to_string().to_plural().to_kebab_case();
-
-    // Used in the quasi-quotation below as `#generated_field_type_name`; append name + `Fields` to the new struct name
-    let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
-
-    let option_fields: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(#ident)
-        })
+    let attr_fields: Vec<_> = fields.iter()
+        .map(|f| f.ident.clone().expect("#[derive(JsonApi)] is not supported for tuple structs"))
         .collect();
 
-    let blaha: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident_string = &f.ident.clone().expect("fail").to_string();
-            let enum_value = Ident::new(format!("self::field::{}", &ident_string));
-            quote!(#enum_value)
-        })
-        .collect();
+    let json_name = get_json_name(&lower_case_name, &ast.attrs);
+    let lower_cased_ident = Ident::new(lower_case_name);
+    let pluralized_name = json_name.to_plural().to_kebab_case();
 
+    // Used in the quasi-quotation below as `#params_name`;
+    // append name + `Params` to the new struct name
+    let params_name = Ident::new(format!("__{}{}", name, "Params"));
+
+    let option_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f)).collect();
     let option_fields_len = option_fields.len();
 
-    let sort_fields: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(#ident(SortOrder))
-        })
+    let filter_fields: Vec<_> = attr_fields.iter().map(|f| quote!(self::field::#f)).collect();
+    let filter_cases: Vec<_> = attr_fields.iter()
+        .map(|f| to_match_arm(f, &quote!(params.filter.fields), &quote!(self::field::#f)))
         .collect();
 
+    let sort_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f(SortOrder))).collect();
     let sort_cases: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident_string = &f.ident.clone().expect("fail").to_string();
-            let enum_value = Ident::new(format!("self::sort::{}", &ident_string));
-            quote! {
-            #ident_string => {
-                params.sort.fields.push(#enum_value(order))
-            }
-        }
-        })
-        .collect();
-
-    let field_cases: Vec<_> = attr_fields.iter()
-        .map(|f| {
-            let ident_string = &f.ident.clone().expect("fail").to_string();
-            let enum_value = Ident::new(format!("self::field::{}", &ident_string));
-            quote! {
-                #ident_string => {
-                    params.filter.fields.push(#enum_value)
-                }
-            }
-        })
+        .map(|f| to_match_arm(f, &quote!(params.sort.fields), &quote!(self::sort::#f(order))))
         .collect();
 
     quote! {
-        pub mod #lower_case_name {
+        pub mod #lower_cased_ident {
             use super::#name;
             use std::slice::Iter;
             use std::collections::HashMap;
@@ -131,19 +80,19 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
             impl field {
                 pub fn iter() -> Iter<'static, field> {
-                    static FIELDS: [field;  #option_fields_len] = [#(#blaha),*];
+                    static FIELDS: [field;  #option_fields_len] = [#(#filter_fields),*];
                     FIELDS.into_iter()
                 }
             }
 
             #[derive(Debug, PartialEq, Eq, Clone, Default)]
-            pub struct #generated_params_type_name {
+            pub struct #params_name {
                 pub filter: Filter,
                 pub sort: Sort,
                 pub query_params: HashMap<String, String>
             }
 
-            impl TypedParams<sort, field> for #generated_params_type_name {
+            impl TypedParams<sort, field> for #params_name {
                 fn filter(&mut self) -> &mut Vec<field> {
                     &mut self.filter.fields
                 }
@@ -158,10 +107,10 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             }
 
             /// Parses the sort query parameter.
-            impl<'a> TryFrom<(&'a str, SortOrder, #generated_params_type_name)> for #generated_params_type_name {
+            impl<'a> TryFrom<(&'a str, SortOrder, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, SortOrder, #generated_params_type_name)) -> Result<Self, Self::Error> {
+                fn try_from(tuple: (&'a str, SortOrder, #params_name)) -> Result<Self, Self::Error> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
 
                     let (field, order, mut params) = tuple;
@@ -175,10 +124,10 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             }
 
             /// Parses the field query parameter(s).
-            impl<'a> TryFrom<(&'a str, Vec<&'a str>, #generated_params_type_name)> for #generated_params_type_name {
+            impl<'a> TryFrom<(&'a str, Vec<&'a str>, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, Vec<&'a str>, #generated_params_type_name)) -> Result<Self, Self::Error> {
+                fn try_from(tuple: (&'a str, Vec<&'a str>, #params_name)) -> Result<Self, Self::Error> {
                     let (model, fields, mut params) = tuple;
                     match model {
                         #json_name => {
@@ -189,7 +138,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
                             for field in fields {
                                 match field {
-                                    #(#field_cases)*
+                                    #(#filter_cases)*
                                     _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
                                 }
                             }
@@ -204,7 +153,7 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
 
             impl JsonApiResource for #name {
                 type JsonApiIdType = #json_api_id_ty;
-                type Params = #generated_params_type_name;
+                type Params = #params_name;
                 type SortField = sort;
                 type FilterField = field;
 
@@ -214,4 +163,27 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             }
         }
     }
+}
+
+fn to_match_arm(ident: &syn::Ident, vec_ident: &Tokens, enum_value: &Tokens) -> Tokens {
+    let ident_string = ident.to_string();
+    quote!(#ident_string => { #vec_ident.push(#enum_value) })
+}
+
+fn get_json_name(name: &str, attrs: &[Attribute]) -> String {
+    let serde_struct_rename_attr: Vec<_> = attrs.into_iter()
+        .filter_map(|a| match a.value {
+            List(ref ident, ref values) if ident == "serde" => {
+                match values.first() {
+                    Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
+                        Some(value.to_string())
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
+        })
+        .collect();
+
+    serde_struct_rename_attr.first().map(|s| s.to_string()).unwrap_or_else(|| name.to_string())
 }

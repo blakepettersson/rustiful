@@ -1,9 +1,9 @@
 extern crate serde;
 
-use std;
-use to_json::ToJson;
 use params::JsonApiResource;
 use status::Status;
+use std;
+use to_json::ToJson;
 
 
 pub trait JsonGet
@@ -12,8 +12,10 @@ pub trait JsonGet
     type Error: std::error::Error + Send;
     type Context: Default;
 
-    fn find(id: Self::JsonApiIdType, params: &Self::Params, ctx: Self::Context)
-        -> Result<Option<Self>, Self::Error>
+    fn find(id: Self::JsonApiIdType,
+            params: &Self::Params,
+            ctx: Self::Context)
+            -> Result<Option<Self>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -23,8 +25,7 @@ pub trait JsonPost
     type Error: std::error::Error + Send;
     type Context: Default;
 
-    fn create(json: Self::Resource, ctx: Self::Context)
-        -> Result<Self, Self::Error>
+    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -34,8 +35,10 @@ pub trait JsonPatch
     type Error: std::error::Error + Send;
     type Context: Default;
 
-    fn update(id: Self::JsonApiIdType, json: Self::Resource, ctx: Self::Context)
-        -> Result<Self, Self::Error>
+    fn update(id: Self::JsonApiIdType,
+              json: Self::Resource,
+              ctx: Self::Context)
+              -> Result<Self, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -45,8 +48,7 @@ pub trait JsonIndex
     type Error: std::error::Error + Send;
     type Context: Default;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context)
-        -> Result<Vec<Self>, Self::Error>
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -56,7 +58,6 @@ pub trait JsonDelete
     type Error: std::error::Error + Send;
     type Context: Default;
 
-    fn delete(id: Self::JsonApiIdType, ctx: Self::Context)
-        -> Result<(), Self::Error>
+    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }

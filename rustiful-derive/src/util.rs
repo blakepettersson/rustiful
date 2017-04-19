@@ -1,20 +1,26 @@
+use syn::Body;
 use syn::Field;
 
-pub fn get_json_id<'a>(fields: &'a Vec<&'a Field>) -> &'a Field {
-    let id = fields.iter().find(|f| f.ident.iter().any(|i| i.to_string() == "id"));
-    let json_api_id_attrs: Vec<_> = fields.iter().filter(|f| f.attrs.iter().any(|a| a.name() == "JsonApiId")).collect();
+pub fn get_attrs_and_id(body: &Body) -> (&Field, Vec<&Field>) {
+    match *body {
+        Body::Struct(ref data) => {
+            let (id, attrs): (Vec<&Field>, Vec<&Field>) =
+                data.fields().into_iter().partition(|f| {
+                    let has_id_ident = f.ident.iter().any(|i| i == "id");
+                    let has_id_attribute = f.attrs.iter().any(|a| a.name() == "JsonApiId");
+                    has_id_ident || has_id_attribute
+                });
 
-    if json_api_id_attrs.len() > 1 {
-        panic!("Invalid: Only one field is allowed to have the JsonApiId attribute!")
+            if id.len() > 1 {
+                panic!("You can only use a JsonApiId attribute or have an id field, not both at \
+                the same time.")
+            }
+
+            let json_api_id = id.first().expect("No JsonApiId attribute defined! \
+            (or no field named id)");
+
+            (json_api_id, attrs)
+        }
+        _ => panic!("#[derive(JsonApi)] can only be used with structs"),
     }
-
-    let json_api_attr_id = json_api_id_attrs.first();
-
-    if id != None && json_api_attr_id != None {
-        panic!("You can only use a JsonApiId attribute or have an id field, not both at the same \
-                time.")
-    }
-
-    id.or(json_api_attr_id.cloned())
-        .expect("No JsonApiId attribute defined! (or no field named id)")
 }

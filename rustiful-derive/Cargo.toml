@@ -11,3 +11,8 @@ rustiful = { path = "../rustiful" }
 syn = "0.11"
 quote = "0.3"
 Inflector = "*"
+clippy = {version = "0.0.123", optional = true}
+
+[features]
+default = []
+dev = ["clippy"]

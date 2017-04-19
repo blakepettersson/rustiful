@@ -4,11 +4,10 @@ mod index;
 mod patch;
 mod delete;
 
-use super::status::Status;
-
-pub use self::get::*;
-pub use self::post::*;
-pub use self::index::*;
-pub use self::patch::*;
 pub use self::delete::*;
 
+pub use self::get::*;
+pub use self::index::*;
+pub use self::patch::*;
+pub use self::post::*;
+use super::status::Status;

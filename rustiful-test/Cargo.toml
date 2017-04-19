@@ -17,3 +17,9 @@ dotenv = "0.8.0"
 iron = "0.5.*"
 router = "0.5.*"
 iron-test = "0.5.*"
+clippy = {version = "0.0.123", optional = true}
+
+[features]
+default = []
+dev = ["clippy"]
+

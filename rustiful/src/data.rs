@@ -1,6 +1,6 @@
 use id::JsonApiId;
-use to_json::ToJson;
 use params::JsonApiResource;
+use to_json::ToJson;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JsonApiData<T> {
@@ -35,12 +35,14 @@ impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)> for JsonApiData<T::Att
 
 impl<'a, T> From<T> for JsonApiData<T::Attrs>
     where T: ToJson + JsonApiResource,
-          T::Params : 'a,
-          T::Attrs: for <'b> From<(T, &'b T::Params)>
+          T::Params: 'a,
+          T::Attrs: for<'b> From<(T, &'b T::Params)>
 {
     // In this case we know that there's going to be a Some(JsonApiId).
     fn from(model: T) -> Self {
         let params: T::Params = Default::default();
-        JsonApiData::new(Some(model.id()), model.type_name(), T::Attrs::from((model, &params)))
+        JsonApiData::new(Some(model.id()),
+                         model.type_name(),
+                         T::Attrs::from((model, &params)))
     }
 }

@@ -3,19 +3,19 @@ extern crate bodyparser;
 extern crate serde;
 extern crate serde_json;
 
+use self::iron::prelude::*;
+use super::super::RequestResult;
+use errors::QueryStringParseError;
+use iron::id;
+use params::TypedParams;
+use request::FromGet;
+use service::JsonGet;
+use sort_order::SortOrder;
+use status::Status;
 use std::error::Error;
 use std::str::FromStr;
-use self::iron::prelude::*;
-use service::JsonGet;
 use to_json::ToJson;
-use status::Status;
 use try_from::TryFrom;
-use sort_order::SortOrder;
-use request::FromGet;
-use iron::id;
-use errors::QueryStringParseError;
-use params::TypedParams;
-use super::super::RequestResult;
 use try_from::TryInto;
 
 autoimpl! {

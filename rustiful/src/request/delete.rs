@@ -1,14 +1,13 @@
+use super::Status;
+use errors::RepositoryError;
+use errors::RequestError;
+use service::JsonDelete;
 use std::error::Error;
 use std::str::FromStr;
-use errors::RequestError;
-use errors::RepositoryError;
-use service::JsonDelete;
-use params::JsonApiResource;
-use super::Status;
 
 autoimpl! {
     pub trait FromDelete<'a, T>
-        where T: JsonDelete + JsonApiResource,
+        where T: JsonDelete,
               Status: for<'b> From<&'b T::Error>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
