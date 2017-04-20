@@ -6,9 +6,9 @@ extern crate rustiful_derive;
 
 extern crate rustiful;
 
-use rustiful::SortOrder::*;
 use rustiful::JsonApiResource;
 use rustiful::QueryStringParseError;
+use rustiful::SortOrder::*;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {

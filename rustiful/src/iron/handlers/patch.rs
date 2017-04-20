@@ -6,6 +6,7 @@ extern crate serde_json;
 use self::iron::prelude::*;
 use self::iron::status;
 use super::super::RequestResult;
+use ::FromRequest;
 use errors::QueryStringParseError;
 use errors::RequestError;
 use iron::id;
@@ -25,6 +26,7 @@ autoimpl! {
         T: JsonPatch + ToJson + FromPatch<'a, T>,
         T::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
+        <T::Context as FromRequest>::Error: 'static,
         T::Resource: 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
@@ -35,8 +37,13 @@ autoimpl! {
         fn patch(req: &'a mut Request) -> IronResult<Response> {
             match req.get::<bodyparser::Struct<T::Resource>>() {
                 Ok(Some(patch)) => {
-                    let result = <T as FromPatch<T>>::patch(id(req), patch, Default::default());
-                    RequestResult(result, Status::Ok).try_into()
+                    match FromRequest::from_request(req) {
+                        Ok(res) => {
+                            let result = <T as FromPatch<T>>::patch(id(req), patch, res);
+                            RequestResult(result, Status::Ok).try_into()
+                        },
+                        Err(e) => Err(IronError::new(e, Status::InternalServerError))
+                    }
                 },
                 Ok(None) => {
                     let err:RequestError<T::Error> = RequestError::NoBody;
