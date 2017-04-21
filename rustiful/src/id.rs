@@ -25,9 +25,29 @@ impl From<String> for JsonApiId {
     }
 }
 
+impl From<JsonApiId> for String {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::Str(str) = value.0 {
+            str
+        } else {
+            panic!("Expected String!")
+        }
+    }
+}
+
 impl From<i32> for JsonApiId {
     fn from(value: i32) -> Self {
         JsonApiId(JsonApiIdType::Int32(value))
+    }
+}
+
+impl From<JsonApiId> for i32 {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::Int32(val) = value.0 {
+            val
+        } else {
+            panic!("Expected int32!")
+        }
     }
 }
 
@@ -37,9 +57,30 @@ impl From<i64> for JsonApiId {
     }
 }
 
+impl From<JsonApiId> for i64 {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::Int64(val) = value.0 {
+            val
+        } else {
+            panic!("Expected int64!")
+        }
+    }
+}
+
+
 impl From<u32> for JsonApiId {
     fn from(value: u32) -> Self {
         JsonApiId(JsonApiIdType::UInt32(value))
+    }
+}
+
+impl From<JsonApiId> for u32 {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::UInt32(val) = value.0 {
+            val
+        } else {
+            panic!("Expected uint32!")
+        }
     }
 }
 
@@ -49,9 +90,30 @@ impl From<u64> for JsonApiId {
     }
 }
 
+impl From<JsonApiId> for u64 {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::UInt64(val) = value.0 {
+            val
+        } else {
+            panic!("Expected uint64!")
+        }
+    }
+}
+
 #[cfg(feature = "uuid")]
 impl From<Uuid> for JsonApiId {
     fn from(value: Uuid) -> Self {
         JsonApiId(JsonApiIdType::Uuid(value))
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl From<JsonApiId> for Uuid {
+    fn from(value: JsonApiId) -> Self {
+        if let JsonApiIdType::Uuid(val) = value.0 {
+            val
+        } else {
+            panic!("Expected uuid!")
+        }
     }
 }

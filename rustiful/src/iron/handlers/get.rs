@@ -5,6 +5,7 @@ extern crate serde_json;
 
 use self::iron::prelude::*;
 use super::super::RequestResult;
+use ::FromRequest;
 use errors::QueryStringParseError;
 use iron::id;
 use params::TypedParams;
@@ -22,6 +23,7 @@ autoimpl! {
     pub trait GetHandler<'a, T> where
         T: JsonGet + ToJson + FromGet<'a, T>,
         T::Error: 'static,
+        <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
@@ -31,8 +33,13 @@ autoimpl! {
     {
         fn get(req: &'a mut Request) -> IronResult<Response> {
             let query = req.url.query().unwrap_or("");
-            let result = T::get(id(req), query, Default::default());
-            RequestResult(result, Status::Ok).try_into()
+            match FromRequest::from_request(req) {
+                Ok(res) => {
+                    let result = T::get(id(req), query, res);
+                    RequestResult(result, Status::Ok).try_into()
+                },
+                Err(e) => Err(IronError::new(e, Status::InternalServerError))
+            }
         }
     }
 }

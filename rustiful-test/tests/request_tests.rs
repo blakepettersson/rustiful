@@ -12,30 +12,31 @@ extern crate rustiful;
 extern crate serde_json;
 
 use self::router::Router;
+use iron::Headers;
+use iron::headers::ContentType;
+use iron::prelude::*;
+use iron_test::{request, response};
+use rustiful::FromRequest;
 
 use rustiful::JsonApiArray;
-use std::error::Error;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use rustiful::JsonApiResource;
+use rustiful::JsonApiError;
+use rustiful::JsonApiErrorArray;
 use rustiful::JsonApiObject;
-use rustiful::JsonGet;
-use rustiful::JsonPost;
-use rustiful::JsonIndex;
+use rustiful::JsonApiResource;
 use rustiful::JsonDelete;
+use rustiful::JsonGet;
+use rustiful::JsonIndex;
+use rustiful::JsonPost;
+
+use rustiful::ToJson;
+use rustiful::iron::DeleteRouter;
 use rustiful::iron::GetRouter;
 use rustiful::iron::IndexRouter;
 use rustiful::iron::PostRouter;
-use rustiful::iron::DeleteRouter;
-use iron::headers::ContentType;
-use iron::Headers;
-use iron_test::{request, response};
-
-use rustiful::ToJson;
 use rustiful::status::Status;
-use rustiful::JsonApiError;
-use rustiful::JsonApiErrorArray;
-use iron::prelude::*;
+use std::error::Error;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
@@ -47,9 +48,10 @@ struct Foo {
 
 struct FooService;
 
-impl Default for FooService {
-    fn default() -> Self {
-        FooService {}
+impl FromRequest for FooService {
+    type Error = TestError;
+    fn from_request(request: &Request) -> Result<Self, Self::Error> {
+        Ok(FooService {})
     }
 }
 
@@ -72,7 +74,7 @@ impl Display for TestError {
     }
 }
 
-impl <'a> From<&'a TestError> for Status {
+impl<'a> From<&'a TestError> for Status {
     fn from(error: &'a TestError) -> Self {
         rustiful::status::ImATeapot
     }
@@ -199,11 +201,11 @@ fn parse_json_api_custom_failure() {
 
     let expected = JsonApiErrorArray {
         errors: vec![JsonApiError {
-            detail: "fail".to_string(),
-            status: "418".to_string(),
-            title: "fail".to_string()
-        }]
+                         detail: "fail".to_string(),
+                         status: "418".to_string(),
+                         title: "fail".to_string(),
+                     }],
     };
 
-   assert_eq!(expected, record);
+    assert_eq!(expected, record);
 }

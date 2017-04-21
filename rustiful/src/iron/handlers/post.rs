@@ -6,6 +6,7 @@ extern crate serde_json;
 use self::iron::prelude::*;
 use self::iron::status;
 use super::super::RequestResult;
+use ::FromRequest;
 use errors::QueryStringParseError;
 use errors::RequestError;
 use params::TypedParams;
@@ -25,7 +26,7 @@ autoimpl! {
     pub trait PostHandler<'a, T> where
         T: JsonPost + ToJson + FromPost<'a, T>,
         T::Error: 'static,
-        T::Context: Default,
+        <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
         T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
@@ -37,8 +38,13 @@ autoimpl! {
         fn post(req: &'a mut Request) -> IronResult<Response> {
             match req.get::<bodyparser::Struct<T::Resource>>() {
                 Ok(Some(post)) => {
-                    let result = <T as FromPost<T>>::create(post, Default::default());
-                    RequestResult(result, Status::Created).try_into()
+                    match FromRequest::from_request(req) {
+                        Ok(res) => {
+                            let result = <T as FromPost<T>>::create(post, res);
+                            RequestResult(result, Status::Created).try_into()
+                        },
+                        Err(e) => Err(IronError::new(e, Status::InternalServerError))
+                    }
                 },
                 Ok(None) => {
                     let err:RequestError<T::Error> = RequestError::NoBody;

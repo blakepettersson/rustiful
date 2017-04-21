@@ -1,4 +1,5 @@
 mod handlers;
+pub mod from_request;
 
 extern crate iron;
 extern crate router;
@@ -10,6 +11,7 @@ use self::handlers::*;
 use self::iron::mime::Mime;
 use self::iron::prelude::*;
 use self::iron::status;
+use ::FromRequest;
 use error::JsonApiErrorArray;
 use errors::QueryStringParseError;
 use errors::RequestError;
@@ -80,6 +82,7 @@ pub fn id<'a>(req: &'a Request) -> &'a str {
 pub trait DeleteRouter {
     fn jsonapi_delete<'a, T>(&mut self)
         where T: JsonDelete + JsonApiResource + ToJson + for<'b> DeleteHandler<'b, T>,
+              <T::Context as FromRequest>::Error: 'static,
               T::Error: Send + 'static,
               Status: for<'b> From<&'b T::Error>,
               T::JsonApiIdType: FromStr,
@@ -89,6 +92,7 @@ pub trait DeleteRouter {
 impl DeleteRouter for Router {
     fn jsonapi_delete<'a, T>(&mut self)
         where T: JsonDelete + JsonApiResource + ToJson + for<'b> DeleteHandler<'b, T>,
+              <T::Context as FromRequest>::Error: 'static,
               T::Error: Send + 'static,
               Status: for<'b> From<&'b T::Error>,
               T::JsonApiIdType: FromStr,
@@ -109,6 +113,7 @@ pub trait GetRouter {
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
               Status: for<'b> From<&'b T::Error>,
+              <<T as JsonGet>::Context as FromRequest>::Error: 'static,
               T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                          Error = QueryStringParseError>,
               T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
@@ -123,6 +128,7 @@ impl GetRouter for Router {
         where T: JsonGet + JsonApiResource + ToJson + for<'b> GetHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
+              <<T as JsonGet>::Context as FromRequest>::Error: 'static,
               Status: for<'b> From<&'b T::Error>,
               T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                          Error = QueryStringParseError>,
@@ -143,6 +149,7 @@ pub trait IndexRouter {
     fn jsonapi_index<'a, T>(&mut self)
         where T: JsonIndex + JsonApiResource + ToJson + for<'b> IndexHandler<'b, T>,
               T::Error: Send + 'static,
+              <<T as JsonIndex>::Context as FromRequest>::Error: 'static,
               T::JsonApiIdType: FromStr,
               Status: for<'b> From<&'b T::Error>,
               T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
@@ -158,6 +165,7 @@ impl IndexRouter for Router {
     fn jsonapi_index<'a, T>(&mut self)
         where T: JsonIndex + JsonApiResource + ToJson + for<'b> IndexHandler<'b, T>,
               T::Error: Send + 'static,
+              <<T as JsonIndex>::Context as FromRequest>::Error: 'static,
               T::JsonApiIdType: FromStr,
               Status: for<'b> From<&'b T::Error>,
               T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
@@ -179,6 +187,7 @@ pub trait PostRouter {
     fn jsonapi_post<'a, T>(&mut self) where
         T: JsonPost + JsonApiResource + ToJson + for<'b> PostHandler<'b, T>,
         T::Error : Send + 'static,
+        <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
         T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
@@ -194,6 +203,7 @@ impl PostRouter for Router {
     fn jsonapi_post<'a, T>(&mut self) where
         T: JsonPost + JsonApiResource + ToJson + for<'b> PostHandler<'b, T>,
         T::Error : Send + 'static,
+        <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
         T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
@@ -214,6 +224,7 @@ pub trait PatchRouter {
     fn jsonapi_patch<'a, T>(&mut self) where
         T: JsonPatch + JsonApiResource + ToJson + for<'b> PatchHandler<'b, T>,
         T::Error : Send + 'static,
+        <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
         T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
@@ -229,6 +240,7 @@ impl PatchRouter for Router {
     fn jsonapi_patch<'a, T>(&mut self) where
         T: JsonPatch + JsonApiResource + ToJson + for<'b> PatchHandler<'b, T>,
         T::Error : Send + 'static,
+        <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
         T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,

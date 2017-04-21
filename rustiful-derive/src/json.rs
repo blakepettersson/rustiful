@@ -37,7 +37,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         .map(|&(field, ref ident)| {
             let ty = &field.ty;
             let option_ty = inner_of_option_ty(ty).unwrap_or(ty);
-            quote!(#ident: Option<#option_ty>)
+            quote!(pub #ident: Option<#option_ty>)
         })
         .collect();
 
