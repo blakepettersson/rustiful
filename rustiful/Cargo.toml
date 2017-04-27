@@ -16,11 +16,12 @@ autoimpl = "0.1"
 router = { version = "0.5.*", optional = true }
 iron = { version = "0.5.*", optional = true }
 bodyparser = { version = "0.7.*", optional = true }
-clippy = {version = "0.0.123", optional = true}
+clippy = {version = "0.0.123", optional = true }
+persistent = {version = "0.3.0", optional = true }
 
 [features]
-default = ["iron", "router", "bodyparser"]
-dev = ["clippy", "iron", "router", "bodyparser"]
+default = ["iron", "router", "bodyparser", "persistent"]
+dev = ["clippy", "iron", "router", "bodyparser", "persistent"]
 
 [dev-dependencies]
 iron = "0.5.*"

@@ -5,13 +5,11 @@ extern crate serde_derive;
 extern crate rustiful_derive;
 
 extern crate iron;
-extern crate router;
 extern crate iron_test;
 extern crate uuid;
 extern crate rustiful;
 extern crate serde_json;
 
-use self::router::Router;
 use iron::Headers;
 use iron::headers::ContentType;
 use iron::prelude::*;
@@ -29,13 +27,10 @@ use rustiful::JsonIndex;
 use rustiful::JsonPost;
 
 use rustiful::ToJson;
-use rustiful::iron::DeleteRouter;
-use rustiful::iron::GetRouter;
-use rustiful::iron::IndexRouter;
-use rustiful::iron::PostRouter;
 use rustiful::status::Status;
 use std::error::Error;
 use std::fmt::Display;
+use rustiful::iron::JsonApiRouterBuilder;
 use std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
@@ -139,13 +134,13 @@ impl JsonPost for Foo {
     }
 }
 
-fn app_router() -> Router {
-    let mut router = Router::new();
+fn app_router() -> iron::Chain {
+    let mut router = JsonApiRouterBuilder::default();
     router.jsonapi_get::<Foo>();
     router.jsonapi_post::<Foo>();
     router.jsonapi_index::<Foo>();
     router.jsonapi_delete::<Foo>();
-    router
+    router.build()
 }
 
 #[test]
