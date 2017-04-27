@@ -61,3 +61,5 @@ pub mod status {
     pub use hyper::status::StatusCode as Status;
     pub use hyper::status::StatusCode::*;
 }
+
+pub mod json_option;

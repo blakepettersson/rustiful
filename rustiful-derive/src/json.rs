@@ -6,6 +6,7 @@ use super::util;
 use quote::Ident;
 use quote::Tokens;
 use syn::DeriveInput;
+use syn::Ty;
 
 pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
@@ -36,7 +37,14 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     let jsonapi_attrs: Vec<_> = attr_fields.iter()
         .map(|&(field, ref ident)| {
             let ty = &field.ty;
-            quote!(pub #ident: Option<#ty>)
+            if is_option_ty(ty) {
+                quote! {
+                    #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
+                    pub #ident: Option<#ty>
+                }
+            } else {
+                quote!(pub #ident: Option<#ty>)
+            }
         })
         .collect();
 
@@ -112,6 +120,8 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
 
     quote! {
         mod #mod_name {
+            extern crate rustiful;
+
             use super::#name;
             use super::#lower_case_name::#generated_params_type_name;
 
@@ -160,12 +170,10 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             impl TryFrom<(#name, JsonApiData<#generated_jsonapi_attrs>)> for #name {
                 type Error = String;
 
-                fn try_from(pair: (#name, JsonApiData<#generated_jsonapi_attrs>)) -> Result<Self, Self::Error> {
+                fn try_from(pair: (#name, JsonApiData<#generated_jsonapi_attrs>)) ->
+                Result<Self, Self::Error> {
                     let (model, updated_attrs) = pair;
                     let mut builder = Builder::new(model);
-
-                    //println!("{:?}", &updated_attrs.attributes);
-
                     #(#jsonapi_builder_setter)*
                     builder.build()
                 }
@@ -207,5 +215,18 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                 }
             }
         }
+    }
+}
+
+fn is_option_ty(ty: &Ty) -> bool {
+    let option_ident = Ident::new("Option");
+    match *ty {
+        Ty::Path(_, ref path) => {
+            path.segments
+                .first()
+                .map(|s| s.ident == option_ident)
+                .unwrap_or(false)
+        }
+        _ => false,
     }
 }
