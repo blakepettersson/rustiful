@@ -11,8 +11,8 @@ serde_derive = "0.9"
 serde_json = "0.9"
 uuid = { version = "0.4", features = ["serde", "v4"] }
 
-diesel = { version = "0.11.0", features = ["sqlite"] }
-diesel_codegen = { version = "0.11.0", features = ["sqlite"] }
+diesel = { version = "0.12.0", features = ["sqlite"] }
+diesel_codegen = { version = "0.12.0", features = ["sqlite"] }
 dotenv = "0.8.0"
 iron = "0.5.*"
 router = "0.5.*"
