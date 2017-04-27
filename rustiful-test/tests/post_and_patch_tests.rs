@@ -14,7 +14,6 @@ extern crate diesel_codegen;
 extern crate lazy_static;
 
 extern crate iron;
-extern crate router;
 extern crate iron_test;
 extern crate uuid;
 extern crate rustiful;
@@ -22,10 +21,6 @@ extern crate serde_json;
 extern crate r2d2;
 extern crate r2d2_diesel;
 extern crate dotenv;
-extern crate bodyparser;
-extern crate persistent;
-
-use self::router::Router;
 
 use diesel::*;
 use diesel::sqlite::SqliteConnection;
@@ -35,14 +30,12 @@ use iron::headers::ContentType;
 use iron::mime::Mime;
 use iron::prelude::*;
 use iron_test::{request, response};
-use persistent::Read;
 use r2d2::GetTimeout;
 use r2d2::Pool;
 use r2d2::PooledConnection;
 use r2d2_diesel::ConnectionManager;
 use rustiful::FromRequest;
 use rustiful::JsonApiObject;
-use rustiful::JsonApiResource;
 use rustiful::JsonDelete;
 use rustiful::JsonGet;
 use rustiful::JsonIndex;
@@ -51,12 +44,7 @@ use rustiful::JsonPost;
 use rustiful::SortOrder::*;
 use rustiful::ToJson;
 use rustiful::TryInto;
-use rustiful::iron::DeleteRouter;
-use rustiful::iron::GetRouter;
-use rustiful::iron::IndexRouter;
-
-use rustiful::iron::PatchRouter;
-use rustiful::iron::PostRouter;
+use rustiful::iron::JsonApiRouterBuilder;
 use rustiful::status::Status;
 use std::env;
 use std::error::Error;
@@ -68,9 +56,6 @@ infer_schema!("dotenv:DATABASE_URL");
 
 use self::tests as column;
 use self::tests::dsl::tests as table;
-
-
-const MAX_BODY_LENGTH: usize = 1024 * 1024 * 100;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
 AsChangeset)]
@@ -109,7 +94,7 @@ impl Display for MyErr {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match *self {
             MyErr::Diesel(ref err) => err.fmt(f),
-            MyErr::UpdateError(ref err) => f.write_str("wat"),
+            MyErr::UpdateError(ref err) => err.fmt(f),
         }
     }
 }
@@ -261,15 +246,13 @@ pub fn create_db_pool() -> Pool<ConnectionManager<SqliteConnection>> {
 }
 
 fn app_router() -> iron::Chain {
-    let mut router = Router::new();
+    let mut router = JsonApiRouterBuilder::default();
     router.jsonapi_get::<Test>();
     router.jsonapi_post::<Test>();
     router.jsonapi_index::<Test>();
     router.jsonapi_patch::<Test>();
     router.jsonapi_delete::<Test>();
-    let mut chain = iron::Chain::new(router);
-    chain.link_before(Read::<bodyparser::MaxBodyLength>::one(MAX_BODY_LENGTH));
-    chain
+    router.build()
 }
 
 #[test]
