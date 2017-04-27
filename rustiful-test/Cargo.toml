@@ -6,10 +6,10 @@ authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 [dependencies]
 rustiful = { path = "../rustiful", features = ["uuid", "iron", "router", "bodyparser"] }
 rustiful-derive = { path = "../rustiful-derive" }
-serde = "0.9"
-serde_derive = "0.9"
-serde_json = "0.9"
-uuid = { version = "0.4", features = ["serde", "v4"] }
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+uuid = { version = "0.5", features = ["serde", "v4"] }
 
 diesel = { version = "0.12.0", features = ["sqlite"] }
 diesel_codegen = { version = "0.12.0", features = ["sqlite"] }
@@ -21,7 +21,7 @@ clippy = {version = "0.0.123", optional = true}
 r2d2 = { version = "0.7" }
 r2d2-diesel = { version = "0.12" }
 lazy_static = "0.2"
-bodyparser = { version = "0.6.*" }
+bodyparser = { version = "0.7.*" }
 persistent = "0.3.0"
 
 [features]

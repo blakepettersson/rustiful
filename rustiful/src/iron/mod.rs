@@ -194,7 +194,7 @@ pub trait PostRouter {
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
 
@@ -209,7 +209,7 @@ impl PostRouter for Router {
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
         self.post(format!("/{}", T::resource_name()),
@@ -229,7 +229,7 @@ pub trait PatchRouter {
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
 
@@ -244,7 +244,7 @@ impl PatchRouter for Router {
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
         self.patch(format!("/{}/:id", T::resource_name()),

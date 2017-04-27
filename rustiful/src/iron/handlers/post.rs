@@ -12,7 +12,6 @@ use errors::RequestError;
 use params::TypedParams;
 use request::FromPost;
 use serde::Deserialize;
-use serde::Serialize;
 use service::JsonPost;
 use sort_order::SortOrder;
 use status::Status;
@@ -32,7 +31,7 @@ autoimpl! {
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
         T::Params: TypedParams<T::SortField, T::FilterField> + Default,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
         fn post(req: &'a mut Request) -> IronResult<Response> {
