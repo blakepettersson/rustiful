@@ -1,6 +1,8 @@
 #[cfg(feature = "uuid")]
 extern crate uuid;
 
+use std::fmt;
+
 #[cfg(feature = "uuid")]
 use self::uuid::Uuid;
 
@@ -114,6 +116,22 @@ impl From<JsonApiId> for Uuid {
             val
         } else {
             panic!("Expected uuid!")
+        }
+    }
+}
+
+impl fmt::Display for JsonApiId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::JsonApiIdType::*;
+
+        match self.0 {
+            Str(ref val) => write!(f, "{}", val),
+            Int32(ref val) => write!(f, "{}", val),
+            Int64(ref val) => write!(f, "{}", val),
+            UInt32(ref val) => write!(f, "{}", val),
+            UInt64(ref val) => write!(f, "{}", val),
+            #[cfg(feature = "uuid")]
+            Uuid(ref val) => write!(f, "{}", val),
         }
     }
 }

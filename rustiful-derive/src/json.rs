@@ -6,7 +6,6 @@ use super::util;
 use quote::Ident;
 use quote::Tokens;
 use syn::DeriveInput;
-use syn::Ty;
 
 pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#name`
@@ -14,6 +13,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
 
     let (id, fields) = util::get_attrs_and_id(&ast.body);
 
+    let json_api_id_ty = &id.ty;
     let json_api_id_ident =
         &id.clone().ident.expect("#[derive(JsonApi)] is not supported for tuple structs");
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
@@ -36,8 +36,7 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     let jsonapi_attrs: Vec<_> = attr_fields.iter()
         .map(|&(field, ref ident)| {
             let ty = &field.ty;
-            let option_ty = inner_of_option_ty(ty).unwrap_or(ty);
-            quote!(pub #ident: Option<#option_ty>)
+            quote!(pub #ident: Option<#ty>)
         })
         .collect();
 
@@ -57,6 +56,58 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
+    let attr_constructor_fields = filtered_option_fields.clone();
+
+    let jsonapi_builder_id_attr = quote!(pub #json_api_id_ident: #json_api_id_ty);
+    let jsonapi_builder_attrs = jsonapi_attrs.clone();
+    let jsonapi_builder_id = quote!(#json_api_id_ident: self.#json_api_id_ident);
+    let jsonapi_builder_fields: Vec<_> = attr_fields.iter()
+        .map(|&(_, ref ident)| {
+            let ident_string = &ident.to_string();
+            quote! {
+                #ident: self.#ident.ok_or(format!("#{} must be initialized", #ident_string))?
+            }
+        })
+        .collect();
+    let jsonapi_setter_fields: Vec<_> = attr_fields.iter()
+        .map(|&(_, ref ident)| {
+            quote! {
+                new.#ident = Some(model.#ident);
+            }
+        })
+        .collect();
+    let jsonapi_builder_methods: Vec<_> = attr_fields.iter()
+        .map(|&(field, ref ident)| {
+            let ty = &field.ty;
+            quote! {
+                pub fn #ident<VALUE: Into<#ty>>(&mut self, value: VALUE) -> &mut Self {
+                    let mut new = self;
+                    new.#ident = Some(value.into());
+                    new
+                }
+            }
+        })
+        .collect();
+
+    let jsonapi_builder_setter: Vec<_> = attr_fields.iter()
+        .map(|&(_, ref ident)| {
+            quote! {
+                updated_attrs.attributes.#ident.map(|v| builder.#ident(v));
+            }
+        })
+        .collect();
+
+
+    let foo: Vec<_> = attr_fields.iter()
+        .map(|&(field, ref ident)| {
+            let ty = &field.ty;
+            quote! {
+                #ident: Option<#ty>
+            }
+        })
+        .collect();
+
+
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
     quote! {
@@ -65,12 +116,59 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
             use super::#lower_case_name::#generated_params_type_name;
 
             use rustiful::ToJson;
+            use rustiful::TryFrom;
             use rustiful::JsonApiId;
             use rustiful::JsonApiData;
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
             pub struct #generated_jsonapi_attrs {
                 #(#jsonapi_attrs),*
+            }
+
+            impl #generated_jsonapi_attrs {
+                pub fn new(#(#foo),*) -> #generated_jsonapi_attrs {
+                    #generated_jsonapi_attrs {
+                        #(#attr_constructor_fields),*
+                    }
+                }
+            }
+
+            #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+            struct Builder {
+                #jsonapi_builder_id_attr,
+                #(#jsonapi_builder_attrs),*
+            }
+
+            impl Builder {
+                #(#jsonapi_builder_methods)*
+
+                pub fn new(model: #name) -> Self {
+                    let mut new:Self = Default::default();
+
+                    #(#jsonapi_setter_fields)*
+                    new
+                }
+
+                pub fn build(self) -> Result<#name, String> {
+                    Ok(#name {
+                        #jsonapi_builder_id,
+                        #(#jsonapi_builder_fields),*
+                    })
+                }
+            }
+
+            impl TryFrom<(#name, JsonApiData<#generated_jsonapi_attrs>)> for #name {
+                type Error = String;
+
+                fn try_from(pair: (#name, JsonApiData<#generated_jsonapi_attrs>)) -> Result<Self, Self::Error> {
+                    let (model, updated_attrs) = pair;
+                    let mut builder = Builder::new(model);
+
+                    //println!("{:?}", &updated_attrs.attributes);
+
+                    #(#jsonapi_builder_setter)*
+                    builder.build()
+                }
             }
 
             impl ToJson for #name {
@@ -109,36 +207,5 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
                 }
             }
         }
-    }
-}
-
-fn is_option_ty(ty: &Ty) -> bool {
-    let option_ident = Ident::new("Option");
-    match *ty {
-        Ty::Path(_, ref path) => {
-            path.segments
-                .first()
-                .map(|s| s.ident == option_ident)
-                .unwrap_or(false)
-        }
-        _ => false,
-    }
-}
-
-fn inner_of_option_ty(ty: &Ty) -> Option<&Ty> {
-    use self::syn::PathParameters::AngleBracketed;
-
-    if !is_option_ty(ty) {
-        return None;
-    }
-
-    match *ty {
-        Ty::Path(_, syn::Path { ref segments, .. }) => {
-            match segments[0].parameters {
-                AngleBracketed(ref data) => data.types.first(),
-                _ => None,
-            }
-        }
-        _ => None,
     }
 }

@@ -14,8 +14,8 @@ autoimpl! {
               T::Attrs: for<'b> From<(T, &'b T::Params)>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
-        fn patch(id: &'a str, json: T::Resource, ctx: T::Context)
-        -> Result<JsonApiObject<JsonApiData<T::Attrs>>, RequestError<T::Error>> {
+        fn patch(id: &'a str, json: JsonApiData<T::Attrs>, ctx: T::Context)
+        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error>> {
             match <T::JsonApiIdType>::from_str(id) {
                 Ok(typed_id) => {
                     match <T as JsonPatch>::update(typed_id, json, ctx) {

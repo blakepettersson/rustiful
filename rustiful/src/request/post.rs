@@ -11,8 +11,8 @@ autoimpl! {
               Status: for<'b> From<&'b T::Error>,
               T::Attrs: for<'b> From<(T, &'b T::Params)>
     {
-        fn create(json: T::Resource, ctx: T::Context) ->
-            Result<JsonApiObject<JsonApiData<T::Attrs>>, RequestError<T::Error>> {
+        fn create(json: JsonApiData<T::Attrs>, ctx: T::Context) ->
+        Result<JsonApiObject<T::Attrs>, RequestError<T::Error>> {
             match <T as JsonPost>::create(json, ctx) {
                 Ok(result) => Ok(JsonApiObject::<_> { data: result.into() }),
                 Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
