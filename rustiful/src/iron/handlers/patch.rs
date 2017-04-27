@@ -21,6 +21,7 @@ use to_json::ToJson;
 use try_from::TryFrom;
 use try_from::TryInto;
 use object::JsonApiObject;
+use serde::Deserialize;
 
 autoimpl! {
     pub trait PatchHandler<'a, T> where
@@ -31,7 +32,7 @@ autoimpl! {
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
         T::Params: TypedParams<T::SortField, T::FilterField> + Default,
-        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
         fn patch(req: &'a mut Request) -> IronResult<Response> {

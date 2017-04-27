@@ -6,16 +6,16 @@ authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 [lib]
 
 [dependencies]
-serde = "0.9.*"
-serde_derive = "0.9.*"
-serde_json = "0.9.*"
+serde = "1.0.*"
+serde_derive = "1.0.*"
+serde_json = "1.0.*"
 hyper = "0.10"
-uuid = { version = "0.4.*", optional = true, features = ["serde"] }
+uuid = { version = "0.5.*", optional = true, features = ["serde"] }
 autoimpl = "0.1"
 
 router = { version = "0.5.*", optional = true }
 iron = { version = "0.5.*", optional = true }
-bodyparser = { version = "0.6.*", optional = true }
+bodyparser = { version = "0.7.*", optional = true }
 clippy = {version = "0.0.123", optional = true}
 
 [features]
