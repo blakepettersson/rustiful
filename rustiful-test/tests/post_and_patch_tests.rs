@@ -26,46 +26,43 @@ extern crate bodyparser;
 extern crate persistent;
 
 use self::router::Router;
-use rustiful::JsonApiId;
-use iron::mime::Mime;
-use persistent::Read;
+
+use diesel::*;
+use diesel::sqlite::SqliteConnection;
+use dotenv::dotenv;
 use iron::Headers;
 use iron::headers::ContentType;
+use iron::mime::Mime;
 use iron::prelude::*;
 use iron_test::{request, response};
+use persistent::Read;
+use r2d2::GetTimeout;
+use r2d2::Pool;
+use r2d2::PooledConnection;
+use r2d2_diesel::ConnectionManager;
 use rustiful::FromRequest;
-
-use rustiful::JsonApiArray;
-use rustiful::JsonApiError;
-use rustiful::iron::PatchRouter;
-use rustiful::JsonApiErrorArray;
 use rustiful::JsonApiObject;
 use rustiful::JsonApiResource;
 use rustiful::JsonDelete;
 use rustiful::JsonGet;
 use rustiful::JsonIndex;
-use rustiful::JsonPost;
 use rustiful::JsonPatch;
+use rustiful::JsonPost;
+use rustiful::SortOrder::*;
 use rustiful::ToJson;
+use rustiful::TryInto;
 use rustiful::iron::DeleteRouter;
 use rustiful::iron::GetRouter;
 use rustiful::iron::IndexRouter;
+
+use rustiful::iron::PatchRouter;
 use rustiful::iron::PostRouter;
 use rustiful::status::Status;
+use std::env;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
-
-use diesel::*;
-use diesel::sqlite::SqliteConnection;
-use dotenv::dotenv;
-use r2d2::GetTimeout;
-use r2d2::Pool;
-use r2d2::PooledConnection;
-use r2d2_diesel::ConnectionManager;
-use std::env;
 use uuid::Uuid;
-use rustiful::TryInto;
 
 infer_schema!("dotenv:DATABASE_URL");
 
@@ -78,6 +75,7 @@ const MAX_BODY_LENGTH: usize = 1024 * 1024 * 100;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
 AsChangeset)]
 #[table_name="tests"]
+#[changeset_options(treat_none_as_null = "true")]
 struct Test {
     id: String,
     title: String,
@@ -88,7 +86,7 @@ struct Test {
 #[derive(Debug)]
 enum MyErr {
     Diesel(diesel::result::Error),
-    UpdateError(String)
+    UpdateError(String),
 }
 
 impl Error for MyErr {
@@ -131,7 +129,7 @@ impl<'a> From<&'a MyErr> for Status {
     fn from(err: &'a MyErr) -> Self {
         match *err {
             MyErr::UpdateError(_) => rustiful::status::ImATeapot,
-            _ => rustiful::status::InternalServerError
+            _ => rustiful::status::InternalServerError,
         }
     }
 }
@@ -145,7 +143,7 @@ impl JsonGet for Test {
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error> {
         if id == "fail" {
-            return Err(MyErr::UpdateError("test fail".to_string()))
+            return Err(MyErr::UpdateError("test fail".to_string()));
         }
         table.find(id).first(ctx.conn()).optional().map_err(|e| MyErr::Diesel(e))
     }
@@ -161,7 +159,9 @@ impl JsonPatch for Test {
               -> Result<Self, Self::Error> {
         let record = table.find(&id).first(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
         let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
-        diesel::update(table.find(&id)).set(&patch).execute(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
+        diesel::update(table.find(&id)).set(&patch)
+            .execute(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
         Ok(patch)
     }
 }
@@ -308,7 +308,8 @@ fn post_with_client_generated_id() {
                 "published": true
             }}
         }}
-    }}"#, id);
+    }}"#,
+                       id);
 
     let created = do_post(&data);
     let retrieved = do_get(&id);
@@ -331,7 +332,8 @@ fn update_with_nullable_field() {
                 "published": true
             }}
         }}
-    }}"#, &id);
+    }}"#,
+                       &id);
 
     do_post(&data);
 
@@ -345,13 +347,15 @@ fn update_with_nullable_field() {
                     "title": "funky"
                 }}
             }}
-        }}"#, &id);
+        }}"#,
+                            &id);
 
         do_patch(&id, &patch);
 
 
         let retrieved = do_get(&id);
-        assert_eq!(Some("test".to_string()), retrieved.data.attributes.body.unwrap());
+        assert_eq!(Some("test".to_string()),
+                   retrieved.data.attributes.body.unwrap());
         assert_eq!(Some("funky".to_string()), retrieved.data.attributes.title);
     }
 
@@ -365,12 +369,14 @@ fn update_with_nullable_field() {
                     "body": "new_content"
                 }}
             }}
-        }}"#, &id);
+        }}"#,
+                            &id);
 
         do_patch(&id, &patch);
 
         let retrieved = do_get(&id);
-        assert_eq!(Some("new_content".to_string()), retrieved.data.attributes.body.unwrap());
+        assert_eq!(Some("new_content".to_string()),
+                   retrieved.data.attributes.body.unwrap());
     }
 
     {
@@ -383,7 +389,8 @@ fn update_with_nullable_field() {
                     "body": null
                 }}
             }}
-        }}"#, &id);
+        }}"#,
+                            &id);
 
         do_patch(&id, &patch);
 
@@ -420,7 +427,10 @@ fn do_patch<T: Display>(id: &T, json: &str) -> JsonApiObject<<Test as ToJson>::A
     let mut headers = Headers::new();
     headers.set::<ContentType>(ContentType(content_type));
 
-    let response = request::patch(&format!("http://localhost:3000/tests/{}", id), headers, &json, &app_router());
+    let response = request::patch(&format!("http://localhost:3000/tests/{}", id),
+                                  headers,
+                                  &json,
+                                  &app_router());
     let result = response::extract_body_to_string(response.unwrap());
 
     let created: JsonApiObject<<Test as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
