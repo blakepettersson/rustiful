@@ -50,7 +50,7 @@ impl<T, E> TryFrom<RequestResult<T, E>> for Response
                     Ok(serialized) => {
                         let status = request.1;
                         match status {
-                            Status::Created | Status::NoContent => {
+                            Status::NoContent => {
                                 Ok(Response::with((content_type, status)))
                             }
                             _ => Ok(Response::with((content_type, status, serialized))),
@@ -190,12 +190,11 @@ pub trait PostRouter {
         <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
-        T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)>,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
 
@@ -206,12 +205,11 @@ impl PostRouter for Router {
         <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
-        T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)>,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
         self.post(format!("/{}", T::resource_name()),
@@ -227,12 +225,11 @@ pub trait PatchRouter {
         <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
-        T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)>,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static;
 }
 
@@ -243,12 +240,11 @@ impl PatchRouter for Router {
         <T::Context as FromRequest>::Error: 'static,
         T::JsonApiIdType: FromStr,
         Status: for<'b> From<&'b T::Error>,
-        T::Resource: Serialize + Deserialize + Clone + 'static + for<'b> From<(T, &'b T::Params)>,
         T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
                                     Error = QueryStringParseError>,
         T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
                                     Error = QueryStringParseError>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)>,
+        T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static,
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static {
 
         self.patch(format!("/{}/:id", T::resource_name()),

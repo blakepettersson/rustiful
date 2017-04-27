@@ -176,7 +176,7 @@ fn parse_json_api_single_get() {
                                 Headers::new(),
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
-    let record: JsonApiObject<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
+    let record: JsonApiObject<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -186,7 +186,7 @@ fn parse_json_api_single_get() {
         published: true,
     };
     let data: <Foo as ToJson>::Resource = (test, &params).into();
-    let expected: JsonApiObject<<Foo as ToJson>::Resource> = JsonApiObject { data: data };
+    let expected: JsonApiObject<<Foo as ToJson>::Attrs> = JsonApiObject { data: data };
 
     assert_eq!(expected, record);
 }

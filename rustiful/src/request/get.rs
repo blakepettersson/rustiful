@@ -23,7 +23,7 @@ autoimpl! {
         <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
         fn get(id: &'a str, query: &'a str, ctx: T::Context)
-        -> Result<JsonApiObject<JsonApiData<T::Attrs>>, RequestError<T::Error>> {
+        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error>> {
             match T::from_str(query) {
                 Ok(params) => {
                     match <T::JsonApiIdType>::from_str(id) {

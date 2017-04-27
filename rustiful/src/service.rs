@@ -5,6 +5,7 @@ use params::JsonApiResource;
 use status::Status;
 use std;
 use to_json::ToJson;
+use data::JsonApiData;
 
 pub trait JsonGet
     where Self: JsonApiResource
@@ -25,7 +26,7 @@ pub trait JsonPost
     type Error: std::error::Error + Send;
     type Context: FromRequest;
 
-    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error>
+    fn create(json: JsonApiData<Self::Attrs>, ctx: Self::Context) -> Result<Self, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -36,7 +37,7 @@ pub trait JsonPatch
     type Context: FromRequest;
 
     fn update(id: Self::JsonApiIdType,
-              json: Self::Resource,
+              json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
               -> Result<Self, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
