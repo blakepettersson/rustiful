@@ -29,6 +29,7 @@ use r2d2::Pool;
 use r2d2::PooledConnection;
 use r2d2_diesel::ConnectionManager;
 use rustiful::*;
+use rustiful::TryFrom;
 use rustiful::SortOrder::*;
 use rustiful::status::Status;
 use std::env;
@@ -250,4 +251,20 @@ fn test_crud() {
     assert_eq!(updated.body, Some("1".to_string()));
     assert_eq!(updated.title, "3".to_string());
     assert_eq!(updated.published, true);
+}
+
+#[test]
+fn test_setting_of_id_in_try_from() {
+    let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
+    let json = JsonApiData::new(Some(JsonApiId::from("1".to_string())), "".to_string(), json_attrs);
+    let test = Test {
+        id: "1".to_string(),
+        title: "foo".to_string(),
+        body: None,
+        published: false
+    };
+
+    let expected_id = test.id.clone();
+    let result: Test = (test, json).try_into().unwrap();
+    assert_eq!(expected_id, result.id)
 }

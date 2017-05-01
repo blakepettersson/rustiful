@@ -74,6 +74,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
 
     let jsonapi_builder_id_attr = quote!(pub #json_api_id_ident: #json_api_id_ty);
     let jsonapi_builder_id = quote!(#json_api_id_ident: self.#json_api_id_ident);
+    let jsonapi_builder_id_setter = quote!(new.#json_api_id_ident = model.#json_api_id_ident;);
 
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
@@ -116,6 +117,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
 
                 pub fn new(model: #name) -> Self {
                     let mut new:Self = Default::default();
+                    #jsonapi_builder_id_setter
                     #(#jsonapi_setter_fields)*
                     new
                 }
