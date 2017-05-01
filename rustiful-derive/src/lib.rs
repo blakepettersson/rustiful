@@ -23,10 +23,12 @@ use syn::DeriveInput;
 pub fn generate_json_api(input: TokenStream) -> TokenStream {
 
     let source = parse_derive_input(&input);
+    let name = &source.ident;
+    let pair = util::get_attrs_and_id(source.body);
 
     // Build the output
-    let mut expanded = params::expand_json_api_fields(&source);
-    expanded.append(json::expand_json_api_models(&source).as_str());
+    let mut expanded = params::expand_json_api_fields(name, &source.attrs, &pair);
+    expanded.append(json::expand_json_api_models(name, &pair).as_str());
 
     // Return the generated impl as a TokenStream
     expanded.parse().unwrap()
@@ -34,12 +36,18 @@ pub fn generate_json_api(input: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(JsonApiResource, attributes(JsonApiId))]
 pub fn generate_json_api_models(input: TokenStream) -> TokenStream {
-    json::expand_json_api_models(&parse_derive_input(&input)).parse().unwrap()
+    let source = parse_derive_input(&input);
+    let name = &source.ident;
+    let pair = util::get_attrs_and_id(source.body);
+    json::expand_json_api_models(name, &pair).parse().unwrap()
 }
 
 #[proc_macro_derive(JsonApiParams)]
 pub fn generate_json_api_request_parameters(input: TokenStream) -> TokenStream {
-    params::expand_json_api_fields(&parse_derive_input(&input)).parse().unwrap()
+    let source = parse_derive_input(&input);
+    let name = &source.ident;
+    let pair = util::get_attrs_and_id(source.body);
+    params::expand_json_api_fields(name, &source.attrs, &pair).parse().unwrap()
 }
 
 fn parse_derive_input(input: &TokenStream) -> DeriveInput {

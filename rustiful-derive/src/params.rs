@@ -4,26 +4,20 @@ extern crate inflector;
 
 use self::inflector::Inflector;
 use super::quote::*;
-use super::util;
 use syn::Attribute;
-use syn::DeriveInput;
 use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
+use util::JsonApiField;
 
-pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
-    let (id, fields) = util::get_attrs_and_id(&ast.body);
-
-    // Used in the quasi-quotation below as `#name`
-    let name = &ast.ident;
+pub fn expand_json_api_fields(name: &syn::Ident,
+                              attrs: &[Attribute],
+                              &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
+                              -> Tokens {
     let lower_case_name = name.to_string().to_snake_case();
-    let json_api_id_ty = &id.ty;
+    let json_api_id_ty = &id.field.ty;
 
-    let attr_fields: Vec<_> = fields.iter()
-        .map(|f| f.ident.clone().expect("#[derive(JsonApi)] is not supported for tuple structs"))
-        .collect();
-
-    let json_name = get_json_name(&lower_case_name, &ast.attrs);
+    let json_name = get_json_name(&lower_case_name, attrs);
     let lower_cased_ident = Ident::new(lower_case_name);
     let pluralized_name = json_name.to_plural().to_kebab_case();
 
@@ -31,21 +25,35 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
     // append name + `Params` to the new struct name
     let params_name = Ident::new(format!("__{}{}", name, "Params"));
 
-    let option_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f)).collect();
-    let option_fields_len = option_fields.len();
+    let mut option_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let option_fields_len = fields.len();
 
-    let filter_fields: Vec<_> = attr_fields.iter().map(|f| quote!(self::field::#f)).collect();
-    let filter_cases: Vec<_> = attr_fields.iter()
-        .map(|f| to_match_arm(f, &quote!(params.filter.fields), &quote!(self::field::#f)))
-        .collect();
+    let mut filter_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut filter_cases: Vec<_> = Vec::with_capacity(fields.len());
+    let mut sort_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut sort_cases: Vec<_> = Vec::with_capacity(fields.len());
 
-    let sort_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f(SortOrder))).collect();
-    let sort_cases: Vec<_> = attr_fields.iter()
-        .map(|f| to_match_arm(f, &quote!(params.sort.fields), &quote!(self::sort::#f(order))))
-        .collect();
+    for field in fields {
+        let f = &field.ident;
+
+        option_fields.push(quote!(#f));
+
+        sort_fields.push(quote!(#f(SortOrder)));
+        sort_cases.push(to_match_arm(&f,
+                                     &quote!(params.sort.fields),
+                                     &quote!(self::sort::#f(order))));
+
+        filter_fields.push(quote!(self::field::#f));
+        filter_cases.push(to_match_arm(&f,
+                                       &quote!(params.filter.fields),
+                                       &quote!(self::field::#f)));
+    }
 
     quote! {
         pub mod #lower_cased_ident {
+            //extern crate uuid;
+            //use self::uuid::Uuid;
+
             use super::#name;
             use std::slice::Iter;
             use std::collections::HashMap;
@@ -110,10 +118,9 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             impl<'a> TryFrom<(&'a str, SortOrder, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, SortOrder, #params_name)) -> Result<Self, Self::Error> {
+                fn try_from((field, order, mut params): (&'a str, SortOrder, #params_name))
+                -> Result<Self, Self::Error> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
-
-                    let (field, order, mut params) = tuple;
                     match field {
                         #(#sort_cases)*
                         _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
@@ -127,11 +134,12 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
             impl<'a> TryFrom<(&'a str, Vec<&'a str>, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, Vec<&'a str>, #params_name)) -> Result<Self, Self::Error> {
-                    let (model, fields, mut params) = tuple;
+                fn try_from((model, fields, mut params): (&'a str, Vec<&'a str>, #params_name))
+                -> Result<Self, Self::Error> {
                     match model {
                         #json_name => {
-                            // If we already have the same field in the map, we consider this an error.
+                            // If we already have the same field in the map, we consider this
+                            // an error.
                             if !params.filter.fields.is_empty() {
 
                             }
