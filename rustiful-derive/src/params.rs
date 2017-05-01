@@ -9,9 +9,11 @@ use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
 use util::JsonApiField;
-use syn::Field;
 
-pub fn expand_json_api_fields(name: &syn::Ident, attrs: &[Attribute], &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)) -> Tokens {
+pub fn expand_json_api_fields(name: &syn::Ident,
+                              attrs: &[Attribute],
+                              &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
+                              -> Tokens {
     let lower_case_name = name.to_string().to_snake_case();
     let json_api_id_ty = &id.field.ty;
 
@@ -23,36 +25,35 @@ pub fn expand_json_api_fields(name: &syn::Ident, attrs: &[Attribute], &(ref id, 
     // append name + `Params` to the new struct name
     let params_name = Ident::new(format!("__{}{}", name, "Params"));
 
-    let option_fields: Vec<_> = fields.iter().map(|f| {
-        let ident = &f.ident;
-        quote!(#ident)
-    }).collect();
-    let option_fields_len = option_fields.len();
+    let mut option_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let option_fields_len = fields.len();
 
-    let filter_fields: Vec<_> = fields.iter().map(|f| {
-        let ident = &f.ident;
-        quote!(self::field::#ident)
-    }).collect();
-    let filter_cases: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            to_match_arm(ident, &quote!(params.filter.fields), &quote!(self::field::#ident))
-        })
-        .collect();
+    let mut filter_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut filter_cases: Vec<_> = Vec::with_capacity(fields.len());
+    let mut sort_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut sort_cases: Vec<_> = Vec::with_capacity(fields.len());
 
-    let sort_fields: Vec<_> = fields.iter().map(|f| {
-        let ident = &f.ident;
-        quote!(#ident(SortOrder))
-    }).collect();
-    let sort_cases: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            to_match_arm(ident, &quote!(params.sort.fields), &quote!(self::sort::#ident(order)))
-        })
-        .collect();
+    for field in fields {
+        let f = &field.ident;
+
+        option_fields.push(quote!(#f));
+
+        sort_fields.push(quote!(#f(SortOrder)));
+        sort_cases.push(to_match_arm(&f,
+                                     &quote!(params.sort.fields),
+                                     &quote!(self::sort::#f(order))));
+
+        filter_fields.push(quote!(self::field::#f));
+        filter_cases.push(to_match_arm(&f,
+                                       &quote!(params.filter.fields),
+                                       &quote!(self::field::#f)));
+    }
 
     quote! {
         pub mod #lower_cased_ident {
+            //extern crate uuid;
+            //use self::uuid::Uuid;
+
             use super::#name;
             use std::slice::Iter;
             use std::collections::HashMap;
@@ -117,10 +118,9 @@ pub fn expand_json_api_fields(name: &syn::Ident, attrs: &[Attribute], &(ref id, 
             impl<'a> TryFrom<(&'a str, SortOrder, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, SortOrder, #params_name)) -> Result<Self, Self::Error> {
+                fn try_from((field, order, mut params): (&'a str, SortOrder, #params_name))
+                -> Result<Self, Self::Error> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
-
-                    let (field, order, mut params) = tuple;
                     match field {
                         #(#sort_cases)*
                         _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
@@ -134,11 +134,12 @@ pub fn expand_json_api_fields(name: &syn::Ident, attrs: &[Attribute], &(ref id, 
             impl<'a> TryFrom<(&'a str, Vec<&'a str>, #params_name)> for #params_name {
                 type Error = QueryStringParseError;
 
-                fn try_from(tuple: (&'a str, Vec<&'a str>, #params_name)) -> Result<Self, Self::Error> {
-                    let (model, fields, mut params) = tuple;
+                fn try_from((model, fields, mut params): (&'a str, Vec<&'a str>, #params_name))
+                -> Result<Self, Self::Error> {
                     match model {
                         #json_name => {
-                            // If we already have the same field in the map, we consider this an error.
+                            // If we already have the same field in the map, we consider this
+                            // an error.
                             if !params.filter.fields.is_empty() {
 
                             }

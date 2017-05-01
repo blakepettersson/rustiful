@@ -5,10 +5,11 @@ use self::inflector::Inflector;
 use quote::Ident;
 use quote::Tokens;
 use syn::Ty;
-use syn::Field;
 use util::JsonApiField;
 
-pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)) -> Tokens {
+pub fn expand_json_api_models(name: &syn::Ident,
+                              &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
+                              -> Tokens {
     let json_api_id_ty = &id.field.ty;
     let json_api_id_ident = &id.ident;
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
@@ -19,99 +20,59 @@ pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonAp
     // Used in the quasi-quotation below as `#generated_params_type_name`;
     // append name + `Params` to the new struct name
     let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
-    let jsonapi_attrs: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            let ty = &f.field.ty;
-            if is_option_ty(ty) {
-                quote! {
-                    #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
-                    pub #ident: Option<#ty>
-                }
-            } else {
-                quote!(pub #ident: Option<#ty>)
+
+    let mut jsonapi_attrs: Vec<_> = Vec::with_capacity(fields.len());
+    let mut filtered_option_vars: Vec<_> = Vec::with_capacity(fields.len());
+    let mut filtered_option_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut attr_constructor_fields: Vec<_> = Vec::with_capacity(fields.len());
+
+
+    let mut filtered_option_cases: Vec<_> = Vec::with_capacity(fields.len());
+    let mut jsonapi_builder_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut jsonapi_builder_attrs: Vec<_> = Vec::with_capacity(fields.len());
+    let mut jsonapi_setter_fields: Vec<_> = Vec::with_capacity(fields.len());
+    let mut jsonapi_builder_methods: Vec<_> = Vec::with_capacity(fields.len());
+    let mut jsonapi_builder_setter: Vec<_> = Vec::with_capacity(fields.len());
+    let mut attr_constructor_args: Vec<_> = Vec::with_capacity(fields.len());
+
+    for field in fields {
+        let ty = &field.field.ty;
+        let ident = &field.ident;
+        let ident_string = &ident.to_string();
+
+        jsonapi_attrs.push(generate_option_method(ident, ty, true));
+        jsonapi_builder_attrs.push(generate_option_method(ident, ty, false));
+
+        filtered_option_vars.push(quote!(let mut #ident = Some(model.#ident);));
+
+        let fields = quote!(#ident: #ident);
+        filtered_option_fields.push(fields.clone());
+        attr_constructor_fields.push(fields);
+
+        filtered_option_cases.push(quote! {
+            &super::#lower_case_name::field::#ident => #ident = None
+        });
+        jsonapi_builder_fields.push(quote! {
+            #ident: self.#ident.ok_or(format!("#{} must be initialized", #ident_string))?
+        });
+        jsonapi_setter_fields.push(quote! { new.#ident = Some(model.#ident); });
+        jsonapi_builder_methods.push(quote! {
+            pub fn #ident<VALUE: Into<#ty>>(&mut self, value: VALUE) -> &mut Self {
+                let mut new = self;
+                new.#ident = Some(value.into());
+                new
             }
-        })
-        .collect();
+        });
 
-    let filtered_option_vars: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(let mut #ident = Some(model.#ident);)
-        })
-        .collect();
+        jsonapi_builder_setter.push(quote! {
+            updated_attrs.attributes.#ident.map(|v| builder.#ident(v));
+        });
 
-    let filtered_option_fields: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote!(#ident: #ident)
-        })
-        .collect();
-
-    let filtered_option_cases: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote! {
-                &super::#lower_case_name::field::#ident => #ident = None
-            }
-        })
-        .collect();
-
-    let attr_constructor_fields = filtered_option_fields.clone();
+        attr_constructor_args.push(quote! { #ident: Option<#ty> });
+    }
 
     let jsonapi_builder_id_attr = quote!(pub #json_api_id_ident: #json_api_id_ty);
-    let jsonapi_builder_attrs = jsonapi_attrs.clone();
     let jsonapi_builder_id = quote!(#json_api_id_ident: self.#json_api_id_ident);
-    let jsonapi_builder_fields: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            let ident_string = &ident.to_string();
-            quote! {
-                #ident: self.#ident.ok_or(format!("#{} must be initialized", #ident_string))?
-            }
-        })
-        .collect();
-    let jsonapi_setter_fields: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote! {
-                new.#ident = Some(model.#ident);
-            }
-        })
-        .collect();
-    let jsonapi_builder_methods: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            let ty = &f.field.ty;
-            quote! {
-                pub fn #ident<VALUE: Into<#ty>>(&mut self, value: VALUE) -> &mut Self {
-                    let mut new = self;
-                    new.#ident = Some(value.into());
-                    new
-                }
-            }
-        })
-        .collect();
-
-    let jsonapi_builder_setter: Vec<_> = fields.iter()
-        .map(|f| {
-            let ident = &f.ident;
-            quote! {
-                updated_attrs.attributes.#ident.map(|v| builder.#ident(v));
-            }
-        })
-        .collect();
-
-
-    let foo: Vec<_> = fields.iter().map(|f| {
-            let ident = &f.ident;
-            let ty = &f.field.ty;
-            quote! {
-                #ident: Option<#ty>
-            }
-        })
-        .collect();
-
 
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
@@ -133,14 +94,14 @@ pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonAp
             }
 
             impl #generated_jsonapi_attrs {
-                pub fn new(#(#foo),*) -> #generated_jsonapi_attrs {
+                pub fn new(#(#attr_constructor_args),*) -> #generated_jsonapi_attrs {
                     #generated_jsonapi_attrs {
                         #(#attr_constructor_fields),*
                     }
                 }
             }
 
-            #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+            #[derive(Debug, Default, Clone, PartialEq, Eq)]
             struct Builder {
                 #jsonapi_builder_id_attr,
                 #(#jsonapi_builder_attrs),*
@@ -151,7 +112,6 @@ pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonAp
 
                 pub fn new(model: #name) -> Self {
                     let mut new:Self = Default::default();
-
                     #(#jsonapi_setter_fields)*
                     new
                 }
@@ -212,6 +172,17 @@ pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonAp
                 }
             }
         }
+    }
+}
+
+fn generate_option_method(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
+    if is_option_ty(ty) && generate_serde_attribute {
+        quote! {
+                #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
+                pub #ident: Option<#ty>
+        }
+    } else {
+        quote!(pub #ident: Option<#ty>)
     }
 }
 
