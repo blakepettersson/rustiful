@@ -16,3 +16,4 @@ clippy = {version = "0.0.123", optional = true}
 [features]
 default = []
 dev = ["clippy"]
+uuid = []

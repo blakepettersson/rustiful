@@ -2,6 +2,7 @@ use syn::Body;
 use syn::Field;
 use syn::Ident;
 use syn::VariantData;
+use quote::Tokens;
 
 pub struct JsonApiField {
     pub field: Field,
@@ -42,4 +43,21 @@ pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
         }
         _ => panic!("#[derive(JsonApi)] can only be used with structs"),
     }
+}
+
+#[cfg(feature = "uuid")]
+/// This method is used to conditionally add the uuid crate to the generated types. . If the feature
+/// "uuid" is set, then this will add the crate along with a use declaration of `Uuid`.
+pub fn get_uuid_tokens() -> Tokens {
+    quote! {
+        extern crate uuid;
+        use self::uuid::Uuid;
+    }
+}
+
+#[cfg(not(feature = "uuid"))]
+/// This method is used to conditionally add the uuid crate to the generated types. If the feature
+/// "uuid" is not set, then this does nothing.
+pub fn get_uuid_tokens() -> Tokens {
+    quote! {}
 }
