@@ -5,6 +5,7 @@ use self::inflector::Inflector;
 use quote::Ident;
 use quote::Tokens;
 use syn::Ty;
+use util;
 use util::JsonApiField;
 
 pub fn expand_json_api_models(name: &syn::Ident,
@@ -76,8 +77,11 @@ pub fn expand_json_api_models(name: &syn::Ident,
 
     let mod_name = Ident::new(format!("__json_{}", lower_case_name_as_str));
 
+    let uuid = util::get_uuid_tokens();
+
     quote! {
         mod #mod_name {
+            #uuid
             extern crate rustiful;
 
             use super::#name;

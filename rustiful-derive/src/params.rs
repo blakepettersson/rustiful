@@ -8,6 +8,7 @@ use syn::Attribute;
 use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
+use util;
 use util::JsonApiField;
 
 pub fn expand_json_api_fields(name: &syn::Ident,
@@ -49,10 +50,12 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                                        &quote!(self::field::#f)));
     }
 
+
+    let uuid = util::get_uuid_tokens();
+
     quote! {
         pub mod #lower_cased_ident {
-            //extern crate uuid;
-            //use self::uuid::Uuid;
+            #uuid
 
             use super::#name;
             use std::slice::Iter;
