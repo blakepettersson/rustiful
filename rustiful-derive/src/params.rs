@@ -4,26 +4,18 @@ extern crate inflector;
 
 use self::inflector::Inflector;
 use super::quote::*;
-use super::util;
 use syn::Attribute;
-use syn::DeriveInput;
 use syn::Lit::*;
 use syn::MetaItem::*;
 use syn::NestedMetaItem::*;
+use util::JsonApiField;
+use syn::Field;
 
-pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
-    let (id, fields) = util::get_attrs_and_id(&ast.body);
-
-    // Used in the quasi-quotation below as `#name`
-    let name = &ast.ident;
+pub fn expand_json_api_fields(name: &syn::Ident, attrs: &[Attribute], &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)) -> Tokens {
     let lower_case_name = name.to_string().to_snake_case();
-    let json_api_id_ty = &id.ty;
+    let json_api_id_ty = &id.field.ty;
 
-    let attr_fields: Vec<_> = fields.iter()
-        .map(|f| f.ident.clone().expect("#[derive(JsonApi)] is not supported for tuple structs"))
-        .collect();
-
-    let json_name = get_json_name(&lower_case_name, &ast.attrs);
+    let json_name = get_json_name(&lower_case_name, attrs);
     let lower_cased_ident = Ident::new(lower_case_name);
     let pluralized_name = json_name.to_plural().to_kebab_case();
 
@@ -31,17 +23,32 @@ pub fn expand_json_api_fields(ast: &DeriveInput) -> Tokens {
     // append name + `Params` to the new struct name
     let params_name = Ident::new(format!("__{}{}", name, "Params"));
 
-    let option_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f)).collect();
+    let option_fields: Vec<_> = fields.iter().map(|f| {
+        let ident = &f.ident;
+        quote!(#ident)
+    }).collect();
     let option_fields_len = option_fields.len();
 
-    let filter_fields: Vec<_> = attr_fields.iter().map(|f| quote!(self::field::#f)).collect();
-    let filter_cases: Vec<_> = attr_fields.iter()
-        .map(|f| to_match_arm(f, &quote!(params.filter.fields), &quote!(self::field::#f)))
+    let filter_fields: Vec<_> = fields.iter().map(|f| {
+        let ident = &f.ident;
+        quote!(self::field::#ident)
+    }).collect();
+    let filter_cases: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            to_match_arm(ident, &quote!(params.filter.fields), &quote!(self::field::#ident))
+        })
         .collect();
 
-    let sort_fields: Vec<_> = attr_fields.iter().map(|f| quote!(#f(SortOrder))).collect();
-    let sort_cases: Vec<_> = attr_fields.iter()
-        .map(|f| to_match_arm(f, &quote!(params.sort.fields), &quote!(self::sort::#f(order))))
+    let sort_fields: Vec<_> = fields.iter().map(|f| {
+        let ident = &f.ident;
+        quote!(#ident(SortOrder))
+    }).collect();
+    let sort_cases: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            to_match_arm(ident, &quote!(params.sort.fields), &quote!(self::sort::#ident(order)))
+        })
         .collect();
 
     quote! {

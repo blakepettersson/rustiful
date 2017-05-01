@@ -2,21 +2,15 @@ extern crate syn;
 extern crate inflector;
 
 use self::inflector::Inflector;
-use super::util;
 use quote::Ident;
 use quote::Tokens;
-use syn::DeriveInput;
 use syn::Ty;
+use syn::Field;
+use util::JsonApiField;
 
-pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
-    // Used in the quasi-quotation below as `#name`
-    let name = &ast.ident;
-
-    let (id, fields) = util::get_attrs_and_id(&ast.body);
-
-    let json_api_id_ty = &id.ty;
-    let json_api_id_ident =
-        &id.clone().ident.expect("#[derive(JsonApi)] is not supported for tuple structs");
+pub fn expand_json_api_models(name: &syn::Ident, &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)) -> Tokens {
+    let json_api_id_ty = &id.field.ty;
+    let json_api_id_ident = &id.ident;
     let generated_jsonapi_attrs = Ident::new(format!("__{}{}", name, "JsonApiAttrs"));
 
     let lower_case_name = Ident::new(name.to_string().to_snake_case());
@@ -25,18 +19,10 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     // Used in the quasi-quotation below as `#generated_params_type_name`;
     // append name + `Params` to the new struct name
     let generated_params_type_name = Ident::new(format!("__{}{}", name, "Params"));
-
-    let attr_fields: Vec<_> = fields.iter()
+    let jsonapi_attrs: Vec<_> = fields.iter()
         .map(|f| {
-            let ident =
-                f.ident.clone().expect("#[derive(JsonApi)] is not supported for tuple structs");
-            (f, ident)
-        })
-        .collect();
-
-    let jsonapi_attrs: Vec<_> = attr_fields.iter()
-        .map(|&(field, ref ident)| {
-            let ty = &field.ty;
+            let ident = &f.ident;
+            let ty = &f.field.ty;
             if is_option_ty(ty) {
                 quote! {
                     #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
@@ -48,16 +34,23 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
-    let filtered_option_vars: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| quote!(let mut #ident = Some(model.#ident);))
+    let filtered_option_vars: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            quote!(let mut #ident = Some(model.#ident);)
+        })
         .collect();
 
-    let filtered_option_fields: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| quote!(#ident: #ident))
+    let filtered_option_fields: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            quote!(#ident: #ident)
+        })
         .collect();
 
-    let filtered_option_cases: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| {
+    let filtered_option_cases: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
             quote! {
                 &super::#lower_case_name::field::#ident => #ident = None
             }
@@ -69,24 +62,27 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
     let jsonapi_builder_id_attr = quote!(pub #json_api_id_ident: #json_api_id_ty);
     let jsonapi_builder_attrs = jsonapi_attrs.clone();
     let jsonapi_builder_id = quote!(#json_api_id_ident: self.#json_api_id_ident);
-    let jsonapi_builder_fields: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| {
+    let jsonapi_builder_fields: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
             let ident_string = &ident.to_string();
             quote! {
                 #ident: self.#ident.ok_or(format!("#{} must be initialized", #ident_string))?
             }
         })
         .collect();
-    let jsonapi_setter_fields: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| {
+    let jsonapi_setter_fields: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
             quote! {
                 new.#ident = Some(model.#ident);
             }
         })
         .collect();
-    let jsonapi_builder_methods: Vec<_> = attr_fields.iter()
-        .map(|&(field, ref ident)| {
-            let ty = &field.ty;
+    let jsonapi_builder_methods: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
+            let ty = &f.field.ty;
             quote! {
                 pub fn #ident<VALUE: Into<#ty>>(&mut self, value: VALUE) -> &mut Self {
                     let mut new = self;
@@ -97,8 +93,9 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         })
         .collect();
 
-    let jsonapi_builder_setter: Vec<_> = attr_fields.iter()
-        .map(|&(_, ref ident)| {
+    let jsonapi_builder_setter: Vec<_> = fields.iter()
+        .map(|f| {
+            let ident = &f.ident;
             quote! {
                 updated_attrs.attributes.#ident.map(|v| builder.#ident(v));
             }
@@ -106,9 +103,9 @@ pub fn expand_json_api_models(ast: &DeriveInput) -> Tokens {
         .collect();
 
 
-    let foo: Vec<_> = attr_fields.iter()
-        .map(|&(field, ref ident)| {
-            let ty = &field.ty;
+    let foo: Vec<_> = fields.iter().map(|f| {
+            let ident = &f.ident;
+            let ty = &f.field.ty;
             quote! {
                 #ident: Option<#ty>
             }
