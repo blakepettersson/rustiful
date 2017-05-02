@@ -22,10 +22,6 @@ pub fn expand_json_api_fields(name: &syn::Ident,
     let lower_cased_ident = Ident::new(lower_case_name);
     let pluralized_name = json_name.to_plural().to_kebab_case();
 
-    // Used in the quasi-quotation below as `#params_name`;
-    // append name + `Params` to the new struct name
-    let params_name = Ident::new(format!("__{}{}", name, "Params"));
-
     let mut option_fields: Vec<_> = Vec::with_capacity(fields.len());
     let option_fields_len = fields.len();
 
@@ -97,13 +93,13 @@ pub fn expand_json_api_fields(name: &syn::Ident,
             }
 
             #[derive(Debug, PartialEq, Eq, Clone, Default)]
-            pub struct #params_name {
+            pub struct JsonApiParams {
                 pub filter: Filter,
                 pub sort: Sort,
                 pub query_params: HashMap<String, String>
             }
 
-            impl TypedParams<sort, field> for #params_name {
+            impl TypedParams<sort, field> for JsonApiParams {
                 fn filter(&mut self) -> &mut Vec<field> {
                     &mut self.filter.fields
                 }
@@ -118,10 +114,10 @@ pub fn expand_json_api_fields(name: &syn::Ident,
             }
 
             /// Parses the sort query parameter.
-            impl<'a> TryFrom<(&'a str, SortOrder, #params_name)> for #params_name {
+            impl<'a> TryFrom<(&'a str, SortOrder, JsonApiParams)> for JsonApiParams {
                 type Error = QueryStringParseError;
 
-                fn try_from((field, order, mut params): (&'a str, SortOrder, #params_name))
+                fn try_from((field, order, mut params): (&'a str, SortOrder, JsonApiParams))
                 -> Result<Self, Self::Error> {
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
                     match field {
@@ -134,10 +130,10 @@ pub fn expand_json_api_fields(name: &syn::Ident,
             }
 
             /// Parses the field query parameter(s).
-            impl<'a> TryFrom<(&'a str, Vec<&'a str>, #params_name)> for #params_name {
+            impl<'a> TryFrom<(&'a str, Vec<&'a str>, JsonApiParams)> for JsonApiParams {
                 type Error = QueryStringParseError;
 
-                fn try_from((model, fields, mut params): (&'a str, Vec<&'a str>, #params_name))
+                fn try_from((model, fields, mut params): (&'a str, Vec<&'a str>, JsonApiParams))
                 -> Result<Self, Self::Error> {
                     match model {
                         #json_name => {
@@ -164,7 +160,7 @@ pub fn expand_json_api_fields(name: &syn::Ident,
 
             impl JsonApiResource for #name {
                 type JsonApiIdType = #json_api_id_ty;
-                type Params = #params_name;
+                type Params = JsonApiParams;
                 type SortField = sort;
                 type FilterField = field;
 

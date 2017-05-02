@@ -15,6 +15,7 @@ extern crate proc_macro;
 mod util;
 mod json;
 mod params;
+mod builder;
 
 use proc_macro::TokenStream;
 use syn::DeriveInput;
@@ -27,7 +28,8 @@ pub fn generate_json_api(input: TokenStream) -> TokenStream {
     let pair = util::get_attrs_and_id(source.body);
 
     // Build the output
-    let mut expanded = params::expand_json_api_fields(name, &source.attrs, &pair);
+    let mut expanded = builder::expand_json_api_builders(name, &pair);
+    expanded.append(params::expand_json_api_fields(name, &source.attrs, &pair).as_str());
     expanded.append(json::expand_json_api_models(name, &pair).as_str());
 
     // Return the generated impl as a TokenStream
@@ -40,6 +42,14 @@ pub fn generate_json_api_models(input: TokenStream) -> TokenStream {
     let name = &source.ident;
     let pair = util::get_attrs_and_id(source.body);
     json::expand_json_api_models(name, &pair).parse().unwrap()
+}
+
+#[proc_macro_derive(JsonApiBuilder, attributes(JsonApiId))]
+pub fn generate_json_api_builders(input: TokenStream) -> TokenStream {
+    let source = parse_derive_input(&input);
+    let name = &source.ident;
+    let pair = util::get_attrs_and_id(source.body);
+    builder::expand_json_api_builders(name, &pair).parse().unwrap()
 }
 
 #[proc_macro_derive(JsonApiParams)]

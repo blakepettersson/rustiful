@@ -13,8 +13,8 @@ use self::uuid::Uuid;
 
 infer_schema!("dotenv:DATABASE_URL");
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
-AsChangeset)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable,
+Insertable, AsChangeset)]
 #[table_name="todos"]
 #[changeset_options(treat_none_as_null = "true")]
 pub struct Todo {
@@ -84,7 +84,8 @@ impl JsonPost for Todo {
     /// an auto-generated id), then make sure that you return a record with the generated id. This
     /// is handled with the `get_result` method below.
     fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
-        let result: NewTodo = record.into();
+        let todo: Todo = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
+        let result: NewTodo = todo.into();
         diesel::insert(&result)
             .into(table)
             .get_result::<Todo>(ctx.conn())
@@ -92,25 +93,13 @@ impl JsonPost for Todo {
     }
 }
 
-/// Converts the JSONAPI representation of `Todo` to a `NewTodo`.
-impl From<<Todo as ToJson>::Resource> for NewTodo {
-    fn from(json: <Todo as ToJson>::Resource) -> Self {
+/// Converts a `Todo` to a `NewTodo`.
+impl From<Todo> for NewTodo {
+    fn from(todo: Todo) -> Self {
         NewTodo {
-            title: json.attributes.title.unwrap_or("".to_string()),
-            body: json.attributes.body.unwrap(),
-            published: json.attributes.published.unwrap_or(false),
-        }
-    }
-}
-
-/// Converts the JSONAPI representation of a `Todo` (aka a `Todo::Resource`) to a `Todo`.
-impl From<<Todo as ToJson>::Resource> for Todo {
-    fn from(json: <Todo as ToJson>::Resource) -> Self {
-        Todo {
-            id: json.id.map(|id| id.into()).unwrap_or_else(|| Uuid::new_v4()),
-            title: json.attributes.title.unwrap_or("".to_string()),
-            body: json.attributes.body.unwrap(),
-            published: json.attributes.published.unwrap_or(false),
+            title: todo.title,
+            body: todo.body,
+            published: todo.published,
         }
     }
 }

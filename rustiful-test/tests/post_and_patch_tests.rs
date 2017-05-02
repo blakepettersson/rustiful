@@ -57,7 +57,7 @@ infer_schema!("dotenv:DATABASE_URL");
 use self::tests as column;
 use self::tests::dsl::tests as table;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
 AsChangeset)]
 #[table_name="tests"]
 #[changeset_options(treat_none_as_null = "true")]
@@ -202,25 +202,12 @@ impl JsonPost for Test {
     type Context = DB;
 
     fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
-        let result: Test = record.into();
+        let result: Test = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
         diesel::insert(&result)
             .into(table)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))
             .map(|_| result)
-    }
-}
-
-
-
-impl From<<Test as ToJson>::Resource> for Test {
-    fn from(json: <Test as ToJson>::Resource) -> Self {
-        Test {
-            id: json.id.map(|id| id.into()).unwrap_or_else(|| Uuid::new_v4().to_string()),
-            title: json.attributes.title.unwrap_or("".to_string()),
-            body: json.attributes.body.unwrap(),
-            published: json.attributes.published.unwrap_or(false),
-        }
     }
 }
 

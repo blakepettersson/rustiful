@@ -12,7 +12,7 @@ use rustiful::QueryStringParseError;
 use rustiful::SortOrder::*;
 use rustiful::ToJson;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
     #[JsonApiId]
     bar: i32,
@@ -20,7 +20,7 @@ struct Foo {
     abc: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 #[serde(rename = "renamed")]
 struct Bar {
     id: String,
