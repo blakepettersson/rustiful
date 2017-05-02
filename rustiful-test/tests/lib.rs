@@ -6,9 +6,11 @@ extern crate rustiful_derive;
 
 extern crate rustiful;
 
+use rustiful::JsonApiData;
 use rustiful::JsonApiResource;
 use rustiful::QueryStringParseError;
 use rustiful::SortOrder::*;
+use rustiful::ToJson;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
@@ -197,4 +199,33 @@ fn parse_sort_field_fails_on_non_existent_param() {
                        e)
         }
     }
+}
+
+#[test]
+fn test_into_conversions_with_int_id() {
+    let test = Foo {
+        bar: 1,
+        foo: 2,
+        abc: "abc".to_string(),
+    };
+
+    let expected_id = test.bar.to_string();
+    let result: JsonApiData<<Foo as ToJson>::Attrs> = test.into();
+    assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
+    assert_eq!(2, result.attributes.foo.expect("unexpected None on foo!"));
+    assert_eq!("abc".to_string(),
+               result.attributes.abc.expect("unexpected None on abc!"));
+}
+
+#[test]
+fn test_into_conversions_with_string_id() {
+    let test = Bar {
+        id: "test".to_string(),
+        bar: 1,
+    };
+
+    let expected_id = test.id.clone();
+    let result: JsonApiData<<Bar as ToJson>::Attrs> = test.into();
+    assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
+    assert_eq!(1, result.attributes.bar.expect("unexpected None on bar!"));
 }

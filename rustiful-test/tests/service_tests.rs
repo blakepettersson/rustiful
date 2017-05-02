@@ -29,7 +29,6 @@ use r2d2::Pool;
 use r2d2::PooledConnection;
 use r2d2_diesel::ConnectionManager;
 use rustiful::*;
-use rustiful::TryFrom;
 use rustiful::SortOrder::*;
 use rustiful::status::Status;
 use std::env;
@@ -79,7 +78,7 @@ impl Display for MyErr {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match *self {
             MyErr::Diesel(ref err) => err.fmt(f),
-            MyErr::UpdateError(ref err) => f.write_str("wat"),
+            MyErr::UpdateError(ref err) => err.fmt(f),
         }
     }
 }
@@ -243,7 +242,7 @@ fn test_crud() {
                    .unwrap());
 
     let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
-    let json = JsonApiData::new(Some(id.clone().into()), "".to_string(), json_attrs);
+    let json = JsonApiData::new(Some(id.clone()), "".to_string(), json_attrs);
     Test::update(id.clone(), json, DB(DB_POOL.get().expect("cannot get connection")));
 
     let updated = Test::find(id.clone(), &params, DB(DB_POOL.get().expect("cannot get connection"))).unwrap().unwrap();
@@ -256,7 +255,7 @@ fn test_crud() {
 #[test]
 fn test_setting_of_id_in_try_from() {
     let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
-    let json = JsonApiData::new(Some(JsonApiId::from("1".to_string())), "".to_string(), json_attrs);
+    let json = JsonApiData::new(Some("1".to_string()), "".to_string(), json_attrs);
     let test = Test {
         id: "1".to_string(),
         title: "foo".to_string(),

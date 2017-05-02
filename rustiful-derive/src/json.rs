@@ -90,7 +90,6 @@ pub fn expand_json_api_models(name: &syn::Ident,
 
             use rustiful::ToJson;
             use rustiful::TryFrom;
-            use rustiful::JsonApiId;
             use rustiful::JsonApiData;
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,9 +132,8 @@ pub fn expand_json_api_models(name: &syn::Ident,
             impl TryFrom<(#name, JsonApiData<#generated_jsonapi_attrs>)> for #name {
                 type Error = String;
 
-                fn try_from(pair: (#name, JsonApiData<#generated_jsonapi_attrs>)) ->
-                Result<Self, Self::Error> {
-                    let (model, updated_attrs) = pair;
+                fn try_from((model, updated_attrs): (#name, JsonApiData<#generated_jsonapi_attrs>))
+                -> Result<Self, Self::Error> {
                     let mut builder = Builder::new(model);
                     #(#jsonapi_builder_setter)*
                     builder.build()
@@ -146,8 +144,8 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 type Attrs = #generated_jsonapi_attrs;
                 type Resource = JsonApiData<#generated_jsonapi_attrs>;
 
-                fn id(&self) -> JsonApiId {
-                    self.#json_api_id_ident.clone().into()
+                fn id(&self) -> String {
+                    self.#json_api_id_ident.to_string()
                 }
 
                 fn type_name(&self) -> String {
@@ -156,9 +154,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
             }
 
             impl <'a> From<(#name, &'a #generated_params_type_name)> for #generated_jsonapi_attrs {
-                fn from(pair: (#name, &'a #generated_params_type_name)) -> Self {
-                    let (model, params) = pair;
-
+                fn from((model, params): (#name, &'a #generated_params_type_name)) -> Self {
                     #(#filtered_option_vars)*
 
                     let fields = &params.filter.fields;
