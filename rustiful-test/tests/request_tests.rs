@@ -27,13 +27,13 @@ use rustiful::JsonIndex;
 use rustiful::JsonPost;
 
 use rustiful::ToJson;
+use rustiful::iron::JsonApiRouterBuilder;
 use rustiful::status::Status;
 use std::error::Error;
 use std::fmt::Display;
-use rustiful::iron::JsonApiRouterBuilder;
 use std::fmt::Formatter;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
     id: String,
     title: String,

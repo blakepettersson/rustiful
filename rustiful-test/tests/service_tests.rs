@@ -42,7 +42,7 @@ infer_schema!("dotenv:DATABASE_URL");
 use self::tests as column;
 use self::tests::dsl::tests as table;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
 AsChangeset)]
 #[table_name="tests"]
 struct Test {
@@ -55,7 +55,7 @@ struct Test {
 #[derive(Debug)]
 enum MyErr {
     Diesel(diesel::result::Error),
-    UpdateError(String)
+    UpdateError(String),
 }
 
 impl Error for MyErr {
@@ -122,7 +122,9 @@ impl JsonPatch for Test {
               -> Result<Self, Self::Error> {
         let record = table.find(&id).first(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
         let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
-        diesel::update(table.find(&id)).set(&patch).execute(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
+        diesel::update(table.find(&id)).set(&patch)
+            .execute(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
         Ok(patch)
     }
 }
@@ -243,9 +245,15 @@ fn test_crud() {
 
     let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
     let json = JsonApiData::new(Some(id.clone()), "".to_string(), json_attrs);
-    Test::update(id.clone(), json, DB(DB_POOL.get().expect("cannot get connection")));
+    Test::update(id.clone(),
+                 json,
+                 DB(DB_POOL.get().expect("cannot get connection")));
 
-    let updated = Test::find(id.clone(), &params, DB(DB_POOL.get().expect("cannot get connection"))).unwrap().unwrap();
+    let updated = Test::find(id.clone(),
+                             &params,
+                             DB(DB_POOL.get().expect("cannot get connection")))
+        .unwrap()
+        .unwrap();
 
     assert_eq!(updated.body, Some("1".to_string()));
     assert_eq!(updated.title, "3".to_string());
@@ -260,7 +268,7 @@ fn test_setting_of_id_in_try_from() {
         id: "1".to_string(),
         title: "foo".to_string(),
         body: None,
-        published: false
+        published: false,
     };
 
     let expected_id = test.id.clone();

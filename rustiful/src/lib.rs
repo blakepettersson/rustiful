@@ -36,6 +36,9 @@ pub use object::*;
 mod error;
 pub use error::*;
 
+mod builder;
+pub use builder::*;
+
 mod request;
 
 #[cfg(feature = "iron")]
