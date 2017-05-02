@@ -178,25 +178,12 @@ pub fn expand_json_api_models(name: &syn::Ident,
 }
 
 fn generate_option_method(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
-    if is_option_ty(ty) && generate_serde_attribute {
+    if util::is_option_ty(ty) && generate_serde_attribute {
         quote! {
                 #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
                 pub #ident: Option<#ty>
         }
     } else {
         quote!(pub #ident: Option<#ty>)
-    }
-}
-
-fn is_option_ty(ty: &Ty) -> bool {
-    let option_ident = Ident::new("Option");
-    match *ty {
-        Ty::Path(_, ref path) => {
-            path.segments
-                .first()
-                .map(|s| s.ident == option_ident)
-                .unwrap_or(false)
-        }
-        _ => false,
     }
 }
