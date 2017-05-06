@@ -1,4 +1,5 @@
 use super::Status;
+use errors::IdParseError;
 use errors::RepositoryError;
 use errors::RequestError;
 use service::JsonDelete;
@@ -9,9 +10,10 @@ autoimpl! {
     pub trait FromDelete<'a, T>
         where T: JsonDelete,
               Status: for<'b> From<&'b T::Error>,
-              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
-        fn delete(id: &'a str, ctx: T::Context) -> Result<(), RequestError<T::Error>> {
+        fn delete(id: &'a str, ctx: T::Context)
+         -> Result<(), RequestError<T::Error, T::JsonApiIdType>> {
             match <T::JsonApiIdType>::from_str(id) {
                 Ok(typed_id) => {
                     match T::delete(typed_id, ctx) {
@@ -19,7 +21,7 @@ autoimpl! {
                         Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
                     }
                 },
-                Err(e) => Err(RequestError::IdParseError(Box::new(e)))
+                Err(e) => Err(RequestError::IdParseError(IdParseError(e)))
             }
         }
     }

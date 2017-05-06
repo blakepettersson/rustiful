@@ -7,9 +7,9 @@ use self::iron::prelude::*;
 use super::errors::BodyParserError;
 use super::super::RequestResult;
 use FromRequest;
+use errors::FromRequestError;
 use errors::QueryStringParseError;
 use errors::RequestError;
-use errors::FromRequestError;
 use iron::id;
 use object::JsonApiObject;
 use params::TypedParams;
@@ -34,7 +34,7 @@ autoimpl! {
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
         T::Params: TypedParams<T::SortField, T::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(req: &'a mut Request) -> IronResult<Response> {
             match req.get::<bodyparser::Struct<JsonApiObject<T::Attrs>>>() {
@@ -48,7 +48,7 @@ autoimpl! {
                     }
                 },
                 Ok(None) => {
-                    let err:RequestError<T::Error> = RequestError::NoBody;
+                    let err:RequestError<T::Error, T::JsonApiIdType> = RequestError::NoBody;
                     err.into()
                 },
                 Err(e) => BodyParserError(e).into()

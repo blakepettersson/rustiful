@@ -29,6 +29,7 @@ use service::JsonPatch;
 use sort_order::SortOrder;
 use status::Status;
 use std::error::Error;
+use std::fmt::Debug;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
@@ -38,17 +39,21 @@ fn json_api_type() -> Mime {
 }
 
 #[derive(Debug)]
-struct RequestResult<T, E>(Result<T, RequestError<E>>, Status)
+struct RequestResult<T, E, I>(Result<T, RequestError<E, I>>, Status)
     where T: Serialize,
-          E: Send + Error;
+          E: Send + Error,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error;
 
-impl<T, E> TryFrom<RequestResult<T, E>> for Response
+impl<T, E, I> TryFrom<RequestResult<T, E, I>> for Response
     where T: Serialize,
-          E: Send + Error + 'static
+          E: Send + Error + 'static,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
     type Error = IronError;
 
-    fn try_from(request: RequestResult<T, E>) -> IronResult<Response> {
+    fn try_from(request: RequestResult<T, E, I>) -> IronResult<Response> {
         let result = request.0;
 
         match result {
@@ -69,10 +74,12 @@ impl<T, E> TryFrom<RequestResult<T, E>> for Response
     }
 }
 
-impl<E> From<RequestError<E>> for IronResult<Response>
-    where E: Send + Error
+impl<E, I> From<RequestError<E, I>> for IronResult<Response>
+    where E: Send + Error,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
-    fn from(err: RequestError<E>) -> IronResult<Response> {
+    fn from(err: RequestError<E, I>) -> IronResult<Response> {
         let status = err.status();
         let json = JsonApiErrorArray::new(&err, status);
 
@@ -83,7 +90,9 @@ impl<E> From<RequestError<E>> for IronResult<Response>
     }
 }
 
-impl <T> From<FromRequestError<T>> for IronResult<Response> where T: Error + Send {
+impl<T> From<FromRequestError<T>> for IronResult<Response>
+    where T: Error + Send
+{
     fn from(err: FromRequestError<T>) -> IronResult<Response> {
         let status = Status::InternalServerError;
         let json = JsonApiErrorArray::new(&err, status);
@@ -273,7 +282,7 @@ mod tests {
     #[test]
     fn test_200_ok_response() {
         let test = Test { foo: "bar".to_string() };
-        let req: RequestResult<Test, ParseError> = RequestResult(Ok(test), Status::Ok);
+        let req: RequestResult<Test, ParseError, String> = RequestResult(Ok(test), Status::Ok);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
@@ -286,7 +295,8 @@ mod tests {
     #[test]
     fn test_201_created() {
         let test = Test { foo: "bar".to_string() };
-        let req: RequestResult<Test, ParseError> = RequestResult(Ok(test), Status::NoContent);
+        let req: RequestResult<Test, ParseError, String> = RequestResult(Ok(test),
+                                                                         Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
@@ -299,7 +309,8 @@ mod tests {
     #[test]
     fn test_204_no_content() {
         let test = Test { foo: "bar".to_string() };
-        let req: RequestResult<Test, ParseError> = RequestResult(Ok(test), Status::NoContent);
+        let req: RequestResult<Test, ParseError, String> = RequestResult(Ok(test),
+                                                                         Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
@@ -311,7 +322,7 @@ mod tests {
 
     #[test]
     fn test_error_json() {
-        let req: RequestResult<Test, RequestError<ParseError>> =
+        let req: RequestResult<Test, RequestError<ParseError, String>, String> =
             RequestResult(Err(RequestError::NoBody), Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");

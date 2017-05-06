@@ -18,7 +18,7 @@ autoimpl! {
               T::Error: 'static,
               Status: for<'b> From<&'b T::Error>,
               <T::Context as FromRequest>::Error: 'static,
-              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn delete(req: &'a mut Request) -> IronResult<Response> {
             match FromRequest::from_request(req) {

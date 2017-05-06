@@ -1,25 +1,31 @@
+use errors::IdParseError;
 use errors::query_string_parse_error::QueryStringParseError;
 use errors::repository_error::RepositoryError;
 use status::Status;
 use std::error::Error;
 use std::fmt::*;
+use std::str::FromStr;
 
 static NO_BODY: &'static str = "No body";
 static NOT_FOUND: &'static str = "Not found";
 
 #[derive(Debug)]
-pub enum RequestError<T>
-    where T: Error + Sized + Send
+pub enum RequestError<T, I>
+    where T: Error + Sized + Send,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
     NoBody,
     NotFound,
-    IdParseError(Box<Error + Send + 'static>),
+    IdParseError(IdParseError<I>),
     RepositoryError(RepositoryError<T>),
     QueryStringParseError(QueryStringParseError),
 }
 
-impl<T> RequestError<T>
-    where T: Error + Sized + Send
+impl<T, I> RequestError<T, I>
+    where T: Error + Sized + Send,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
     pub fn status(&self) -> Status {
         match *self {
@@ -30,8 +36,10 @@ impl<T> RequestError<T>
     }
 }
 
-impl<T> Display for RequestError<T>
-    where T: Error + Sized + Send
+impl<T, I> Display for RequestError<T, I>
+    where T: Error + Sized + Send,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
@@ -44,8 +52,10 @@ impl<T> Display for RequestError<T>
     }
 }
 
-impl<T> Error for RequestError<T>
-    where T: Error + Sized + Send
+impl<T, I> Error for RequestError<T, I>
+    where T: Error + Sized + Send,
+          I: FromStr + Debug,
+          <I as FromStr>::Err: Error
 {
     fn description(&self) -> &str {
         match *self {

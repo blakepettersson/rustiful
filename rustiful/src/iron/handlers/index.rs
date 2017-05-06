@@ -13,6 +13,8 @@ use request::FromIndex;
 use service::JsonIndex;
 use sort_order::SortOrder;
 use status::Status;
+use std::error::Error;
+use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
 use try_from::TryInto;
@@ -26,7 +28,8 @@ autoimpl! {
         T::Attrs: for<'b> From<(T, &'b T::Params)>,
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
-        T::Params: TypedParams<T::SortField, T::FilterField> + Default
+        T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(req: &'a mut Request) -> IronResult<Response> {
             let query = req.url.query().unwrap_or("");

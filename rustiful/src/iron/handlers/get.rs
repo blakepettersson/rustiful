@@ -30,7 +30,7 @@ autoimpl! {
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
         T::Params: TypedParams<T::SortField, T::FilterField> + Default,
         T::Attrs: for<'b> From<(T, &'b T::Params)>,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(req: &'a mut Request) -> IronResult<Response> {
             let query = req.url.query().unwrap_or("");
