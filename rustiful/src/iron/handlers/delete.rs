@@ -3,7 +3,8 @@ extern crate iron;
 use self::iron::prelude::*;
 use super::Status;
 use super::super::RequestResult;
-use ::FromRequest;
+use FromRequest;
+use errors::FromRequestError;
 use iron::id;
 use request::FromDelete;
 use service::JsonDelete;
@@ -25,7 +26,7 @@ autoimpl! {
                     let result = <T as FromDelete<T>>::delete(id(req), res);
                     RequestResult(result, Status::NoContent).try_into()
                 },
-                Err(e) => Err(IronError::new(e, Status::InternalServerError))
+                Err(e) => FromRequestError::<<T::Context as FromRequest>::Error>(e).into()
             }
         }
     }

@@ -4,14 +4,17 @@ extern crate serde;
 extern crate serde_json;
 
 use self::iron::prelude::*;
-use self::iron::status;
+use super::errors::BodyParserError;
 use super::super::RequestResult;
-use ::FromRequest;
+use FromRequest;
 use errors::QueryStringParseError;
 use errors::RequestError;
+use errors::FromRequestError;
 use iron::id;
+use object::JsonApiObject;
 use params::TypedParams;
 use request::FromPatch;
+use serde::Deserialize;
 use service::JsonPatch;
 use sort_order::SortOrder;
 use status::Status;
@@ -20,8 +23,6 @@ use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
 use try_from::TryInto;
-use object::JsonApiObject;
-use serde::Deserialize;
 
 autoimpl! {
     pub trait PatchHandler<'a, T> where
@@ -43,14 +44,14 @@ autoimpl! {
                             let result = <T as FromPatch<T>>::patch(id(req), patch.data, res);
                             RequestResult(result, Status::Ok).try_into()
                         },
-                        Err(e) => Err(IronError::new(e, Status::InternalServerError))
+                        Err(e) => FromRequestError::<<T::Context as FromRequest>::Error>(e).into()
                     }
                 },
                 Ok(None) => {
                     let err:RequestError<T::Error> = RequestError::NoBody;
-                    Err(IronError::new(err, status::InternalServerError))
+                    err.into()
                 },
-                Err(e) => Err(IronError::new(e, status::InternalServerError))
+                Err(e) => BodyParserError(e).into()
             }
         }
     }

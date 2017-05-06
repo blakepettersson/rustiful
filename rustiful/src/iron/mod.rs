@@ -15,8 +15,10 @@ use self::iron::status;
 use self::persistent::Read;
 use FromRequest;
 use error::JsonApiErrorArray;
+use errors::FromRequestError;
 use errors::QueryStringParseError;
 use errors::RequestError;
+use iron::handlers::BodyParserError;
 use iron::router::Router;
 use params::JsonApiResource;
 use params::TypedParams;
@@ -31,6 +33,10 @@ use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
 
+fn json_api_type() -> Mime {
+    "application/vnd.api+json".parse().unwrap()
+}
+
 #[derive(Debug)]
 struct RequestResult<T, E>(Result<T, RequestError<E>>, Status)
     where T: Serialize,
@@ -44,7 +50,6 @@ impl<T, E> TryFrom<RequestResult<T, E>> for Response
 
     fn try_from(request: RequestResult<T, E>) -> IronResult<Response> {
         let result = request.0;
-        let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
         match result {
             Ok(json) => {
@@ -52,22 +57,52 @@ impl<T, E> TryFrom<RequestResult<T, E>> for Response
                     Ok(serialized) => {
                         let status = request.1;
                         match status {
-                            Status::NoContent => Ok(Response::with((content_type, status))),
-                            _ => Ok(Response::with((content_type, status, serialized))),
+                            Status::NoContent => Ok(Response::with((json_api_type(), status))),
+                            _ => Ok(Response::with((json_api_type(), status, serialized))),
                         }
                     }
                     Err(e) => Err(IronError::new(e, Status::InternalServerError)),
                 }
             }
-            Err(err) => {
-                let status = err.status();
-                let json = JsonApiErrorArray::new(&err, status);
+            Err(err) => err.into(),
+        }
+    }
+}
 
-                match serde_json::to_string(&json) {
-                    Ok(serialized) => Ok(Response::with((content_type, status, serialized))),
-                    Err(e) => Err(IronError::new(e, Status::InternalServerError)),
-                }
-            }
+impl<E> From<RequestError<E>> for IronResult<Response>
+    where E: Send + Error
+{
+    fn from(err: RequestError<E>) -> IronResult<Response> {
+        let status = err.status();
+        let json = JsonApiErrorArray::new(&err, status);
+
+        match serde_json::to_string(&json) {
+            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
+            Err(e) => Err(IronError::new(e, Status::InternalServerError)),
+        }
+    }
+}
+
+impl <T> From<FromRequestError<T>> for IronResult<Response> where T: Error + Send {
+    fn from(err: FromRequestError<T>) -> IronResult<Response> {
+        let status = Status::InternalServerError;
+        let json = JsonApiErrorArray::new(&err, status);
+
+        match serde_json::to_string(&json) {
+            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
+            Err(e) => Err(IronError::new(e, status)),
+        }
+    }
+}
+
+impl From<BodyParserError> for IronResult<Response> {
+    fn from(err: BodyParserError) -> IronResult<Response> {
+        let status = Status::BadRequest;
+        let json = JsonApiErrorArray::new(&err, status);
+
+        match serde_json::to_string(&json) {
+            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
+            Err(e) => Err(IronError::new(e, status)),
         }
     }
 }
@@ -223,7 +258,7 @@ impl JsonApiRouterBuilder {
 mod tests {
     extern crate iron_test;
 
-    use self::iron_test::{response};
+    use self::iron_test::response;
     use super::*;
     use super::iron::headers::ContentType;
     use error::JsonApiError;

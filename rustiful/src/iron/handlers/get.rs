@@ -5,7 +5,8 @@ extern crate serde_json;
 
 use self::iron::prelude::*;
 use super::super::RequestResult;
-use ::FromRequest;
+use FromRequest;
+use errors::FromRequestError;
 use errors::QueryStringParseError;
 use iron::id;
 use params::TypedParams;
@@ -38,7 +39,7 @@ autoimpl! {
                     let result = T::get(id(req), query, res);
                     RequestResult(result, Status::Ok).try_into()
                 },
-                Err(e) => Err(IronError::new(e, Status::InternalServerError))
+                Err(e) => FromRequestError::<<T::Context as FromRequest>::Error>(e).into()
             }
         }
     }
