@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::*;
 
 #[derive(Debug)]
+/// Wraps user errors that happens in `FromRequest` impls.
 pub struct FromRequestError<T: Error + Send>(pub T);
 
 impl<T> Error for FromRequestError<T>

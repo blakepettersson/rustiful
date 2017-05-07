@@ -10,6 +10,7 @@ static NO_BODY: &'static str = "No body";
 static NOT_FOUND: &'static str = "Not found";
 
 #[derive(Debug)]
+/// The general error type that wraps all errors that can happen when requesting a JsonApi resource.
 pub enum RequestError<T, I>
     where T: Error + Sized + Send,
           I: FromStr + Debug,
@@ -72,7 +73,7 @@ impl<T, I> Error for RequestError<T, I>
             RequestError::NoBody | RequestError::NotFound => None,
             RequestError::IdParseError(ref err) => Some(err),
             RequestError::RepositoryError(ref err) => Some(err),
-            RequestError::QueryStringParseError(ref err) => Some(err)
+            RequestError::QueryStringParseError(ref err) => Some(err),
         }
     }
 }

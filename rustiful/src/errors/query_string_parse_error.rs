@@ -4,6 +4,7 @@ use std::fmt::*;
 static UNIMPLEMENTED: &'static str = "Unimplemented";
 
 #[derive(Debug, PartialEq, Eq)]
+/// All types of errors that can happen when attempting to parse a query string.
 pub enum QueryStringParseError {
     InvalidParam(String),
     InvalidKeyParam(String),

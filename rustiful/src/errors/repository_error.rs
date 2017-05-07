@@ -3,6 +3,9 @@ use std::error::Error;
 use std::fmt::*;
 
 #[derive(Debug, PartialEq, Eq)]
+/// This is a wrapper for user error types for `JsonGet::Error`, `JsonPost::Error` etc.
+///
+/// This is used to wrap a user supplied error type and gets converted to a `JsonApiError` later on.
 pub struct RepositoryError<T: Error + Sized + Send> {
     pub error: T,
     pub status: Status,

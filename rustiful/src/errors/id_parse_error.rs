@@ -3,6 +3,10 @@ use std::fmt::*;
 use std::str::FromStr;
 
 #[derive(Debug)]
+/// A new-type wrapper for `FromStr::Err`.
+///
+/// This is a wrapper for a `FromStr::Err` type. This is used whenever an attempt to convert an id
+/// in `&str` format to a native id type fails, and it then gets converted to a `JsonApiError`.
 pub struct IdParseError<T: FromStr>(pub T::Err);
 
 impl<T> Error for IdParseError<T>
