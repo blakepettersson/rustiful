@@ -13,13 +13,13 @@ impl Error for BodyParserError {
     }
 
     fn cause(&self) -> Option<&Error> {
-        self.0.cause()
+        Some(&self.0)
     }
 }
 
 
 impl Display for BodyParserError {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "Error when parsing json: {}", self.0.description())
+        write!(f, "Error when parsing json: {}", self.0)
     }
 }

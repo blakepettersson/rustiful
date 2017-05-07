@@ -122,7 +122,7 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                     //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
                     match field {
                         #(#sort_cases)*
-                        _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
+                        _ => return Err(QueryStringParseError::InvalidValue(field.to_string()))
                     }
 
                     Ok(params)
@@ -146,7 +146,10 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                             for field in fields {
                                 match field {
                                     #(#filter_cases)*
-                                    _ => return Err(QueryStringParseError::InvalidValue(format!("Invalid field: {}", field)))
+                                    _ => {
+                                        let field_val = field.to_string();
+                                        return Err(QueryStringParseError::InvalidValue(field_val))
+                                    }
                                 }
                             }
                         },

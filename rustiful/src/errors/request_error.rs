@@ -45,9 +45,9 @@ impl<T, I> Display for RequestError<T, I>
         match *self {
             RequestError::NoBody => write!(f, "{}", self.description()),
             RequestError::NotFound => write!(f, "{}", self.description()),
-            RequestError::IdParseError(ref err) => write!(f, "{}", err.description()),
-            RequestError::RepositoryError(ref err) => write!(f, "{}", err.description()),
-            RequestError::QueryStringParseError(ref err) => write!(f, "{}", err.description()),
+            RequestError::IdParseError(ref err) => write!(f, "{}", err),
+            RequestError::RepositoryError(ref err) => write!(f, "{}", err),
+            RequestError::QueryStringParseError(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -68,6 +68,11 @@ impl<T, I> Error for RequestError<T, I>
     }
 
     fn cause(&self) -> Option<&Error> {
-        None
+        match *self {
+            RequestError::NoBody | RequestError::NotFound => None,
+            RequestError::IdParseError(ref err) => Some(err),
+            RequestError::RepositoryError(ref err) => Some(err),
+            RequestError::QueryStringParseError(ref err) => Some(err)
+        }
     }
 }

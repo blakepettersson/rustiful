@@ -56,7 +56,7 @@ impl Error for TestError {
 
 impl Display for TestError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "fail")
+        write!(f, "{}", self.0)
     }
 }
 
@@ -224,9 +224,9 @@ fn parse_json_api_single_get_fail_in_from_request() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error in FromRequest: from request fail".to_string(),
-                              status: "500".to_string(),
                               title: "from request fail".to_string(),
+                              detail: "From request error: from request fail".to_string(),
+                              status: "500".to_string(),
                           });
 }
 
@@ -239,9 +239,9 @@ fn parse_json_api_index_get_fail_in_from_request() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error in FromRequest: from request fail".to_string(),
-                              status: "500".to_string(),
                               title: "from request fail".to_string(),
+                              detail: "From request error: from request fail".to_string(),
+                              status: "500".to_string(),
                           });
 }
 
@@ -254,9 +254,9 @@ fn parse_json_api_delete_fail_in_from_request() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error in FromRequest: from request fail".to_string(),
-                              status: "500".to_string(),
                               title: "from request fail".to_string(),
+                              detail: "From request error: from request fail".to_string(),
+                              status: "500".to_string(),
                           });
 }
 
@@ -286,9 +286,9 @@ fn parse_json_api_post_fail_in_from_request() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error in FromRequest: from request fail".to_string(),
-                              status: "500".to_string(),
                               title: "from request fail".to_string(),
+                              detail: "From request error: from request fail".to_string(),
+                              status: "500".to_string(),
                           });
 }
 
@@ -318,9 +318,9 @@ fn parse_json_api_patch_fail_in_from_request() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error in FromRequest: from request fail".to_string(),
-                              status: "500".to_string(),
                               title: "from request fail".to_string(),
+                              detail: "From request error: from request fail".to_string(),
+                              status: "500".to_string(),
                           });
 }
 
@@ -332,9 +332,9 @@ fn parse_json_api_custom_failure_in_get() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "fail in get".to_string(),
-                              status: "418".to_string(),
                               title: "fail in get".to_string(),
+                              detail: "Error in repository: fail in get".to_string(),
+                              status: "418".to_string()
                           });
 }
 
@@ -346,9 +346,9 @@ fn parse_json_api_custom_failure_in_index() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "fail in index".to_string(),
-                              status: "418".to_string(),
                               title: "fail in index".to_string(),
+                              detail: "Error in repository: fail in index".to_string(),
+                              status: "418".to_string()
                           });
 }
 
@@ -360,9 +360,9 @@ fn parse_json_api_custom_failure_in_delete() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "fail in delete".to_string(),
-                              status: "418".to_string(),
                               title: "fail in delete".to_string(),
+                              detail: "Error in repository: fail in delete".to_string(),
+                              status: "418".to_string()
                           });
 }
 
@@ -388,9 +388,9 @@ fn parse_json_api_custom_failure_in_post() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "fail in post".to_string(),
-                              status: "418".to_string(),
                               title: "fail in post".to_string(),
+                              detail: "Error in repository: fail in post".to_string(),
+                              status: "418".to_string()
                           });
 }
 
@@ -419,9 +419,9 @@ fn parse_json_api_custom_failure_in_patch() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "fail in patch".to_string(),
-                              status: "418".to_string(),
                               title: "fail in patch".to_string(),
+                              detail: "Error in repository: fail in patch".to_string(),
+                              status: "418".to_string(),
                           })
 }
 
@@ -433,9 +433,9 @@ fn parse_json_api_failure_in_query_parse_in_get() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Invalid field: fail".to_string(),
-                              status: "400".to_string(),
-                              title: "Invalid field: fail".to_string(),
+                              title: "fail".to_string(),
+                              detail: "Query string parse error:  Invalid value: fail".to_string(),
+                              status: "400".to_string()
                           });
 }
 
@@ -447,9 +447,9 @@ fn parse_json_api_failure_in_query_parse_in_index() {
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Invalid field: fail".to_string(),
-                              status: "400".to_string(),
-                              title: "Invalid field: fail".to_string(),
+                              title: "fail".to_string(),
+                              detail: "Query string parse error:  Invalid value: fail".to_string(),
+                              status: "400".to_string()
                           });
 }
 

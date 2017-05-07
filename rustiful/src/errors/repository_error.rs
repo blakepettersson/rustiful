@@ -38,6 +38,6 @@ impl<T> Error for RepositoryError<T>
     }
 
     fn cause(&self) -> Option<&Error> {
-        self.error.cause()
+        Some(&self.error)
     }
 }

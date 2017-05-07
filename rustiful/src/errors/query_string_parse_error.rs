@@ -15,7 +15,17 @@ pub enum QueryStringParseError {
 
 impl Display for QueryStringParseError {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "Query string parse error: {}", description(self))
+        use self::QueryStringParseError::*;
+
+        let msg = "Query string parse error: ";
+        match *self {
+            InvalidParam(ref desc) => write!(f, "{} Invalid param: {}", msg, desc),
+            InvalidKeyParam(ref desc) => write!(f, "{} Invalid key: {}", msg, desc),
+            InvalidValue(ref desc) => write!(f, "{} Invalid value: {}", msg, desc),
+            ParseError(ref desc) => write!(f, "{} Parse error: {}", msg, desc),
+            DuplicateSortKey(ref desc) => write!(f, "{} Duplicate sort param key: {}", msg, desc),
+            UnImplementedError => write!(f, "{} Unimplemented!", msg),
+        }
     }
 }
 
