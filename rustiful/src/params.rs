@@ -1,6 +1,7 @@
 use errors::QueryStringParseError;
 use sort_order::SortOrder;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::str::FromStr;
 use try_from::TryFrom;
 
@@ -8,7 +9,7 @@ pub trait JsonApiResource: Sized {
     type Params: Default + TypedParams<Self::SortField, Self::FilterField>;
     type SortField;
     type FilterField;
-    type JsonApiIdType: FromStr;
+    type JsonApiIdType: FromStr + Debug;
 
     fn resource_name() -> &'static str;
 

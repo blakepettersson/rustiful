@@ -1,5 +1,6 @@
 use super::Status;
 use data::JsonApiData;
+use errors::IdParseError;
 use errors::RepositoryError;
 use errors::RequestError;
 use object::JsonApiObject;
@@ -12,10 +13,10 @@ autoimpl! {
         where T: JsonPatch,
               Status: for<'b> From<&'b T::Error>,
               T::Attrs: for<'b> From<(T, &'b T::Params)>,
-              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(id: &'a str, json: JsonApiData<T::Attrs>, ctx: T::Context)
-        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error>> {
+        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error, T::JsonApiIdType>> {
             match <T::JsonApiIdType>::from_str(id) {
                 Ok(typed_id) => {
                     match <T as JsonPatch>::update(typed_id, json, ctx) {
@@ -23,7 +24,7 @@ autoimpl! {
                         Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
                     }
                 },
-                Err(e) => Err(RequestError::IdParseError(Box::new(e)))
+                Err(e) => Err(RequestError::IdParseError(IdParseError(e)))
             }
         }
     }

@@ -7,6 +7,8 @@ use errors::RequestError;
 use params::TypedParams;
 use service::JsonIndex;
 use sort_order::SortOrder;
+use std::error::Error;
+use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
 
@@ -17,10 +19,11 @@ autoimpl! {
         T::Attrs: for<'b> From<(T, &'b T::Params)>,
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
-        T::Params: TypedParams<T::SortField, T::FilterField> + Default
+        T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(query: &'a str, ctx: T::Context)
-        -> Result<JsonApiArray<JsonApiData<T::Attrs>>, RequestError<T::Error>> {
+        -> Result<JsonApiArray<JsonApiData<T::Attrs>>, RequestError<T::Error, T::JsonApiIdType>> {
             match T::from_str(query) {
                 Ok(params) => {
                     match T::find_all(&params, ctx) {

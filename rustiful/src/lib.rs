@@ -25,7 +25,7 @@ mod params;
 pub use params::*;
 
 mod errors;
-pub use errors::QueryStringParseError;
+pub use errors::query_string_parse_error::QueryStringParseError;
 
 mod array;
 pub use array::*;

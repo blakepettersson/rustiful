@@ -49,7 +49,7 @@ fn parse_params_fails_on_id_param() {
     match <Bar as JsonApiResource>::from_str("fields[renamed]=id") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("Invalid field: id".to_string()),
+            assert_eq!(QueryStringParseError::InvalidValue("id".to_string()),
                        e)
         }
     }
@@ -99,7 +99,7 @@ fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
     match <Foo as JsonApiResource>::from_str("fields[foo]=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("Invalid field: non_existent"
+            assert_eq!(QueryStringParseError::InvalidValue("non_existent"
                            .to_string()),
                        e)
         }
@@ -183,7 +183,7 @@ fn parse_sort_field_fails_on_id_param() {
     match <Foo as JsonApiResource>::from_str("sort=bar") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("Invalid field: bar".to_string()),
+            assert_eq!(QueryStringParseError::InvalidValue("bar".to_string()),
                        e)
         }
     }
@@ -194,8 +194,7 @@ fn parse_sort_field_fails_on_non_existent_param() {
     match <Foo as JsonApiResource>::from_str("sort=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("Invalid field: non_existent"
-                           .to_string()),
+            assert_eq!(QueryStringParseError::InvalidValue("non_existent".to_string()),
                        e)
         }
     }

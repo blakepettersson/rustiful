@@ -1,5 +1,6 @@
 use super::Status;
 use data::JsonApiData;
+use errors::IdParseError;
 use errors::QueryStringParseError;
 use errors::RepositoryError;
 use errors::RequestError;
@@ -20,10 +21,10 @@ autoimpl! {
         T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
         T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
         T::Params: TypedParams<T::SortField, T::FilterField> + Default,
-        <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(id: &'a str, query: &'a str, ctx: T::Context)
-        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error>> {
+        -> Result<JsonApiObject<T::Attrs>, RequestError<T::Error, T::JsonApiIdType>> {
             match T::from_str(query) {
                 Ok(params) => {
                     match <T::JsonApiIdType>::from_str(id) {
@@ -41,7 +42,7 @@ autoimpl! {
                                 }
                             }
                         },
-                        Err(e) => Err(RequestError::IdParseError(Box::new(e)))
+                        Err(e) => Err(RequestError::IdParseError(IdParseError(e)))
                     }
                 },
                 Err(e) => Err(RequestError::QueryStringParseError(e))
