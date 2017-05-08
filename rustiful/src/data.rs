@@ -20,6 +20,11 @@ impl<T> JsonApiData<T> {
             attributes: attrs,
         }
     }
+
+    /// Check if there is an id present.
+    pub fn has_id(&self) -> bool {
+        self.id.is_some()
+    }
 }
 
 

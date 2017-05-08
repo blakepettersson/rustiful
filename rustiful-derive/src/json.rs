@@ -11,6 +11,7 @@ use util::JsonApiField;
 pub fn expand_json_api_models(name: &syn::Ident,
                               &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
                               -> Tokens {
+    let json_api_id_ty = &id.field.ty;
     let json_api_id_ident = &id.ident;
 
     let lower_case_name = Ident::new(name.to_string().to_snake_case());
@@ -57,6 +58,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
             extern crate rustiful;
 
             use super::#name;
+            use std::str::FromStr;
             use rustiful::ToJson;
             use rustiful::TryFrom;
             use rustiful::TryInto;
@@ -82,7 +84,23 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 type Error = String;
 
                 fn try_from(json: JsonApiData<JsonApiAttributes>) -> Result<Self, Self::Error> {
-                    (Default::default(), json).try_into()
+                    let id = json.id.clone().map(|id| {
+                        match #json_api_id_ty::from_str(&id) {
+                            Ok(result) => Ok(result),
+                            Err(e) => return Err(format!("Failed to parse id value {}", &id))
+                        }
+                    });
+
+                    match id {
+                        None => (Default::default(), json).try_into(),
+                        Some(Ok(result)) => {
+                            (Self {
+                                #json_api_id_ident: result,
+                                ..Default::default()
+                            }, json).try_into()
+                        },
+                        Some(Err(e)) => Err(e)
+                    }
                 }
             }
 
