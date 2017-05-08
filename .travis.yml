@@ -7,8 +7,9 @@ rust:
   - beta
   - nightly
 
+before_install:
+    - cargo install diesel_cli || true
 script:
-    - cargo install diesel_cli
     - cd rustiful-test && diesel migration run && cd ..
     - cargo build --all --verbose
     # Let the SQLite tests run sequentially
