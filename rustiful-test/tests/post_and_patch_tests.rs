@@ -201,8 +201,16 @@ impl JsonPost for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
-        let result: Test = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
+    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+        let has_client_id = json.has_id(); // Client-supplied id
+        let mut result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
+
+        // SQlite hack; instead of using auto-generated id, create a UUID if the id hasn't
+        // already been supplied by the client.
+        if !has_client_id {
+            result.id = Uuid::new_v4().to_string();
+        }
+
         diesel::insert(&result)
             .into(table)
             .execute(ctx.conn())
