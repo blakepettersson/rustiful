@@ -20,8 +20,8 @@ use errors::QueryStringParseError;
 use errors::RequestError;
 use iron::handlers::BodyParserError;
 use iron::router::Router;
+use params::JsonApiParams;
 use params::JsonApiResource;
-use params::TypedParams;
 use serde::Serialize;
 use serde::de::Deserialize;
 use service::*;
@@ -159,12 +159,9 @@ impl JsonApiRouterBuilder {
               T: JsonIndex + JsonApiResource + ToJson + for<'b> IndexHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
-                  Error = QueryStringParseError>,
-              T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
-                  Error = QueryStringParseError>,
-              T::Params: TypedParams<T::SortField, T::FilterField> + Default,
-              T::Attrs: for<'b> From<(T, &'b T::Params)>,
+              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
+              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
               <<T as JsonIndex>::Context as FromRequest>::Error: 'static,
     {
@@ -180,12 +177,9 @@ impl JsonApiRouterBuilder {
               T: JsonGet + JsonApiResource + ToJson + for<'b> GetHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
-                  Error = QueryStringParseError>,
-              T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
-                  Error = QueryStringParseError>,
-              T::Params: TypedParams<T::SortField, T::FilterField> + Default,
-              T::Attrs: for<'b> From<(T, &'b T::Params)>,
+              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
+              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
               <<T as JsonGet>::Context as FromRequest>::Error: 'static
     {
@@ -219,11 +213,7 @@ impl JsonApiRouterBuilder {
               T: JsonPost + JsonApiResource + ToJson + for<'b> PostHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
-                                         Error = QueryStringParseError>,
-              T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
-                                         Error = QueryStringParseError>,
-              T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
+              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)> + 'static + for<'b> Deserialize<'b>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
@@ -239,11 +229,7 @@ impl JsonApiRouterBuilder {
               T: JsonPatch + JsonApiResource + ToJson + for<'b> PatchHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Params: for<'b> TryFrom<(&'b str, Vec<&'b str>, T::Params),
-                                         Error = QueryStringParseError>,
-              T::Params: for<'b> TryFrom<(&'b str, SortOrder, T::Params),
-                                         Error = QueryStringParseError>,
-              T::Attrs: for<'b> From<(T, &'b T::Params)> + 'static + for<'b> Deserialize<'b>,
+              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)> + 'static + for<'b> Deserialize<'b>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {

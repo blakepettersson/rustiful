@@ -4,6 +4,7 @@ use errors::IdParseError;
 use errors::RepositoryError;
 use errors::RequestError;
 use object::JsonApiObject;
+use params::JsonApiParams;
 use service::JsonPatch;
 use std::error::Error;
 use std::str::FromStr;
@@ -12,7 +13,7 @@ autoimpl! {
     pub trait FromPatch<'a, T>
         where T: JsonPatch,
               Status: for<'b> From<&'b T::Error>,
-              T::Attrs: for<'b> From<(T, &'b T::Params)>,
+              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
               <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(id: &'a str, json: JsonApiData<T::Attrs>, ctx: T::Context)

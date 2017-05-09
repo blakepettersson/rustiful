@@ -31,7 +31,7 @@ struct Bar {
 fn parse_renamed_json_struct() {
     use self::bar::field::*;
     match <Bar as JsonApiResource>::from_str("fields[renamed]=bar") {
-        Ok(result) => assert_eq!(Some(&bar), result.filter.fields.first()),
+        Ok(result) => assert_eq!(Some(&bar), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -59,7 +59,7 @@ fn parse_params_fails_on_id_param() {
 fn parse_present_field() {
     use self::foo::field::*;
     match <Foo as JsonApiResource>::from_str("fields[foo]=foo") {
-        Ok(result) => assert_eq!(Some(&foo), result.filter.fields.first()),
+        Ok(result) => assert_eq!(Some(&foo), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -67,7 +67,7 @@ fn parse_present_field() {
 #[test]
 fn parse_field_that_is_not_present() {
     match <Foo as JsonApiResource>::from_str("") {
-        Ok(result) => assert_eq!(true, result.filter.fields.is_empty()),
+        Ok(result) => assert_eq!(true, result.fieldset.fields.is_empty()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }

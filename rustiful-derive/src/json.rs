@@ -87,7 +87,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
                     let id = json.id.clone().map(|id| {
                         match #json_api_id_ty::from_str(&id) {
                             Ok(result) => Ok(result),
-                            Err(e) => return Err(format!("Failed to parse id value {}", &id))
+                            Err(e) => return Err(format!("Failed to parse id value {}: {}", &id, e))
                         }
                     });
 
@@ -140,7 +140,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 fn from((model, params): (#name, &'a <#name as JsonApiResource>::Params)) -> Self {
                     #(#filtered_option_vars)*
 
-                    let fields = &params.filter.fields;
+                    let fields = &params.fieldset.fields;
                     if !fields.is_empty() {
                         for field in super::#lower_case_name::field::iter() {
                             if !fields.contains(field) {
