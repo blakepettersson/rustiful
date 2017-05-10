@@ -31,7 +31,7 @@ struct Bar {
 fn parse_renamed_json_struct() {
     use self::bar::field::*;
     match <Bar as JsonApiResource>::from_str("fields[renamed]=bar") {
-        Ok(result) => assert_eq!(Some(&bar), result.filter.fields.first()),
+        Ok(result) => assert_eq!(Some(&bar), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -59,7 +59,7 @@ fn parse_params_fails_on_id_param() {
 fn parse_present_field() {
     use self::foo::field::*;
     match <Foo as JsonApiResource>::from_str("fields[foo]=foo") {
-        Ok(result) => assert_eq!(Some(&foo), result.filter.fields.first()),
+        Ok(result) => assert_eq!(Some(&foo), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -67,7 +67,7 @@ fn parse_present_field() {
 #[test]
 fn parse_field_that_is_not_present() {
     match <Foo as JsonApiResource>::from_str("") {
-        Ok(result) => assert_eq!(true, result.filter.fields.is_empty()),
+        Ok(result) => assert_eq!(true, result.fieldset.fields.is_empty()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
 }
@@ -88,7 +88,7 @@ fn parse_fields_fails_if_fields_value_is_empty() {
     match <Foo as JsonApiResource>::from_str("fields[foo]=") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("Fields for foo are empty".to_string()),
+            assert_eq!(QueryStringParseError::EmptyFieldsetValue("foo".to_string()),
                        e)
         }
     }
@@ -185,6 +185,17 @@ fn parse_sort_field_fails_on_id_param() {
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidValue("bar".to_string()),
                        e)
+        }
+    }
+}
+
+#[test]
+fn parse_sort_field_fails_on_multiple_sort_params() {
+    match <Foo as JsonApiResource>::from_str("sort=foo&sort=foo") {
+        Ok(_) => assert!(false, "expected error but no error happened!"),
+        Err(e) => {
+            assert_eq!(QueryStringParseError::DuplicateSortKey("foo".to_string()),
+            e)
         }
     }
 }

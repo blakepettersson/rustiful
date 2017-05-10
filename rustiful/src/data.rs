@@ -1,3 +1,4 @@
+use params::JsonApiParams;
 use params::JsonApiResource;
 use to_json::ToJson;
 
@@ -29,11 +30,11 @@ impl<T> JsonApiData<T> {
 
 
 /// Converts a `(T, T::Params)` to a `JsonApiData<T>`.
-impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)> for JsonApiData<T::Attrs>
+impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonApiData<T::Attrs>
     where T: ToJson + JsonApiResource,
-          T::Attrs: From<(T, &'a T::Params)>
+          T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
 {
-    fn from((model, params): (T, &'a T::Params)) -> Self {
+    fn from((model, params): (T, &'a JsonApiParams<T::FilterField, T::SortField>)) -> Self {
         JsonApiData::new(Some(model.id()),
                          model.type_name(),
                          T::Attrs::from((model, params)))
@@ -44,10 +45,10 @@ impl<'a, T> From<(T, &'a <T as JsonApiResource>::Params)> for JsonApiData<T::Att
 impl<'a, T> From<T> for JsonApiData<T::Attrs>
     where T: ToJson + JsonApiResource,
           T::Params: 'a,
-          T::Attrs: for<'b> From<(T, &'b T::Params)>
+          T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn from(model: T) -> Self {
-        let params: T::Params = Default::default();
+        let params: JsonApiParams<T::FilterField, T::SortField> = Default::default();
         JsonApiData::new(Some(model.id()),
                          model.type_name(),
                          T::Attrs::from((model, &params)))

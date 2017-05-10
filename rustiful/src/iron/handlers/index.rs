@@ -8,7 +8,7 @@ use super::super::RequestResult;
 use FromRequest;
 use errors::FromRequestError;
 use errors::QueryStringParseError;
-use params::TypedParams;
+use params::JsonApiParams;
 use request::FromIndex;
 use service::JsonIndex;
 use sort_order::SortOrder;
@@ -25,10 +25,9 @@ autoimpl! {
         T::Error: 'static,
         <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
-        T::Attrs: for<'b> From<(T, &'b T::Params)>,
-        T::Params: TryFrom<(&'a str, Vec<&'a str>, T::Params), Error = QueryStringParseError>,
-        T::Params: TryFrom<(&'a str, SortOrder, T::Params), Error = QueryStringParseError>,
-        T::Params: TypedParams<T::SortField, T::FilterField> + Default,
+        T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
+        T::SortField: TryFrom<(&'a str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: TryFrom<(&'a str, Vec<&'a str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(req: &'a mut Request) -> IronResult<Response> {

@@ -36,16 +36,11 @@ pub fn expand_json_api_fields(name: &syn::Ident,
         option_fields.push(quote!(#f));
 
         sort_fields.push(quote!(#f(SortOrder)));
-        sort_cases.push(to_match_arm(&f,
-                                     &quote!(params.sort.fields),
-                                     &quote!(self::sort::#f(order))));
+        sort_cases.push(to_match_arm(&f, &quote!(self::sort::#f(order))));
 
         filter_fields.push(quote!(self::field::#f));
-        filter_cases.push(to_match_arm(&f,
-                                       &quote!(params.filter.fields),
-                                       &quote!(self::field::#f)));
+        filter_cases.push(to_match_arm(&f, &quote!(self::field::#f)));
     }
-
 
     let uuid = util::get_uuid_tokens();
 
@@ -58,7 +53,7 @@ pub fn expand_json_api_fields(name: &syn::Ident,
             use std::collections::HashMap;
             use rustiful::TryFrom;
             use rustiful::SortOrder;
-            use rustiful::TypedParams;
+            use rustiful::JsonApiParams;
             use rustiful::JsonApiResource;
             use rustiful::QueryStringParseError;
 
@@ -68,21 +63,11 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                 #(#sort_fields),*
             }
 
-            #[derive(Debug, PartialEq, Eq, Clone, Default)]
-            pub struct Sort {
-                pub fields: Vec<sort>
-            }
-
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]
             pub enum field {
                 //Expand field names into new struct
                 #(#option_fields),*
-            }
-
-            #[derive(Debug, PartialEq, Eq, Clone, Default)]
-            pub struct Filter {
-                pub fields: Vec<field>
             }
 
             impl field {
@@ -92,60 +77,26 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                 }
             }
 
-            #[derive(Debug, PartialEq, Eq, Clone, Default)]
-            pub struct JsonApiParams {
-                pub filter: Filter,
-                pub sort: Sort,
-                pub query_params: HashMap<String, String>
-            }
-
-            impl TypedParams<sort, field> for JsonApiParams {
-                fn filter(&mut self) -> &mut Vec<field> {
-                    &mut self.filter.fields
-                }
-
-                fn sort(&mut self) -> &mut Vec<sort> {
-                    &mut self.sort.fields
-                }
-
-                fn query_params(&mut self) -> &mut HashMap<String, String> {
-                    &mut self.query_params
-                }
-            }
-
-            /// Parses the sort query parameter.
-            impl<'a> TryFrom<(&'a str, SortOrder, JsonApiParams)> for JsonApiParams {
+            impl<'a> TryFrom<(&'a str, SortOrder)> for sort {
                 type Error = QueryStringParseError;
 
-                fn try_from((field, order, mut params): (&'a str, SortOrder, JsonApiParams))
-                -> Result<Self, Self::Error> {
-                    //TODO: Add duplicate sort checks? (i.e sort=foo,foo,-foo)?
+                fn try_from((field, order): (&'a str, SortOrder)) -> Result<Self, Self::Error> {
                     match field {
-                        #(#sort_cases)*
+                        #(#sort_cases),*
                         _ => return Err(QueryStringParseError::InvalidValue(field.to_string()))
                     }
-
-                    Ok(params)
                 }
             }
 
-            /// Parses the field query parameter(s).
-            impl<'a> TryFrom<(&'a str, Vec<&'a str>, JsonApiParams)> for JsonApiParams {
+            impl<'a> TryFrom<(&'a str, Vec<&'a str>)> for field {
                 type Error = QueryStringParseError;
 
-                fn try_from((model, fields, mut params): (&'a str, Vec<&'a str>, JsonApiParams))
-                -> Result<Self, Self::Error> {
+                fn try_from((model, fields): (&'a str, Vec<&'a str>)) -> Result<Self, Self::Error> {
                     match model {
                         #json_name => {
-                            // If we already have the same field in the map, we consider this
-                            // an error.
-                            if !params.filter.fields.is_empty() {
-
-                            }
-
                             for field in fields {
                                 match field {
-                                    #(#filter_cases)*
+                                    #(#filter_cases),*
                                     _ => {
                                         let field_val = field.to_string();
                                         return Err(QueryStringParseError::InvalidValue(field_val))
@@ -157,13 +108,14 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                         _ => return Err(QueryStringParseError::UnImplementedError)
                     }
 
-                    Ok(params)
+                    // TODO: Implement parsing of relationships
+                    return Err(QueryStringParseError::UnImplementedError)
                 }
             }
 
             impl JsonApiResource for #name {
                 type JsonApiIdType = #json_api_id_ty;
-                type Params = JsonApiParams;
+                type Params = JsonApiParams<field, sort>;
                 type SortField = sort;
                 type FilterField = field;
 
@@ -175,9 +127,9 @@ pub fn expand_json_api_fields(name: &syn::Ident,
     }
 }
 
-fn to_match_arm(ident: &syn::Ident, vec_ident: &Tokens, enum_value: &Tokens) -> Tokens {
+fn to_match_arm(ident: &syn::Ident, enum_value: &Tokens) -> Tokens {
     let ident_string = ident.to_string();
-    quote!(#ident_string => { #vec_ident.push(#enum_value) })
+    quote!(#ident_string => { return Ok(#enum_value) })
 }
 
 fn get_json_name(name: &str, attrs: &[Attribute]) -> String {

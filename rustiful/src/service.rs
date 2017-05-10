@@ -1,11 +1,12 @@
 extern crate serde;
 
 use FromRequest;
+use data::JsonApiData;
+use params::JsonApiParams;
 use params::JsonApiResource;
 use status::Status;
 use std;
 use to_json::ToJson;
-use data::JsonApiData;
 
 pub trait JsonGet
     where Self: JsonApiResource
@@ -14,7 +15,7 @@ pub trait JsonGet
     type Context: FromRequest;
 
     fn find(id: Self::JsonApiIdType,
-            params: &Self::Params,
+            params: &JsonApiParams<Self::FilterField, Self::SortField>,
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
@@ -49,7 +50,9 @@ pub trait JsonIndex
     type Error: std::error::Error + Send;
     type Context: FromRequest;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error>
+    fn find_all(params: &JsonApiParams<Self::FilterField, Self::SortField>,
+                ctx: Self::Context)
+                -> Result<Vec<Self>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
