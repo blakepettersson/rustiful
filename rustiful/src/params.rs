@@ -83,20 +83,15 @@ pub trait JsonApiResource: Sized {
 
             match key_value_pair {
                 (Some(""), None) | (None, None) => {}
-                (Some(key), None) => {
-                    return Err(QueryStringParseError::InvalidValue(format!("Invalid param: {}",
-                                                                           key)))
+                (Some(key), None) => { // Should never happen
+                    return Err(QueryStringParseError::EmptyValue(key.to_string()))
                 }
-                (None, Some(value)) => {
-                    return Err(QueryStringParseError::InvalidValue(format!("Invalid param: {}",
-                                                                           value)))
+                (None, Some(value)) => { // Should never happen
+                    return Err(QueryStringParseError::EmptyKey(value.to_string()))
                 }
                 (Some(key), Some(value)) if key == "sort" => {
                     if !params.sort.fields.is_empty() {
-                        //TODO: Add duplicate key error variant
-                        return Err(QueryStringParseError::InvalidValue(format!("Duplicate sort \
-                                                                                key: {}",
-                                                                               value)));
+                        return Err(QueryStringParseError::DuplicateSortKey(value.to_string()));
                     }
 
                     let fields = value.split(',').filter(|&f| !f.is_empty());
@@ -124,9 +119,7 @@ pub trait JsonApiResource: Sized {
                     model = model.trim_left_matches('[').trim_right_matches(']');
 
                     if model.is_empty() {
-                        return Err(QueryStringParseError::InvalidValue(format!("Value for {} \
-                                                                                is empty!",
-                                                                               key)));
+                        return Err(QueryStringParseError::EmptyFieldsetKey(key.to_string()));
                     }
 
                     // This can introduce duplicates, but we don't really care. If there are
@@ -135,9 +128,7 @@ pub trait JsonApiResource: Sized {
                     let fields: Vec<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
 
                     if fields.is_empty() {
-                        return Err(QueryStringParseError::InvalidValue(format!("Fields for {} \
-                                                                                are empty",
-                                                                               model)));
+                        return Err(QueryStringParseError::EmptyFieldsetValue(model.to_string()));
                     }
 
                     match Self::FilterField::try_from((model, fields)) {
