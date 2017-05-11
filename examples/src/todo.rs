@@ -7,11 +7,10 @@ use rustiful::*;
 
 extern crate uuid;
 
-
 use self::todos::dsl::todos as table;
 use self::uuid::Uuid;
 
-infer_schema!("dotenv:DATABASE_URL");
+infer_schema!("dotenv:POSTGRES_URL");
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable,
 Insertable, AsChangeset)]

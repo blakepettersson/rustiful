@@ -7,10 +7,30 @@ rust:
   - beta
   - nightly
 
+services:
+  - postgresql
+
+addons:
+    postgresql: '9.5'
+    apt:
+        packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+            - cmake
+            - gcc
+            - binutils-dev
+            - postgresql-contrib-9.5
+
 before_install:
+    - sudo apt-get update
+before_script:
     - cargo install diesel_cli || true
+    - psql -c 'create database rustiful_examples;' -U postgres
+    #- psql -U postgres travis -c 'create extension "uuid-ossp";'
 script:
-    - cd rustiful-test && diesel migration run && cd ..
+    - diesel migration run --migration-dir rustiful-test/migrations
+    - DATABASE_URL=$POSTGRES_URL diesel migration run --migration-dir examples/migrations
     - cargo build --all --verbose
     # Let the SQLite tests run sequentially
     - cargo test --all --verbose && RUST_TEST_THREADS=1 cargo test --all --verbose -- --ignored
@@ -18,19 +38,6 @@ script:
 matrix:
   allow_failures:
     - rust: nightly
-
-before_install:
-  - sudo apt-get update
-
-addons:
-  apt:
-    packages:
-      - libcurl4-openssl-dev
-      - libelf-dev
-      - libdw-dev
-      - cmake
-      - gcc
-      - binutils-dev
 
 # after_success: |
 #  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
