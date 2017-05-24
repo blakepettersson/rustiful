@@ -5,6 +5,3 @@ members = [
     "rustiful-derive",
     "rustiful-test",
 ]
-
-[replace]
-"diesel:0.12.1" = { git = "https://github.com/diesel-rs/diesel", features = ["postgres", "uuid"] }

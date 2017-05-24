@@ -4,22 +4,17 @@ version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 
 [dependencies]
-rustiful = { path = "../rustiful", features = ["uuid"] }
+rustiful = { path = "../rustiful", features = ["uuid", "iron"] }
 rustiful-derive = { path = "../rustiful-derive", features = ["uuid"] }
 serde = "1.0"
 serde_derive = "1.0"
-serde_json = "1.0"
 dotenv = "0.8"
 iron = "0.5"
 r2d2 = "0.7"
 lazy_static = "0.2"
-r2d2-diesel = "0.12"
-
-# replace with "diesel = { git = "https://github.com/diesel-rs/diesel", features = ["postgres", "uuid"] }
-# since Diesel 0.12.1 uses an older version of uuid, and will fail to compile. If you're not using uuid this doesn't
-# apply.
-diesel = { version = "0.12.1", features = ["postgres", "uuid"] }
-diesel_codegen = { version = "0.12.0", features = ["postgres"] }
+r2d2-diesel = "0.13"
+diesel = { version = "0.13", features = ["postgres", "uuid"] }
+diesel_codegen = { version = "0.13", features = ["postgres"] }
 uuid = { version = "0.5", features = ["serde", "v4"] }
 clippy = {version = "0.0.123", optional = true }
 
