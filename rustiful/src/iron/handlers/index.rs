@@ -26,8 +26,8 @@ autoimpl! {
         <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
         T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
-        T::SortField: TryFrom<(&'a str, SortOrder), Error = QueryStringParseError>,
-        T::FilterField: TryFrom<(&'a str, Vec<&'a str>), Error = QueryStringParseError>,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(req: &'a mut Request) -> IronResult<Response> {
