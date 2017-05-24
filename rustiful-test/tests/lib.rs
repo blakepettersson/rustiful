@@ -65,6 +65,15 @@ fn parse_present_field() {
 }
 
 #[test]
+fn parse_present_url_encoded_field() {
+    use self::foo::field::*;
+    match <Foo as JsonApiResource>::from_str("fields%5Bfoo%5D=foo") {
+        Ok(result) => assert_eq!(Some(&foo), result.fieldset.fields.first()),
+        Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
+    }
+}
+
+#[test]
 fn parse_field_that_is_not_present() {
     match <Foo as JsonApiResource>::from_str("") {
         Ok(result) => assert_eq!(true, result.fieldset.fields.is_empty()),
@@ -77,7 +86,7 @@ fn parse_fields_fails_if_query_param_is_not_valid() {
     match <Foo as JsonApiResource>::from_str("fields=body=foo") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidParam("fields=body=foo".to_string()),
+            assert_eq!(QueryStringParseError::InvalidKeyParam("".to_string()),
                        e)
         }
     }

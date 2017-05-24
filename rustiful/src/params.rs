@@ -1,3 +1,6 @@
+extern crate url;
+
+use self::url::form_urlencoded;
 use errors::QueryStringParseError;
 use sort_order::SortOrder;
 use std::collections::HashMap;
@@ -68,77 +71,63 @@ pub trait JsonApiResource: Sized {
     fn from_str<'a>
         (query_string: &'a str)
          -> Result<JsonApiParams<Self::FilterField, Self::SortField>, QueryStringParseError>
-        where Self::SortField: TryFrom<(&'a str, SortOrder), Error = QueryStringParseError>,
-              Self::FilterField: TryFrom<(&'a str, Vec<&'a str>), Error = QueryStringParseError>
+        where Self::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+              Self::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
+                                                 Error = QueryStringParseError>
     {
         let mut params: JsonApiParams<Self::FilterField, Self::SortField> = Default::default();
+        let decoded = form_urlencoded::parse(query_string.as_bytes()).into_owned();
 
-        for param in query_string.split('&') {
-            let mut split = param.split('=');
-            let key_value_pair = (split.next(), split.next());
-
-            if split.next() != None {
-                return Err(QueryStringParseError::InvalidParam(param.to_string()));
-            }
-
-            match key_value_pair {
-                (Some(""), None) | (None, None) => {}
-                (Some(key), None) => { // Should never happen
-                    return Err(QueryStringParseError::EmptyValue(key.to_string()))
+        for (key, value) in decoded {
+            if &key == "sort" {
+                if !params.sort.fields.is_empty() {
+                    return Err(QueryStringParseError::DuplicateSortKey(value));
                 }
-                (None, Some(value)) => { // Should never happen
-                    return Err(QueryStringParseError::EmptyKey(value.to_string()))
-                }
-                (Some(key), Some(value)) if key == "sort" => {
-                    if !params.sort.fields.is_empty() {
-                        return Err(QueryStringParseError::DuplicateSortKey(value.to_string()));
-                    }
 
-                    let fields = value.split(',').filter(|&f| !f.is_empty());
-                    for mut field in fields {
-                        let sort_order = if field.starts_with('-') {
-                            field = field.trim_left_matches('-');
-                            SortOrder::Desc
-                        } else {
-                            SortOrder::Asc
-                        };
+                let fields = value.split(',').filter(|&f| !f.is_empty());
+                for mut field in fields {
+                    let sort_order = if field.starts_with('-') {
+                        field = field.trim_left_matches('-');
+                        SortOrder::Desc
+                    } else {
+                        SortOrder::Asc
+                    };
 
-                        match Self::SortField::try_from((field, sort_order)) {
-                            Ok(value) => params.sort.fields.push(value),
-                            Err(err) => return Err(err),
-                        }
-                    }
-                }
-                (Some(key), Some(value)) if key.starts_with("fields") => {
-                    let mut model = key.trim_left_matches("fields");
-
-                    if !model.starts_with('[') || !model.ends_with(']') {
-                        return Err(QueryStringParseError::InvalidKeyParam(model.to_string()));
-                    }
-
-                    model = model.trim_left_matches('[').trim_right_matches(']');
-
-                    if model.is_empty() {
-                        return Err(QueryStringParseError::EmptyFieldsetKey(key.to_string()));
-                    }
-
-                    // This can introduce duplicates, but we don't really care. If there are
-                    // duplicates it won't have any adverse effects - the field will still be
-                    // visible.
-                    let fields: Vec<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
-
-                    if fields.is_empty() {
-                        return Err(QueryStringParseError::EmptyFieldsetValue(model.to_string()));
-                    }
-
-                    match Self::FilterField::try_from((model, fields)) {
-                        Ok(value) => params.fieldset.fields.push(value),
+                    match Self::SortField::try_from((field, sort_order)) {
+                        Ok(result) => params.sort.fields.push(result),
                         Err(err) => return Err(err),
                     }
                 }
-                (Some(key), Some(value)) => {
-                    params.query_params.insert(key.to_string(), value.to_string());
+
+            } else if key.starts_with("fields") {
+                let mut model = key.trim_left_matches("fields");
+
+                if !model.starts_with('[') || !model.ends_with(']') {
+                    return Err(QueryStringParseError::InvalidKeyParam(model.to_string()));
                 }
+
+                model = model.trim_left_matches('[').trim_right_matches(']');
+
+                if model.is_empty() {
+                    return Err(QueryStringParseError::EmptyFieldsetKey(key.to_string()));
+                }
+
+                // This can introduce duplicates, but we don't really care. If there are
+                // duplicates it won't have any adverse effects - the field will still be
+                // visible.
+                let fields: Vec<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
+
+                if fields.is_empty() {
+                    return Err(QueryStringParseError::EmptyFieldsetValue(model.to_string()));
+                }
+
+                match Self::FilterField::try_from((model, fields)) {
+                    Ok(result) => params.fieldset.fields.push(result),
+                    Err(err) => return Err(err),
+                }
+
+            } else {
+                params.query_params.insert(key, value);
             }
         }
 
