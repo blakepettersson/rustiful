@@ -23,7 +23,7 @@ impl DB {
 pub fn create_db_pool() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("POSTGRES_URL").expect("POSTGRES_URL must be set");
     let config = r2d2::Config::default();
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::new(config, manager).expect("Failed to create pool.")
