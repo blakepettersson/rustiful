@@ -25,7 +25,6 @@ autoimpl! {
         T::Error: 'static,
         <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
-        T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
         T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
         T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error

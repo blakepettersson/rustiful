@@ -27,7 +27,7 @@ autoimpl! {
         T::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
         <T::Context as FromRequest>::Error: 'static,
-        T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)> + 'static + for<'b> Deserialize<'b>,
+        T::Attrs: 'static + for<'b> Deserialize<'b>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(req: &'a mut Request) -> IronResult<Response> {

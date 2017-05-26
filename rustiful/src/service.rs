@@ -9,7 +9,7 @@ use std;
 use to_json::ToJson;
 
 pub trait JsonGet
-    where Self: JsonApiResource
+    where Self: JsonApiResource + ToJson
 {
     type Error: std::error::Error + Send;
     type Context: FromRequest;
@@ -17,7 +17,7 @@ pub trait JsonGet
     fn find(id: Self::JsonApiIdType,
             params: &JsonApiParams<Self::FilterField, Self::SortField>,
             ctx: Self::Context)
-            -> Result<Option<Self>, Self::Error>
+            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -27,7 +27,9 @@ pub trait JsonPost
     type Error: std::error::Error + Send;
     type Context: FromRequest;
 
-    fn create(json: JsonApiData<Self::Attrs>, ctx: Self::Context) -> Result<Self, Self::Error>
+    fn create(json: JsonApiData<Self::Attrs>,
+              ctx: Self::Context)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
@@ -40,19 +42,19 @@ pub trait JsonPatch
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
-              -> Result<Self, Self::Error>
+              -> Result<JsonApiData<Self::Attrs>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 
 pub trait JsonIndex
-    where Self: JsonApiResource
+    where Self: JsonApiResource + ToJson
 {
     type Error: std::error::Error + Send;
     type Context: FromRequest;
 
     fn find_all(params: &JsonApiParams<Self::FilterField, Self::SortField>,
                 ctx: Self::Context)
-                -> Result<Vec<Self>, Self::Error>
+                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
 }
 

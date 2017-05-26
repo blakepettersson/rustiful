@@ -16,6 +16,7 @@ use iron::mime::Mime;
 use iron::prelude::*;
 use iron_test::{request, response};
 use rustiful::*;
+use rustiful::JsonApiData;
 use rustiful::iron::JsonApiRouterBuilder;
 use rustiful::status::Status;
 use std::error::Error;
@@ -73,17 +74,18 @@ impl JsonGet for Foo {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<Self>, Self::Error> {
+            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
 
         if id == "fail" {
             Err(TestError("fail in get".to_string()))
         } else {
             Ok(Some(Foo {
-                id: "1".to_string(),
-                body: "test".to_string(),
-                title: "test".to_string(),
-                published: true,
-            }))
+                            id: "1".to_string(),
+                            body: "test".to_string(),
+                            title: "test".to_string(),
+                            published: true,
+                        }
+                        .into_json(params)))
         }
     }
 }
@@ -92,17 +94,21 @@ impl JsonIndex for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+    fn find_all(params: &Self::Params,
+                ctx: Self::Context)
+                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
         if let Some(_) = params.query_params.get("fail") {
             return Err(TestError("fail in index".to_string()));
         }
 
-        Ok(vec![Foo {
-                    id: "1".to_string(),
-                    body: "test".to_string(),
-                    title: "test".to_string(),
-                    published: true,
-                }])
+        Ok(vec![(Foo {
+                     id: "1".to_string(),
+                     body: "test".to_string(),
+                     title: "test".to_string(),
+                     published: true,
+                 },
+                 params)
+                        .into()])
     }
 }
 
@@ -123,7 +129,9 @@ impl JsonPost for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+    fn create(json: JsonApiData<Self::Attrs>,
+              ctx: Self::Context)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         if let Some(id) = json.id {
             if id == "fail" {
                 return Err(TestError("fail in post".to_string()));
@@ -131,11 +139,12 @@ impl JsonPost for Foo {
         }
 
         Ok(Foo {
-            id: "1".to_string(),
-            body: "test".to_string(),
-            title: "test".to_string(),
-            published: true,
-        })
+                   id: "1".to_string(),
+                   body: "test".to_string(),
+                   title: "test".to_string(),
+                   published: true,
+               }
+               .into_json(&Default::default()))
     }
 }
 
@@ -144,9 +153,9 @@ impl JsonPatch for Foo {
     type Context = FooService;
 
     fn update(id: Self::JsonApiIdType,
-              json: Self::Resource,
+              json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
-              -> Result<Self, Self::Error> {
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         if let Some(id) = json.id {
             if id == "fail" {
                 return Err(TestError("fail in patch".to_string()));
@@ -154,11 +163,12 @@ impl JsonPatch for Foo {
         }
 
         Ok(Foo {
-            id: "1".to_string(),
-            body: "test".to_string(),
-            title: "test".to_string(),
-            published: true,
-        })
+                   id: "1".to_string(),
+                   body: "test".to_string(),
+                   title: "test".to_string(),
+                   published: true,
+               }
+               .into_json(&Default::default()))
     }
 }
 
@@ -177,7 +187,9 @@ fn parse_json_api_index_get() {
     let headers = Headers::new();
     let response = request::get("http://localhost:3000/foos", headers, &app_router()).unwrap();
     let headers = response.headers.clone();
-    let content_type = headers.get::<ContentType>().expect("no content type found!");
+    let content_type = headers
+        .get::<ContentType>()
+        .expect("no content type found!");
     let result = response::extract_body_to_string(response);
     let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
@@ -193,6 +205,36 @@ fn parse_json_api_index_get() {
 
     assert_eq!(expected, records);
 }
+
+#[test]
+fn parse_json_api_index_get_with_fieldset() {
+    let headers = Headers::new();
+    let response = request::get("http://localhost:3000/foos?fields[foo]=title",
+                                headers,
+                                &app_router())
+            .unwrap();
+    let headers = response.headers.clone();
+    let content_type = headers
+        .get::<ContentType>()
+        .expect("no content type found!");
+    let result = response::extract_body_to_string(response);
+    let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
+    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
+
+    let test = Foo {
+        id: "1".to_string(),
+        body: "test".to_string(),
+        title: "test".to_string(),
+        published: true,
+    };
+    let data = JsonApiData::new(Some("1"),
+                                "foo",
+                                <Foo as ToJson>::Attrs::new(Some("test".to_string()), None, None));
+    let expected: JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray { data: vec![data] };
+
+    assert_eq!(expected, records);
+}
+
 
 #[test]
 fn parse_json_api_single_get() {
@@ -279,10 +321,7 @@ fn parse_json_api_post_fail_in_from_request() {
         }
     }"#;
 
-    let response = request::post("http://localhost:3000/foos",
-                                 headers,
-                                 &data,
-                                 &app_router());
+    let response = request::post("http://localhost:3000/foos", headers, &data, &app_router());
 
     assert_json_api_error(response,
                           JsonApiError {
@@ -334,7 +373,7 @@ fn parse_json_api_custom_failure_in_get() {
                           JsonApiError {
                               title: "fail in get".to_string(),
                               detail: "Error in repository: fail in get".to_string(),
-                              status: "418".to_string()
+                              status: "418".to_string(),
                           });
 }
 
@@ -348,7 +387,7 @@ fn parse_json_api_custom_failure_in_index() {
                           JsonApiError {
                               title: "fail in index".to_string(),
                               detail: "Error in repository: fail in index".to_string(),
-                              status: "418".to_string()
+                              status: "418".to_string(),
                           });
 }
 
@@ -362,7 +401,7 @@ fn parse_json_api_custom_failure_in_delete() {
                           JsonApiError {
                               title: "fail in delete".to_string(),
                               detail: "Error in repository: fail in delete".to_string(),
-                              status: "418".to_string()
+                              status: "418".to_string(),
                           });
 }
 
@@ -390,7 +429,7 @@ fn parse_json_api_custom_failure_in_post() {
                           JsonApiError {
                               title: "fail in post".to_string(),
                               detail: "Error in repository: fail in post".to_string(),
-                              status: "418".to_string()
+                              status: "418".to_string(),
                           });
 }
 
@@ -435,7 +474,7 @@ fn parse_json_api_failure_in_query_parse_in_get() {
                           JsonApiError {
                               title: "fail".to_string(),
                               detail: "Query string parse error:  Invalid value: fail".to_string(),
-                              status: "400".to_string()
+                              status: "400".to_string(),
                           });
 }
 
@@ -449,7 +488,7 @@ fn parse_json_api_failure_in_query_parse_in_index() {
                           JsonApiError {
                               title: "fail".to_string(),
                               detail: "Query string parse error:  Invalid value: fail".to_string(),
-                              status: "400".to_string()
+                              status: "400".to_string(),
                           });
 }
 
@@ -500,14 +539,12 @@ fn parse_invalid_json_in_post() {
     let mut headers = Headers::new();
     headers.set::<ContentType>(ContentType(content_type));
 
-    let response = request::post("http://localhost:3000/foos",
-                                 headers,
-                                 data,
-                                 &app_router());
+    let response = request::post("http://localhost:3000/foos", headers, data, &app_router());
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error when parsing json: Can't parse body to the struct".to_string(),
+                              detail: "Error when parsing json: Can't parse body to the struct"
+                                  .to_string(),
                               status: "400".to_string(),
                               title: "Can't parse body to the struct".to_string(),
                           });
@@ -530,14 +567,12 @@ fn parse_invalid_json_in_patch() {
     let mut headers = Headers::new();
     headers.set::<ContentType>(ContentType(content_type));
 
-    let response = request::patch("http://localhost:3000/foos/1",
-                                  headers,
-                                  data,
-                                  &app_router());
+    let response = request::patch("http://localhost:3000/foos/1", headers, data, &app_router());
 
     assert_json_api_error(response,
                           JsonApiError {
-                              detail: "Error when parsing json: Can't parse body to the struct".to_string(),
+                              detail: "Error when parsing json: Can't parse body to the struct"
+                                  .to_string(),
                               status: "400".to_string(),
                               title: "Can't parse body to the struct".to_string(),
                           });
