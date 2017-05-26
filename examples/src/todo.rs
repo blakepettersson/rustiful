@@ -9,6 +9,7 @@ extern crate uuid;
 
 use self::todos::dsl::todos as table;
 use self::uuid::Uuid;
+use diesel::pg::Pg;
 
 infer_schema!("dotenv:POSTGRES_URL");
 
@@ -41,6 +42,69 @@ impl JsonGet for Todo {
             ctx: Self::Context)
             -> Result<Option<Self>, Self::Error> {
         table.find(id).first(ctx.conn()).optional().map_err(|e| MyErr::Diesel(e))
+    }
+}
+
+impl JsonIndex for Todo {
+    type Error = MyErr;
+    type Context = DB;
+
+    /// Gets all records from the database
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+
+        let mut query = table.into_boxed();
+
+        {
+            use self::todo::sort::*;
+            use self::todos as column;
+            use rustiful::SortOrder::*;
+
+            let mut order_columns: Vec<Box<BoxableExpression<table, Pg, SqlType = ()>>> =
+                Vec::new();
+
+            for order in &params.sort.fields {
+                match *order {
+                    title(Asc) => {
+                        order_columns.push(Box::new(column::title.asc()));
+                    }
+                    title(Desc) => {
+                        order_columns.push(Box::new(column::title.desc()));
+                    }
+                    body(Asc) => {
+                        order_columns.push(Box::new(column::body.asc()));
+                    }
+                    body(Desc) => {
+                        order_columns.push(Box::new(column::body.desc()));
+                    }
+                    published(Asc) => {
+                        order_columns.push(Box::new(column::published.asc()));
+                    }
+                    published(Desc) => {
+                        order_columns.push(Box::new(column::published.desc()));
+                    }
+                };
+            }
+
+            // TODO: Hopefully there's a nicer way to get multiple ORDER BY clauses in this query.
+            match order_columns.len() {
+                1 => query = query.order(order_columns.remove(0)),
+                2 => query = query.order((order_columns.remove(0), order_columns.remove(0))),
+                3 => {
+                    query = query.order((order_columns.remove(0),
+                                         order_columns.remove(0),
+                                         order_columns.remove(0)))
+                }
+                4 => {
+                    query = query.order((order_columns.remove(0),
+                                         order_columns.remove(0),
+                                         order_columns.remove(0),
+                                         order_columns.remove(0)))
+                }
+                _ => return Err(MyErr::TooManySortColumns("too many sort columns".to_string())),
+            }
+        }
+
+        query.load(ctx.conn()).map_err(|e| MyErr::Diesel(e))
     }
 }
 
