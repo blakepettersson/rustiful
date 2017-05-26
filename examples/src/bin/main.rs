@@ -11,6 +11,7 @@ fn app_router() -> iron::Chain {
     let mut router = JsonApiRouterBuilder::default();
     router.jsonapi_get::<Todo>();
     router.jsonapi_post::<Todo>();
+    router.jsonapi_index::<Todo>();
     router.jsonapi_patch::<Todo>();
     router.jsonapi_delete::<Todo>();
     router.build()
