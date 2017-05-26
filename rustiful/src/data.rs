@@ -41,10 +41,14 @@ impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonA
     }
 }
 
+/// Converts `Self` into `T`. See the implementations to see what the conversions are intended for.
 pub trait IntoJson<T, F, S> {
     fn into_json<'a>(self, params: &'a JsonApiParams<F, S>) -> T;
 }
 
+/// Converts a `T` into `JsonApiData<T::Attrs>`. A wrapper for the `From` implementation where a
+/// tuple of `(T, JsonApiParams<T::FilterField, T::SortField>)` gets converted into
+/// `JsonApiData<T::Attrs>`.
 impl<T> IntoJson<JsonApiData<T::Attrs>, T::FilterField, T::SortField> for T
     where T: ToJson + JsonApiResource,
           T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
@@ -56,6 +60,9 @@ impl<T> IntoJson<JsonApiData<T::Attrs>, T::FilterField, T::SortField> for T
     }
 }
 
+/// Converts a `Vec<T>` into `Vec<JsonApiData<T::Attrs>>`.  A wrapper for the `From` implementation
+/// where a tuple of `(T, JsonApiParams<T::FilterField, T::SortField>)` gets converted into
+/// `JsonApiData<T::Attrs>`.
 impl<T> IntoJson<Vec<JsonApiData<T::Attrs>>, T::FilterField, T::SortField> for Vec<T>
     where T: ToJson + JsonApiResource,
           T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
