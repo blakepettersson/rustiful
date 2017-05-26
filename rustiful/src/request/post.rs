@@ -12,13 +12,12 @@ autoimpl! {
     pub trait FromPost<'a, T>
         where T: JsonPost,
               Status: for<'b> From<&'b T::Error>,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
               <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn create(json: JsonApiData<T::Attrs>, ctx: T::Context) ->
         Result<JsonApiObject<T::Attrs>, RequestError<T::Error, T::JsonApiIdType>> {
             match <T as JsonPost>::create(json, ctx) {
-                Ok(result) => Ok(JsonApiObject::<_> { data: result.into() }),
+                Ok(result) => Ok(JsonApiObject::<_> { data: result }),
                 Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
             }
         }

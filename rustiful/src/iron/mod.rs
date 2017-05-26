@@ -120,7 +120,9 @@ pub fn id<'a>(req: &'a Request) -> &'a str {
     let router = req.extensions
         .get::<Router>()
         .expect("Expected to get a Router from the request extensions.");
-    router.find("id").expect("No id param found in method that expects one!")
+    router
+        .find("id")
+        .expect("No id param found in method that expects one!")
 }
 
 
@@ -160,15 +162,16 @@ impl JsonApiRouterBuilder {
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
+                                              Error = QueryStringParseError>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
-              <<T as JsonIndex>::Context as FromRequest>::Error: 'static,
+              <<T as JsonIndex>::Context as FromRequest>::Error: 'static
     {
 
-        self.router.get(format!("/{}", T::resource_name()),
-                        move |r: &mut Request| T::get(r),
-                        format!("index_{}", T::resource_name()));
+        self.router
+            .get(format!("/{}", T::resource_name()),
+                 move |r: &mut Request| T::get(r),
+                 format!("index_{}", T::resource_name()));
     }
 
     /// Setup a route for a struct that implements `JsonGet` and `JsonApiResource`.
@@ -178,15 +181,16 @@ impl JsonApiRouterBuilder {
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
+                                              Error = QueryStringParseError>,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static,
               <<T as JsonGet>::Context as FromRequest>::Error: 'static
     {
 
-        self.router.get(format!("/{}/:id", T::resource_name()),
-                        move |r: &mut Request| T::get(r),
-                        format!("get_{}", T::resource_name()));
+        self.router
+            .get(format!("/{}/:id", T::resource_name()),
+                 move |r: &mut Request| T::get(r),
+                 format!("get_{}", T::resource_name()));
     }
 
     /// Setup a route for a struct that implements `JsonDelete` and `JsonApiResource`.
@@ -199,11 +203,10 @@ impl JsonApiRouterBuilder {
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
 
-        self.router.delete(format!("/{}/:id", T::resource_name()),
-                           move |r: &mut Request| {
-                               <T as DeleteHandler<T>>::delete(r)
-                           },
-                           format!("delete_{}", T::resource_name()));
+        self.router
+            .delete(format!("/{}/:id", T::resource_name()),
+                    move |r: &mut Request| <T as DeleteHandler<T>>::delete(r),
+                    format!("delete_{}", T::resource_name()));
     }
 
 
@@ -213,14 +216,15 @@ impl JsonApiRouterBuilder {
               T: JsonPost + JsonApiResource + ToJson + for<'b> PostHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)> + 'static + for<'b> Deserialize<'b>,
+              T::Attrs: 'static + for<'b> Deserialize<'b>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
 
-        self.router.post(format!("/{}", T::resource_name()),
-                         move |r: &mut Request| T::post(r),
-                         format!("create_{}", T::resource_name()));
+        self.router
+            .post(format!("/{}", T::resource_name()),
+                  move |r: &mut Request| T::post(r),
+                  format!("create_{}", T::resource_name()));
     }
 
     /// Setup a route for a struct that implements `JsonPatch` and `JsonApiResource`.
@@ -229,14 +233,15 @@ impl JsonApiRouterBuilder {
               T: JsonPatch + JsonApiResource + ToJson + for<'b> PatchHandler<'b, T>,
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)> + 'static + for<'b> Deserialize<'b>,
+              T::Attrs: 'static + for<'b> Deserialize<'b>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
 
-        self.router.patch(format!("/{}/:id", T::resource_name()),
-                          move |r: &mut Request| T::patch(r),
-                          format!("update_{}", T::resource_name()));
+        self.router
+            .patch(format!("/{}/:id", T::resource_name()),
+                   move |r: &mut Request| T::patch(r),
+                   format!("update_{}", T::resource_name()));
     }
 
     /// Constructs an iron `Chain` with the routes that were previously specified in `jsonapi_get`,
@@ -272,7 +277,9 @@ mod tests {
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
-        let content_type = headers.get::<ContentType>().expect("no content type found!");
+        let content_type = headers
+            .get::<ContentType>()
+            .expect("no content type found!");
         assert_eq!("application/vnd.api+json", content_type.to_string());
         let json = response::extract_body_to_string(result);
         assert_eq!("{\"foo\":\"bar\"}", json);
@@ -286,7 +293,9 @@ mod tests {
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
-        let content_type = headers.get::<ContentType>().expect("no content type found!");
+        let content_type = headers
+            .get::<ContentType>()
+            .expect("no content type found!");
         assert_eq!("application/vnd.api+json", content_type.to_string());
         let json = response::extract_body_to_string(result);
         assert_eq!("", json);
@@ -300,7 +309,9 @@ mod tests {
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
-        let content_type = headers.get::<ContentType>().expect("no content type found!");
+        let content_type = headers
+            .get::<ContentType>()
+            .expect("no content type found!");
         assert_eq!("application/vnd.api+json", content_type.to_string());
         let json = response::extract_body_to_string(result);
         assert_eq!("", json);
@@ -313,7 +324,9 @@ mod tests {
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
         let headers = result.headers.clone();
-        let content_type = headers.get::<ContentType>().expect("no content type found!");
+        let content_type = headers
+            .get::<ContentType>()
+            .expect("no content type found!");
         assert_eq!("application/vnd.api+json", content_type.to_string());
         let json = response::extract_body_to_string(result);
         let expected = JsonApiErrorArray {

@@ -16,7 +16,6 @@ autoimpl! {
     pub trait FromIndex<'a, T> where
         T: ToJson + JsonIndex,
         Status: for<'b> From<&'b T::Error>,
-        T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
         T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
         T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
@@ -26,12 +25,7 @@ autoimpl! {
             match T::from_str(query) {
                 Ok(params) => {
                     match T::find_all(&params, ctx) {
-                        Ok(result) => {
-                            let data: Vec<JsonApiData<T::Attrs>> = result.into_iter()
-                                .map(|e| (e, &params).into())
-                                .collect();
-                            Ok(JsonApiArray::<_> { data: data })
-                        },
+                        Ok(result) => Ok(JsonApiArray::<_> { data: result }),
                         Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
                     }
                 },

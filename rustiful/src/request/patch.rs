@@ -13,7 +13,6 @@ autoimpl! {
     pub trait FromPatch<'a, T>
         where T: JsonPatch,
               Status: for<'b> From<&'b T::Error>,
-              T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
               <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(id: &'a str, json: JsonApiData<T::Attrs>, ctx: T::Context)
@@ -21,7 +20,7 @@ autoimpl! {
             match <T::JsonApiIdType>::from_str(id) {
                 Ok(typed_id) => {
                     match <T as JsonPatch>::update(typed_id, json, ctx) {
-                        Ok(result) => Ok(JsonApiObject::<_> { data: result.into() }),
+                        Ok(result) => Ok(JsonApiObject::<_> { data: result }),
                         Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
                     }
                 },

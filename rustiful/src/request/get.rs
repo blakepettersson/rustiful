@@ -17,7 +17,6 @@ autoimpl! {
     pub trait FromGet<'a, T> where
         T: ToJson + JsonGet,
         Status: for<'b> From<&'b T::Error>,
-        T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>,
         T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
         T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
@@ -29,12 +28,9 @@ autoimpl! {
                     match <T::JsonApiIdType>::from_str(id) {
                         Ok(typed_id) => {
                             match T::find(typed_id, &params, ctx) {
-                                Ok(obj) => {
-                                    let data: Option<JsonApiData<T::Attrs>> = obj.map(|obj| {
-                                        (obj, &params).into()
-                                    });
-                                    let res = data.ok_or(RequestError::NotFound)?;
-                                    Ok(JsonApiObject::<_> { data: res })
+                                Ok(result) => {
+                                    let data = result.ok_or(RequestError::NotFound)?;
+                                    Ok(JsonApiObject::<_> { data: data })
                                 },
                                 Err(e) => {
                                     Err(RequestError::RepositoryError(RepositoryError::new(e)))

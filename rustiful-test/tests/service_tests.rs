@@ -42,8 +42,8 @@ infer_schema!("dotenv:DATABASE_URL");
 use self::tests as column;
 use self::tests::dsl::tests as table;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
-AsChangeset)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable,
+Insertable, AsChangeset)]
 #[table_name="tests"]
 struct Test {
     id: String,
@@ -105,10 +105,15 @@ impl JsonGet for Test {
     type Context = DB;
 
     fn find(id: Self::JsonApiIdType,
-            _: &Self::Params,
+            params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<Self>, Self::Error> {
-        table.find(id).first(ctx.conn()).optional().map_err(|e| MyErr::Diesel(e))
+            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+        table
+            .find(id)
+            .first::<Test>(ctx.conn())
+            .optional()
+            .map(|r| r.map(|i| i.into_json(params)))
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -117,15 +122,21 @@ impl JsonPatch for Test {
     type Context = DB;
 
     fn update(id: Self::JsonApiIdType,
-              json: Self::Resource,
+              json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
-              -> Result<Self, Self::Error> {
-        let record = table.find(&id).first(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
-        let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
-        diesel::update(table.find(&id)).set(&patch)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+        let record = table
+            .find(&id)
+            .first(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
+        let patch = (record, json)
+            .try_into()
+            .map_err(|e| MyErr::UpdateError(e))?;
+        diesel::update(table.find(&id))
+            .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch)
+        Ok(patch.into_json(&Default::default()))
     }
 }
 
@@ -133,13 +144,16 @@ impl JsonPost for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
-        let result: Test = record.into();
+    fn create(json: JsonApiData<Self::Attrs>,
+              ctx: Self::Context)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+        let result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
+
         diesel::insert(&result)
             .into(table)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))
-            .map(|_| result)
+            .map(|_| result.into_json(&Default::default()))
     }
 }
 
@@ -147,7 +161,9 @@ impl JsonIndex for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+    fn find_all(params: &Self::Params,
+                ctx: Self::Context)
+                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
         let mut query = table.into_boxed();
 
         {
@@ -176,7 +192,10 @@ impl JsonIndex for Test {
             }
         }
 
-        query.load(ctx.conn()).map_err(|e| MyErr::Diesel(e))
+        query
+            .load::<Test>(ctx.conn())
+            .map(|r| r.into_json(params))
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -185,7 +204,10 @@ impl JsonDelete for Test {
     type Context = DB;
 
     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
-        diesel::delete(table.find(id)).execute(ctx.conn()).map(|_| ()).map_err(|e| MyErr::Diesel(e))
+        diesel::delete(table.find(id))
+            .execute(ctx.conn())
+            .map(|_| ())
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -193,7 +215,9 @@ impl JsonDelete for Test {
 impl From<<Test as ToJson>::Resource> for Test {
     fn from(json: <Test as ToJson>::Resource) -> Self {
         Test {
-            id: json.id.map(|id| id.into()).unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: json.id
+                .map(|id| id.into())
+                .unwrap_or_else(|| Uuid::new_v4().to_string()),
             title: json.attributes.title.unwrap_or("".to_string()),
             body: json.attributes.body.unwrap_or(None),
             published: json.attributes.published.unwrap_or(false),
@@ -232,16 +256,17 @@ fn test_crud() {
         published: true,
     };
 
-    Test::create(model.clone().into(),
+    Test::create(model.clone().into_json(&Default::default()),
                  DB(DB_POOL.get().expect("cannot get connection")))
-        .unwrap();
+            .unwrap();
     let params = <Test as JsonApiResource>::from_str("").unwrap();
-    assert_eq!(model,
+    let model_as_json: JsonApiData<_> = model.into_json(&Default::default());
+    assert_eq!(model_as_json,
                Test::find(id.clone(),
                           &params,
                           DB(DB_POOL.get().expect("cannot get connection")))
-                   .unwrap()
-                   .unwrap());
+                       .unwrap()
+                       .unwrap());
 
     let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
     let json = JsonApiData::new(Some(id.clone()), "".to_string(), json_attrs);
@@ -252,12 +277,12 @@ fn test_crud() {
     let updated = Test::find(id.clone(),
                              &params,
                              DB(DB_POOL.get().expect("cannot get connection")))
-        .unwrap()
-        .unwrap();
+            .unwrap()
+            .unwrap();
 
-    assert_eq!(updated.body, Some("1".to_string()));
-    assert_eq!(updated.title, "3".to_string());
-    assert_eq!(updated.published, true);
+    assert_eq!(updated.attributes.body.unwrap(), Some("1".to_string()));
+    assert_eq!(updated.attributes.title.unwrap(), "3".to_string());
+    assert_eq!(updated.attributes.published.unwrap(), true);
 }
 
 #[test]

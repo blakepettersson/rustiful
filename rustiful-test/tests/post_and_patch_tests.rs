@@ -35,6 +35,8 @@ use r2d2::Pool;
 use r2d2::PooledConnection;
 use r2d2_diesel::ConnectionManager;
 use rustiful::FromRequest;
+use rustiful::IntoJson;
+use rustiful::JsonApiData;
 use rustiful::JsonApiObject;
 use rustiful::JsonDelete;
 use rustiful::JsonGet;
@@ -57,8 +59,8 @@ infer_schema!("dotenv:DATABASE_URL");
 use self::tests as column;
 use self::tests::dsl::tests as table;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable, Insertable,
-AsChangeset)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable,
+Insertable, AsChangeset)]
 #[table_name="tests"]
 #[changeset_options(treat_none_as_null = "true")]
 struct Test {
@@ -124,13 +126,18 @@ impl JsonGet for Test {
     type Context = DB;
 
     fn find(id: Self::JsonApiIdType,
-            _: &Self::Params,
+            params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<Self>, Self::Error> {
+            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
         if id == "fail" {
             return Err(MyErr::UpdateError("test fail".to_string()));
         }
-        table.find(id).first(ctx.conn()).optional().map_err(|e| MyErr::Diesel(e))
+        table
+            .find(id)
+            .first::<Test>(ctx.conn())
+            .optional()
+            .map(|r| r.map(|i| i.into_json(params)))
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -139,15 +146,21 @@ impl JsonPatch for Test {
     type Context = DB;
 
     fn update(id: Self::JsonApiIdType,
-              json: Self::Resource,
+              json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
-              -> Result<Self, Self::Error> {
-        let record = table.find(&id).first(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
-        let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
-        diesel::update(table.find(&id)).set(&patch)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+        let record = table
+            .find(&id)
+            .first(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
+        let patch = (record, json)
+            .try_into()
+            .map_err(|e| MyErr::UpdateError(e))?;
+        diesel::update(table.find(&id))
+            .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch)
+        Ok(patch.into_json(&Default::default()))
     }
 }
 
@@ -155,7 +168,9 @@ impl JsonIndex for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+    fn find_all(params: &Self::Params,
+                ctx: Self::Context)
+                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
         let mut query = table.into_boxed();
 
         {
@@ -184,7 +199,10 @@ impl JsonIndex for Test {
             }
         }
 
-        query.load(ctx.conn()).map_err(|e| MyErr::Diesel(e))
+        query
+            .load::<Test>(ctx.conn())
+            .map(|r| r.into_json(params))
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -193,7 +211,10 @@ impl JsonDelete for Test {
     type Context = DB;
 
     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
-        diesel::delete(table.find(id)).execute(ctx.conn()).map(|_| ()).map_err(|e| MyErr::Diesel(e))
+        diesel::delete(table.find(id))
+            .execute(ctx.conn())
+            .map(|_| ())
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -201,7 +222,9 @@ impl JsonPost for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn create(json: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+    fn create(json: JsonApiData<Self::Attrs>,
+              ctx: Self::Context)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let has_client_id = json.has_id(); // Client-supplied id
         let mut result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
 
@@ -215,7 +238,7 @@ impl JsonPost for Test {
             .into(table)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))
-            .map(|_| result)
+            .map(|_| result.into_json(&Default::default()))
     }
 }
 

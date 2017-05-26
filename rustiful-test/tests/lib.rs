@@ -6,6 +6,7 @@ extern crate rustiful_derive;
 
 extern crate rustiful;
 
+use rustiful::IntoJson;
 use rustiful::JsonApiData;
 use rustiful::JsonApiResource;
 use rustiful::QueryStringParseError;
@@ -48,10 +49,7 @@ fn parse_renamed_json_struct_fails_on_original_name() {
 fn parse_params_fails_on_id_param() {
     match <Bar as JsonApiResource>::from_str("fields[renamed]=id") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("id".to_string()),
-                       e)
-        }
+        Err(e) => assert_eq!(QueryStringParseError::InvalidValue("id".to_string()), e),
     }
 }
 
@@ -85,10 +83,7 @@ fn parse_field_that_is_not_present() {
 fn parse_fields_fails_if_query_param_is_not_valid() {
     match <Foo as JsonApiResource>::from_str("fields=body=foo") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidKeyParam("".to_string()),
-                       e)
-        }
+        Err(e) => assert_eq!(QueryStringParseError::InvalidKeyParam("".to_string()), e),
     }
 }
 
@@ -108,8 +103,7 @@ fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
     match <Foo as JsonApiResource>::from_str("fields[foo]=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("non_existent"
-                           .to_string()),
+            assert_eq!(QueryStringParseError::InvalidValue("non_existent".to_string()),
                        e)
         }
     }
@@ -191,10 +185,7 @@ fn parse_query_param() {
 fn parse_sort_field_fails_on_id_param() {
     match <Foo as JsonApiResource>::from_str("sort=bar") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("bar".to_string()),
-                       e)
-        }
+        Err(e) => assert_eq!(QueryStringParseError::InvalidValue("bar".to_string()), e),
     }
 }
 
@@ -204,7 +195,7 @@ fn parse_sort_field_fails_on_multiple_sort_params() {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::DuplicateSortKey("foo".to_string()),
-            e)
+                       e)
         }
     }
 }
@@ -229,7 +220,7 @@ fn test_into_conversions_with_int_id() {
     };
 
     let expected_id = test.bar.to_string();
-    let result: JsonApiData<<Foo as ToJson>::Attrs> = test.into();
+    let result: JsonApiData<<Foo as ToJson>::Attrs> = test.into_json(&Default::default());
     assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
     assert_eq!(2, result.attributes.foo.expect("unexpected None on foo!"));
     assert_eq!("abc".to_string(),
@@ -244,7 +235,7 @@ fn test_into_conversions_with_string_id() {
     };
 
     let expected_id = test.id.clone();
-    let result: JsonApiData<<Bar as ToJson>::Attrs> = test.into();
+    let result: JsonApiData<<Bar as ToJson>::Attrs> = test.into_json(&Default::default());
     assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
     assert_eq!(1, result.attributes.bar.expect("unexpected None on bar!"));
 }
