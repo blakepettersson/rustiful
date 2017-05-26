@@ -38,10 +38,15 @@ impl JsonGet for Todo {
 
     /// Gets a record from the database with the given id
     fn find(id: Self::JsonApiIdType,
-            _: &Self::Params,
+            params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<Self>, Self::Error> {
-        table.find(id).first(ctx.conn()).optional().map_err(|e| MyErr::Diesel(e))
+            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+        table
+            .find(id)
+            .first::<Todo>(ctx.conn())
+            .map(|r| r.into_json(params))
+            .optional()
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -50,7 +55,9 @@ impl JsonIndex for Todo {
     type Context = DB;
 
     /// Gets all records from the database
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<Self>, Self::Error> {
+    fn find_all(params: &Self::Params,
+                ctx: Self::Context)
+                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
 
         let mut query = table.into_boxed();
 
@@ -104,7 +111,10 @@ impl JsonIndex for Todo {
             }
         }
 
-        query.load(ctx.conn()).map_err(|e| MyErr::Diesel(e))
+        query
+            .load::<Todo>(ctx.conn())
+            .map(|r| r.into_json(params))
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -116,15 +126,21 @@ impl JsonPatch for Todo {
     /// the record along with the JSON patch to a new instance that has the updated columns, before
     /// saving it in the database.
     fn update(id: Self::JsonApiIdType,
-              json: Self::Resource,
+              json: JsonApiData<Self::Attrs>,
               ctx: Self::Context)
-              -> Result<Self, Self::Error> {
-        let record = table.find(&id).first(ctx.conn()).map_err(|e| MyErr::Diesel(e))?;
-        let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
-        diesel::update(table.find(&id)).set(&patch)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+        let record = table
+            .find(&id)
+            .first(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
+        let patch = (record, json)
+            .try_into()
+            .map_err(|e| MyErr::UpdateError(e))?;
+        diesel::update(table.find(&id))
+            .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch)
+        Ok(patch.into_json(&Default::default()))
     }
 }
 
@@ -134,7 +150,10 @@ impl JsonDelete for Todo {
 
     /// Deletes a record from the database with the given id
     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
-        diesel::delete(table.find(id)).execute(ctx.conn()).map(|_| ()).map_err(|e| MyErr::Diesel(e))
+        diesel::delete(table.find(id))
+            .execute(ctx.conn())
+            .map(|_| ())
+            .map_err(|e| MyErr::Diesel(e))
     }
 }
 
@@ -146,12 +165,15 @@ impl JsonPost for Todo {
     /// must create a record with the given id. If the id is not specified (i.e the record will get
     /// an auto-generated id), then make sure that you return a record with the generated id. This
     /// is handled with the `get_result` method below.
-    fn create(record: Self::Resource, ctx: Self::Context) -> Result<Self, Self::Error> {
+    fn create(record: JsonApiData<Self::Attrs>,
+              ctx: Self::Context)
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let todo: Todo = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
         let result: NewTodo = todo.into();
         diesel::insert(&result)
             .into(table)
             .get_result::<Todo>(ctx.conn())
+            .map(|r| r.into_json(&Default::default()))
             .map_err(|e| MyErr::Diesel(e))
     }
 }
