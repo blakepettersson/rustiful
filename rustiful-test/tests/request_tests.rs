@@ -130,6 +130,7 @@ impl JsonPost for Foo {
     type Context = FooService;
 
     fn create(json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         if let Some(id) = json.id {
@@ -144,7 +145,7 @@ impl JsonPost for Foo {
                    title: "test".to_string(),
                    published: true,
                }
-               .into_json(&Default::default()))
+               .into_json(params))
     }
 }
 
@@ -154,6 +155,7 @@ impl JsonPatch for Foo {
 
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         if let Some(id) = json.id {
@@ -168,7 +170,7 @@ impl JsonPatch for Foo {
                    title: "test".to_string(),
                    published: true,
                }
-               .into_json(&Default::default()))
+               .into_json(params))
     }
 }
 

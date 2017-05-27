@@ -20,7 +20,6 @@ use errors::QueryStringParseError;
 use errors::RequestError;
 use iron::handlers::BodyParserError;
 use iron::router::Router;
-use params::JsonApiParams;
 use params::JsonApiResource;
 use serde::Serialize;
 use serde::de::Deserialize;
@@ -217,6 +216,9 @@ impl JsonApiRouterBuilder {
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
               T::Attrs: 'static + for<'b> Deserialize<'b>,
+              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
+                  Error = QueryStringParseError>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {
@@ -234,6 +236,9 @@ impl JsonApiRouterBuilder {
               T::Error: Send + 'static,
               T::JsonApiIdType: FromStr,
               T::Attrs: 'static + for<'b> Deserialize<'b>,
+              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
+                  Error = QueryStringParseError>,
               <T::Context as FromRequest>::Error: 'static,
               <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
     {

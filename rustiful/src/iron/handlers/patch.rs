@@ -11,7 +11,6 @@ use errors::FromRequestError;
 use errors::RequestError;
 use iron::id;
 use object::JsonApiObject;
-use params::JsonApiParams;
 use request::FromPatch;
 use serde::Deserialize;
 use service::JsonPatch;
@@ -20,6 +19,9 @@ use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryInto;
+use try_from::TryFrom;
+use sort_order::SortOrder;
+use errors::QueryStringParseError;
 
 autoimpl! {
     pub trait PatchHandler<'a, T> where
@@ -28,6 +30,8 @@ autoimpl! {
         Status: for<'b> From<&'b T::Error>,
         <T::Context as FromRequest>::Error: 'static,
         T::Attrs: 'static + for<'b> Deserialize<'b>,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn patch(req: &'a mut Request) -> IronResult<Response> {
@@ -35,7 +39,8 @@ autoimpl! {
                 Ok(Some(patch)) => {
                     match FromRequest::from_request(req) {
                         Ok(res) => {
-                            let result = <T as FromPatch<T>>::patch(id(req), patch.data, res);
+                            let query = req.url.query().unwrap_or("");
+                            let result = <T as FromPatch<T>>::patch(id(req), query, patch.data, res);
                             RequestResult(result, Status::Ok).try_into()
                         },
                         Err(e) => FromRequestError::<<T::Context as FromRequest>::Error>(e).into()

@@ -4,7 +4,6 @@ use data::JsonApiData;
 use errors::QueryStringParseError;
 use errors::RepositoryError;
 use errors::RequestError;
-use params::JsonApiParams;
 use service::JsonIndex;
 use sort_order::SortOrder;
 use std::error::Error;

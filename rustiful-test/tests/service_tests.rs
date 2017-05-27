@@ -123,6 +123,7 @@ impl JsonPatch for Test {
 
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let record = table
@@ -136,7 +137,7 @@ impl JsonPatch for Test {
             .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch.into_json(&Default::default()))
+        Ok(patch.into_json(params))
     }
 }
 
@@ -145,6 +146,7 @@ impl JsonPost for Test {
     type Context = DB;
 
     fn create(json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
@@ -153,7 +155,7 @@ impl JsonPost for Test {
             .into(table)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))
-            .map(|_| result.into_json(&Default::default()))
+            .map(|_| result.into_json(params))
     }
 }
 
@@ -257,6 +259,7 @@ fn test_crud() {
     };
 
     Test::create(model.clone().into_json(&Default::default()),
+                 &Default::default(),
                  DB(DB_POOL.get().expect("cannot get connection")))
             .unwrap();
     let params = <Test as JsonApiResource>::from_str("").unwrap();
@@ -272,6 +275,7 @@ fn test_crud() {
     let json = JsonApiData::new(Some(id.clone()), "".to_string(), json_attrs);
     Test::update(id.clone(),
                  json,
+                 &Default::default(),
                  DB(DB_POOL.get().expect("cannot get connection")));
 
     let updated = Test::find(id.clone(),

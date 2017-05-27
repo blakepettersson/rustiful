@@ -8,7 +8,6 @@ use super::super::RequestResult;
 use FromRequest;
 use errors::FromRequestError;
 use errors::QueryStringParseError;
-use params::JsonApiParams;
 use request::FromIndex;
 use service::JsonIndex;
 use sort_order::SortOrder;

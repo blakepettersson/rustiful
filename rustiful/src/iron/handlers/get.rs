@@ -9,7 +9,6 @@ use FromRequest;
 use errors::FromRequestError;
 use errors::QueryStringParseError;
 use iron::id;
-use params::JsonApiParams;
 use request::FromGet;
 use service::JsonGet;
 use sort_order::SortOrder;

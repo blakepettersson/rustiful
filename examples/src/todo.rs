@@ -127,6 +127,7 @@ impl JsonPatch for Todo {
     /// saving it in the database.
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let record = table
@@ -140,7 +141,7 @@ impl JsonPatch for Todo {
             .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch.into_json(&Default::default()))
+        Ok(patch.into_json(params))
     }
 }
 
@@ -166,6 +167,7 @@ impl JsonPost for Todo {
     /// an auto-generated id), then make sure that you return a record with the generated id. This
     /// is handled with the `get_result` method below.
     fn create(record: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let todo: Todo = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
@@ -173,7 +175,7 @@ impl JsonPost for Todo {
         diesel::insert(&result)
             .into(table)
             .get_result::<Todo>(ctx.conn())
-            .map(|r| r.into_json(&Default::default()))
+            .map(|r| r.into_json(params))
             .map_err(|e| MyErr::Diesel(e))
     }
 }

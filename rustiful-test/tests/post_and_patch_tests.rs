@@ -147,6 +147,7 @@ impl JsonPatch for Test {
 
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let record = table
@@ -160,7 +161,7 @@ impl JsonPatch for Test {
             .set(&patch)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch.into_json(&Default::default()))
+        Ok(patch.into_json(params))
     }
 }
 
@@ -223,6 +224,7 @@ impl JsonPost for Test {
     type Context = DB;
 
     fn create(json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         let has_client_id = json.has_id(); // Client-supplied id
@@ -238,7 +240,7 @@ impl JsonPost for Test {
             .into(table)
             .execute(ctx.conn())
             .map_err(|e| MyErr::Diesel(e))
-            .map(|_| result.into_json(&Default::default()))
+            .map(|_| result.into_json(params))
     }
 }
 
@@ -316,6 +318,33 @@ fn post_with_client_generated_id() {
     let retrieved = do_get(&id);
 
     assert_eq!(created, retrieved);
+}
+
+#[test]
+#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
+fn post_with_client_generated_id_and_fieldset_params() {
+    let id = Uuid::new_v4().to_string();
+    let data = format!(r#"
+    {{
+        "data": {{
+            "id": "{}",
+            "type": "tests",
+            "attributes": {{
+                "body": "test",
+                "title": "test",
+                "published": true
+            }}
+        }}
+    }}"#,
+                       id);
+
+    let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[test]=title");
+    let expected =
+        JsonApiData::new(Some(id),
+                         "test",
+                         <Test as ToJson>::Attrs::new(Some("test".to_string()), Some(None), None));
+
+    assert_eq!(created.data, expected);
 }
 
 #[test]
@@ -400,6 +429,50 @@ fn update_with_nullable_field() {
     }
 }
 
+#[test]
+#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
+fn update_with_fieldset() {
+    let id = Uuid::new_v4().to_string();
+    let data = format!(r#"
+    {{
+        "data": {{
+            "id": "{}",
+            "type": "tests",
+            "attributes": {{
+                "body": "test",
+                "title": "test",
+                "published": true
+            }}
+        }}
+    }}"#,
+                       &id);
+
+    do_post(&data);
+
+    {
+        let patch = format!(r#"
+        {{
+            "data": {{
+                "id": "{}",
+                "type": "tests",
+                "attributes": {{
+                    "title": "funky"
+                }}
+            }}
+        }}"#,
+                            &id);
+
+        let updated = do_patch_with_url(&id, &patch, "fields[test]=title");
+        let expected = JsonApiData::new(Some(id),
+                                        "test",
+                                        <Test as ToJson>::Attrs::new(Some("funky".to_string()),
+                                                                     Some(None),
+                                                                     None));
+
+        assert_eq!(updated.data, expected);
+    }
+}
+
 fn do_get<T: Display>(id: &T) -> JsonApiObject<<Test as ToJson>::Attrs> {
     let response = request::get(&format!("http://localhost:3000/tests/{}", id),
                                 Headers::new(),
@@ -410,12 +483,16 @@ fn do_get<T: Display>(id: &T) -> JsonApiObject<<Test as ToJson>::Attrs> {
 }
 
 fn do_post(json: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
+    do_post_with_url(json, "http://localhost:3000/tests")
+}
+
+fn do_post_with_url(json: &str, url: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
     let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
     let mut headers = Headers::new();
     headers.set::<ContentType>(ContentType(content_type));
 
-    let response = request::post("http://localhost:3000/tests", headers, &json, &app_router());
+    let response = request::post(url, headers, &json, &app_router());
     let result = response::extract_body_to_string(response.unwrap());
 
     let created: JsonApiObject<<Test as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
@@ -423,12 +500,19 @@ fn do_post(json: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
 }
 
 fn do_patch<T: Display>(id: &T, json: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
+    do_patch_with_url(id, json, "")
+}
+
+fn do_patch_with_url<T: Display>(id: &T,
+                                 json: &str,
+                                 query: &str)
+                                 -> JsonApiObject<<Test as ToJson>::Attrs> {
     let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
     let mut headers = Headers::new();
     headers.set::<ContentType>(ContentType(content_type));
 
-    let response = request::patch(&format!("http://localhost:3000/tests/{}", id),
+    let response = request::patch(&format!("http://localhost:3000/tests/{}?{}", id, query),
                                   headers,
                                   &json,
                                   &app_router());
