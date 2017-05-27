@@ -28,6 +28,7 @@ pub trait JsonPost
     type Context: FromRequest;
 
     fn create(json: JsonApiData<Self::Attrs>,
+              params: &JsonApiParams<Self::FilterField, Self::SortField>,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;
@@ -41,6 +42,7 @@ pub trait JsonPatch
 
     fn update(id: Self::JsonApiIdType,
               json: JsonApiData<Self::Attrs>,
+              params: &JsonApiParams<Self::FilterField, Self::SortField>,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error>
         where Status: for<'b> From<&'b Self::Error>;

@@ -10,7 +10,6 @@ use FromRequest;
 use errors::FromRequestError;
 use errors::RequestError;
 use object::JsonApiObject;
-use params::JsonApiParams;
 use request::FromPost;
 use serde::Deserialize;
 use service::JsonPost;
@@ -19,6 +18,9 @@ use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryInto;
+use try_from::TryFrom;
+use sort_order::SortOrder;
+use errors::QueryStringParseError;
 
 autoimpl! {
     pub trait PostHandler<'a, T> where
@@ -27,6 +29,8 @@ autoimpl! {
         <T::Context as FromRequest>::Error: 'static,
         Status: for<'b> From<&'b T::Error>,
         T::Attrs: 'static + for<'b> Deserialize<'b>,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn post(req: &'a mut Request) -> IronResult<Response> {
@@ -34,7 +38,8 @@ autoimpl! {
                 Ok(Some(post)) => {
                     match FromRequest::from_request(req) {
                         Ok(res) => {
-                            let result = <T as FromPost<T>>::create(post.data, res);
+                            let query = req.url.query().unwrap_or("");
+                            let result = <T as FromPost<T>>::create(query, post.data, res);
                             RequestResult(result, Status::Created).try_into()
                         },
                         Err(e) => FromRequestError::<<T::Context as FromRequest>::Error>(e).into()

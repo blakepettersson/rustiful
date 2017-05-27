@@ -1,12 +1,12 @@
-##Introduction
+# Introduction
 
 Create [JSONAPI](http://jsonapi.org), um, APIs in Rust.
 
 Rustiful is based on [Iron](http://ironframework.io) and works with stable Rust (>=1.15).    
 
-#TODO
+## TODO
 
-This is still very much a work in progress. The API _will_ change and there's quite a few JSONAPI features that are not 
+This is still very much a work in progress. The API _will_ change and there's quite a few features that are not 
 currently implemented, including but not limited to:
 
 - [ ] `meta` information
@@ -16,13 +16,15 @@ currently implemented, including but not limited to:
 - [ ] Relationships
 - [ ] Filters
 - [ ] Pagination
+- [ ] Perhaps even [rocket](http://rocket.rs) support?
 
-# Features implemented so far
+## Features implemented so far
+
 - [x] GET/POST/PATCH/DELETE
 - [x] `sort` - This means that you can access the sort parameters in a type-safe way. 
 - [x] `fields` - This means that you can access the field parameters in a type-safe way.
 
-##Installation
+## Installation
 
 If you're using Cargo, add rustiful, serde and iron to your Cargo.toml. You'll probably want to have uuid support, 
 which can be added using the `uuid` feature.
@@ -36,7 +38,7 @@ rustiful = { version = "0.1", features = ["uuid", "iron"] }
 rustiful-derive = { version = "0.1", features = ["uuid"] }
 ```
 
-##How-to
+## How-to
 
 First off, we need to have a type that we want to represent as a JSONAPI resource. To do so we need a struct that at the 
 very least has an id field. The id field needs to either be named `id` or be annotated with a `JsonApiId` attribute. 
@@ -144,7 +146,10 @@ impl JsonPost for Todo {
     type Error = MyErr;
     type Context = Context;
 
-    fn create(json: JsonApiData<Self::Attrs>, ctx: Self::Context) -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+    fn create(json: JsonApiData<Self::Attrs>, 
+              params: &Self::Params, 
+              ctx: Self::Context) 
+              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         Err(MyErr("Unimplemented"))
     }
 }
@@ -155,6 +160,7 @@ impl JsonPatch for Todo {
 
     fn update(id: String,
               json: JsonApiData<Self::Attrs>,
+              params: &Self::Params,
               ctx: Self::Context)
               -> Result<JsonApiData<Self::Attrs>, Self::Error> {
         Err(MyErr("Unimplemented"))              

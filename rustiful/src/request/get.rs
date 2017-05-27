@@ -1,11 +1,9 @@
 use super::Status;
-use data::JsonApiData;
 use errors::IdParseError;
 use errors::QueryStringParseError;
 use errors::RepositoryError;
 use errors::RequestError;
 use object::JsonApiObject;
-use params::JsonApiParams;
 use service::JsonGet;
 use sort_order::SortOrder;
 use std::error::Error;
