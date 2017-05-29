@@ -117,7 +117,6 @@ pub fn expand_json_api_models(name: &syn::Ident,
 
             impl ToJson for #name {
                 type Attrs = JsonApiAttributes;
-                type Resource = JsonApiData<JsonApiAttributes>;
 
                 fn id(&self) -> String {
                     self.#json_api_id_ident.to_string()

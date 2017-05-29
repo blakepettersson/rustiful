@@ -193,7 +193,8 @@ fn parse_json_api_index_get() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
+    let records: JsonApiArray<JsonApiData<<Foo as ToJson>::Attrs>> = serde_json::from_str(&result)
+        .unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -202,8 +203,8 @@ fn parse_json_api_index_get() {
         title: "test".to_string(),
         published: true,
     };
-    let data: <Foo as ToJson>::Resource = (test, &params).into();
-    let expected: JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray { data: vec![data] };
+    let data: JsonApiData<<Foo as ToJson>::Attrs> = (test, &params).into();
+    let expected = JsonApiArray { data: vec![data] };
 
     assert_eq!(expected, records);
 }
@@ -220,7 +221,8 @@ fn parse_json_api_index_get_with_fieldset() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<<Foo as ToJson>::Resource> = serde_json::from_str(&result).unwrap();
+    let records: JsonApiArray<JsonApiData<<Foo as ToJson>::Attrs>> = serde_json::from_str(&result)
+        .unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -232,7 +234,7 @@ fn parse_json_api_index_get_with_fieldset() {
     let data = JsonApiData::new(Some("1"),
                                 "foo",
                                 <Foo as ToJson>::Attrs::new(Some("test".to_string()), None, None));
-    let expected: JsonApiArray<<Foo as ToJson>::Resource> = JsonApiArray { data: vec![data] };
+    let expected = JsonApiArray { data: vec![data] };
 
     assert_eq!(expected, records);
 }
@@ -253,8 +255,8 @@ fn parse_json_api_single_get() {
         title: "test".to_string(),
         published: true,
     };
-    let data: <Foo as ToJson>::Resource = (test, &params).into();
-    let expected: JsonApiObject<<Foo as ToJson>::Attrs> = JsonApiObject { data: data };
+    let data: JsonApiData<<Foo as ToJson>::Attrs> = (test, &params).into();
+    let expected = JsonApiObject { data: data };
 
     assert_eq!(expected, record);
 }

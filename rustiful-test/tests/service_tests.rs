@@ -213,20 +213,6 @@ impl JsonDelete for Test {
     }
 }
 
-
-impl From<<Test as ToJson>::Resource> for Test {
-    fn from(json: <Test as ToJson>::Resource) -> Self {
-        Test {
-            id: json.id
-                .map(|id| id.into())
-                .unwrap_or_else(|| Uuid::new_v4().to_string()),
-            title: json.attributes.title.unwrap_or("".to_string()),
-            body: json.attributes.body.unwrap_or(None),
-            published: json.attributes.published.unwrap_or(false),
-        }
-    }
-}
-
 lazy_static! {
     pub static ref DB_POOL: Pool<ConnectionManager<SqliteConnection>> = create_db_pool();
 }
