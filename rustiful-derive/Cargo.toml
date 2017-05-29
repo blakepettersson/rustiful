@@ -11,10 +11,10 @@ description = "This is the derive crate, intended to be used with the rustiful c
 proc-macro = true
 
 [dependencies]
-rustiful = { version = "0.1" }
+rustiful = { version = "0.1.0" }
 syn = "0.11"
 quote = "0.3"
-Inflector = "*"
+Inflector = "0.10"
 clippy = { version = "0.0.123", optional = true }
 
 [features]

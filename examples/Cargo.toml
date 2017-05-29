@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
 
 [dependencies]
-rustiful = { path = "../rustiful", features = ["uuid", "iron"] }
-rustiful-derive = { path = "../rustiful-derive", features = ["uuid"] }
+rustiful = { version = "0.1.0", features = ["uuid", "iron"] }
+rustiful-derive = { version = "0.1.0", features = ["uuid"] }
 serde = "1.0"
 serde_derive = "1.0"
 dotenv = "0.8"
