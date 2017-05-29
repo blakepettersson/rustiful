@@ -50,7 +50,6 @@ pub fn expand_json_api_fields(name: &syn::Ident,
 
             use super::#name;
             use std::slice::Iter;
-            use std::collections::HashMap;
             use rustiful::TryFrom;
             use rustiful::SortOrder;
             use rustiful::JsonApiParams;
