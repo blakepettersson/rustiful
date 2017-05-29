@@ -123,7 +123,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 }
 
                 fn type_name(&self) -> String {
-                    #lower_case_name_as_str.to_string()
+                    <#name as JsonApiResource>::resource_name().to_string()
                 }
             }
 
