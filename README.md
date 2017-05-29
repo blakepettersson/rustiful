@@ -190,8 +190,8 @@ Finally, we need to wire the resource so that it can actually be accessed over H
 ```
 
 Once we have built the chain, we add it to the Iron constructor and start the web server. The resource path is the 
-pluralized and hyphenated name of the resource type name, in lower-case (TODO: Add an attribute that can override 
-the default resource name). In the case of the example above that means that the routes are the following:
+pluralized and hyphenated name of the resource type name, in lower-case. In the case of the example above that means 
+that the routes are the following:
  
 ```
 GET /todos
@@ -246,14 +246,13 @@ This should be enough to get started; there's a more involved example using Dies
 `examples` directory of this repo.
   
 There's one more thing to show. You have full access to the `sort` and `fields` parameters via the params argument 
-(`Self::Params`). So far this is only implemented on `JsonGet` and `JsonIndex`. This is how it you could use the sort 
-parameters when using Diesel (This assumes that you have the appropriate Diesel attributes set on `Todo`).
+(`Self::Params`). So far this is only implemented on `JsonGet` and `JsonIndex`. 
 
 The `Self::Params` type is an alias for `JsonApiParams<F, S>`, which has three fields: `sort`, which gives access to the 
 sort query parameter, `fieldset` which gives access to the `fields` query parameter, and `query_params` which gives 
-access to all other query parameters. 
-   
-   
+access to all other query parameters. Here's an example when using the sort parameters with Diesel 
+(This assumes that you have the appropriate Diesel attributes set on `Todo`).
+
 ```rust
 // Rustiful
 use self::todo::sort::*;
@@ -306,7 +305,7 @@ impl JsonIndex for Todo {
                 2 => query = query.order((order_columns.remove(0), order_columns.remove(0))),
                 3 => query = query.order((order_columns.remove(0), order_columns.remove(0), order_columns.remove(0))),
                 4 => query = query.order((order_columns.remove(0), order_columns.remove(0), order_columns.remove(0), order_columns.remove(0))),
-                _ => return Err(MyErr::TooManySortColumns("too many sort columns".to_string()))
+                _ => return Err(MyErr("too many sort columns".to_string()))
             }
         }
 

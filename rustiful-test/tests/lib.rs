@@ -56,7 +56,7 @@ fn parse_params_fails_on_id_param() {
 #[test]
 fn parse_present_field() {
     use self::foo::field::*;
-    match <Foo as JsonApiResource>::from_str("fields[foo]=foo") {
+    match <Foo as JsonApiResource>::from_str("fields[foos]=foo") {
         Ok(result) => assert_eq!(Some(&foo), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
@@ -65,7 +65,7 @@ fn parse_present_field() {
 #[test]
 fn parse_present_url_encoded_field() {
     use self::foo::field::*;
-    match <Foo as JsonApiResource>::from_str("fields%5Bfoo%5D=foo") {
+    match <Foo as JsonApiResource>::from_str("fields%5Bfoos%5D=foo") {
         Ok(result) => assert_eq!(Some(&foo), result.fieldset.fields.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
@@ -100,7 +100,7 @@ fn parse_fields_fails_if_fields_value_is_empty() {
 
 #[test]
 fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
-    match <Foo as JsonApiResource>::from_str("fields[foo]=non_existent") {
+    match <Foo as JsonApiResource>::from_str("fields[foos]=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             assert_eq!(QueryStringParseError::InvalidValue("non_existent".to_string()),

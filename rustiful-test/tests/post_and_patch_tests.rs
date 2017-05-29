@@ -338,10 +338,10 @@ fn post_with_client_generated_id_and_fieldset_params() {
     }}"#,
                        id);
 
-    let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[test]=title");
+    let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[tests]=title");
     let expected =
         JsonApiData::new(Some(id),
-                         "test",
+                         "tests",
                          <Test as ToJson>::Attrs::new(Some("test".to_string()), Some(None), None));
 
     assert_eq!(created.data, expected);
@@ -462,9 +462,9 @@ fn update_with_fieldset() {
         }}"#,
                             &id);
 
-        let updated = do_patch_with_url(&id, &patch, "fields[test]=title");
+        let updated = do_patch_with_url(&id, &patch, "fields[tests]=title");
         let expected = JsonApiData::new(Some(id),
-                                        "test",
+                                        "tests",
                                         <Test as ToJson>::Attrs::new(Some("funky".to_string()),
                                                                      Some(None),
                                                                      None));

@@ -15,12 +15,12 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                               attrs: &[Attribute],
                               &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
                               -> Tokens {
-    let lower_case_name = name.to_string().to_snake_case();
     let json_api_id_ty = &id.field.ty;
 
-    let json_name = get_json_name(&lower_case_name, attrs);
+    let lower_case_name = name.to_string().to_snake_case();
+    let pluralized_name = lower_case_name.to_plural().to_kebab_case();
     let lower_cased_ident = Ident::new(lower_case_name);
-    let pluralized_name = json_name.to_plural().to_kebab_case();
+    let json_name = get_json_name(&pluralized_name, attrs);
 
     let mut option_fields: Vec<_> = Vec::with_capacity(fields.len());
     let option_fields_len = fields.len();

@@ -211,7 +211,7 @@ fn parse_json_api_index_get() {
 #[test]
 fn parse_json_api_index_get_with_fieldset() {
     let headers = Headers::new();
-    let response = request::get("http://localhost:3000/foos?fields[foo]=title",
+    let response = request::get("http://localhost:3000/foos?fields[foos]=title",
                                 headers,
                                 &app_router())
             .unwrap();
@@ -221,16 +221,8 @@ fn parse_json_api_index_get_with_fieldset() {
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
     let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
-
-    let test = Foo {
-        id: "1".to_string(),
-        body: "test".to_string(),
-        title: "test".to_string(),
-        published: true,
-    };
     let data = JsonApiData::new(Some("1"),
-                                "foo",
+                                "foos",
                                 <Foo as ToJson>::Attrs::new(Some("test".to_string()), None, None));
     let expected = JsonApiArray { data: vec![data] };
 
