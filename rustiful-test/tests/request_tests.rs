@@ -193,8 +193,7 @@ fn parse_json_api_index_get() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<JsonApiData<<Foo as ToJson>::Attrs>> = serde_json::from_str(&result)
-        .unwrap();
+    let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -221,8 +220,7 @@ fn parse_json_api_index_get_with_fieldset() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<JsonApiData<<Foo as ToJson>::Attrs>> = serde_json::from_str(&result)
-        .unwrap();
+    let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
