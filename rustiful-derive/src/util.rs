@@ -19,7 +19,7 @@ pub struct JsonApiField {
 pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
     match body {
         Body::Struct(VariantData::Struct(data)) => {
-            let (id, attrs): (Vec<JsonApiField>, Vec<JsonApiField>) = data.into_iter()
+            let (mut id, attrs): (Vec<JsonApiField>, Vec<JsonApiField>) = data.into_iter()
                 .map(|f| {
                     let ident = f.ident
                         .clone()
@@ -41,17 +41,14 @@ pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
                 the same time.")
             }
 
-            // This seems to be the only way to get the first element by value in stable Rust.
-            for json_api_id in id {
-                if is_option_ty(&json_api_id.field.ty) {
-                    panic!("Option types are not supported as an id for {}.",
-                           &json_api_id.ident);
-                }
+            let json_api_id = id.remove(0);
 
-                return (json_api_id, attrs);
+            if is_option_ty(&json_api_id.field.ty) {
+                panic!("Option types are not supported as an id for {}.",
+                       &json_api_id.ident);
             }
 
-            panic!("No JsonApiId attribute defined (or no field named id)!")
+            return (json_api_id, attrs);
         }
         _ => panic!("#[derive(JsonApi)] can only be used with structs"),
     }

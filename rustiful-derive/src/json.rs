@@ -29,7 +29,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
         let ty = &field.field.ty;
         let ident = &field.ident;
 
-        jsonapi_attrs.push(generate_option_method(ident, ty, true));
+        jsonapi_attrs.push(generate_option_field(ident, ty, true));
 
         filtered_option_vars.push(quote!(let mut #ident = Some(model.#ident);));
 
@@ -158,7 +158,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
     }
 }
 
-pub fn generate_option_method(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
+pub fn generate_option_field(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
     if util::is_option_ty(ty) && generate_serde_attribute {
         quote! {
                 #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
