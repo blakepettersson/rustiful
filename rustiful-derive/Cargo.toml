@@ -2,16 +2,20 @@
 name = "rustiful-derive"
 version = "0.1.0"
 authors = ["Blake Pettersson <blake.pettersson@gmail.com>"]
+license = "Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/blakepettersson/rustiful"
+description = "This is the derive crate, intended to be used with the rustiful crate."
 
 [lib]
 proc-macro = true
 
 [dependencies]
-rustiful = { path = "../rustiful" }
+rustiful = { version = "0.1" }
 syn = "0.11"
 quote = "0.3"
 Inflector = "*"
-clippy = {version = "0.0.123", optional = true}
+clippy = { version = "0.0.123", optional = true }
 
 [features]
 default = []
