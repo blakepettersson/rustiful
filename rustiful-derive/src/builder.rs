@@ -2,7 +2,7 @@ use quote::Tokens;
 use util::JsonApiField;
 use syn::Ident;
 use util;
-use json::generate_option_method;
+use json::generate_option_field;
 extern crate inflector;
 
 use self::inflector::Inflector;
@@ -27,8 +27,8 @@ pub fn expand_json_api_builders(name: &Ident,
         let ident = &field.ident;
         let ident_string = &ident.to_string();
 
-        jsonapi_attrs.push(generate_option_method(ident, ty, true));
-        jsonapi_builder_attrs.push(generate_option_method(ident, ty, false));
+        jsonapi_attrs.push(generate_option_field(ident, ty, true));
+        jsonapi_builder_attrs.push(generate_option_field(ident, ty, false));
 
         jsonapi_builder_fields.push(quote! {
             #ident: self.#ident.ok_or(format!("#{} must be initialized", #ident_string))?
