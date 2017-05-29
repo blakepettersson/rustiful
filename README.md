@@ -46,9 +46,9 @@ very least has an id field. The id field needs to either be named `id` or be ann
 Once we have that, we can add the `JsonApi` attribute to the struct itself. This will generate the JSONAPI 
 representation for the given type, as well as generating a type-safe query param type. 
 
-You can also optionally add Serde's `Serialize` and `Deserialize` derives in case you need to rename a field in the 
-type's JSONAPI representation; if you then use Serde's `rename` attribute the generated JSONAPI type will then use the 
-renamed field name when serializing and deserializing.
+You can also optionally add Serde's `Serialize` and `Deserialize` derives in case you need to rename a field and/or 
+rename the resource name in the type's JSONAPI representation; if you then use Serde's `rename` attribute the generated 
+JSONAPI type will use the rename attributes when serializing and deserializing.
 
 ```rust
 extern crate rustiful;
@@ -107,7 +107,7 @@ pub struct Context {}
 // Initializes a `Context` from a request.
 impl FromRequest for Context {
     type Error = MyErr;
-    fn from_request(request: &Request) -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+    fn from_request(request: &Request) -> Result<Self, Self::Error> {
         Ok(Context {})
     }
 }
@@ -309,7 +309,10 @@ impl JsonIndex for Todo {
             }
         }
 
-        // Load the Diesel query here
+        query
+            .load::<Todo>(/* Add connection here */) 
+            .map(|r| r.into_json(params))
+            .map_err(|e| MyErr("Failed to load query"))
     }    
 }
 ```   
