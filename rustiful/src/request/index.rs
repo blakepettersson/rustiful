@@ -1,6 +1,5 @@
 use super::Status;
 use array::JsonApiArray;
-use data::JsonApiData;
 use errors::QueryStringParseError;
 use errors::RepositoryError;
 use errors::RequestError;
@@ -20,11 +19,11 @@ autoimpl! {
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         fn get(query: &'a str, ctx: T::Context)
-        -> Result<JsonApiArray<JsonApiData<T::Attrs>>, RequestError<T::Error, T::JsonApiIdType>> {
+        -> Result<JsonApiArray<T::Attrs>, RequestError<T::Error, T::JsonApiIdType>> {
             match T::from_str(query) {
                 Ok(params) => {
                     match T::find_all(&params, ctx) {
-                        Ok(result) => Ok(JsonApiArray::<_> { data: result }),
+                        Ok(result) => Ok(JsonApiArray { data: result }),
                         Err(e) => Err(RequestError::RepositoryError(RepositoryError::new(e)))
                     }
                 },
