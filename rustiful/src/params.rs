@@ -4,6 +4,8 @@ use self::url::form_urlencoded;
 use errors::QueryStringParseError;
 use sort_order::SortOrder;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::Occupied;
+use std::collections::hash_map::Entry::Vacant;
 use std::fmt::Debug;
 use std::str::FromStr;
 use try_from::TryFrom;
@@ -13,13 +15,13 @@ use try_from::TryFrom;
 pub struct JsonApiParams<F, S> {
     pub sort: Sort<S>,
     pub fieldset: FieldSet<F>,
-    pub query_params: HashMap<String, String>,
+    pub query_params: HashMap<String, Vec<String>>,
 }
 
 impl<F, S> JsonApiParams<F, S> {
     fn new(fieldset: Vec<F>,
            sort_params: Vec<S>,
-           query_params: HashMap<String, String>)
+           query_params: HashMap<String, Vec<String>>)
            -> JsonApiParams<F, S> {
         JsonApiParams {
             sort: Sort { fields: sort_params },
@@ -31,7 +33,7 @@ impl<F, S> JsonApiParams<F, S> {
 
 impl<F, S> Default for JsonApiParams<F, S> {
     fn default() -> Self {
-        let query_params: HashMap<String, String> = Default::default();
+        let query_params: HashMap<String, Vec<String>> = Default::default();
         JsonApiParams::new(vec![], vec![], query_params)
     }
 }
@@ -127,7 +129,16 @@ pub trait JsonApiResource: Sized {
                 }
 
             } else {
-                params.query_params.insert(key, value);
+                match params.query_params.entry(key) {
+                    // Already a Vec here, push onto it
+                    Occupied(entry) => {
+                        entry.into_mut().push(value);
+                    }
+                    // No value, create a one-element Vec.
+                    Vacant(entry) => {
+                        entry.insert(vec![value]);
+                    }
+                };
             }
         }
 
