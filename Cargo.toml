@@ -8,4 +8,4 @@ members = [
 
 [replace]
 "rustiful:0.1.0" = { path = "rustiful" }
-"rustiful_derive:0.1.0" = { path = "rustiful-derive" }
+"rustiful-derive:0.1.0" = { path = "rustiful-derive" }
