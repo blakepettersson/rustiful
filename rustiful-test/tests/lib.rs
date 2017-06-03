@@ -169,13 +169,23 @@ fn parse_null_sort_field() {
     }
 }
 
-
 #[test]
 fn parse_query_param() {
     match <Foo as JsonApiResource>::from_str("foo=bar") {
         Ok(result) => {
-            let expected = &"bar".to_string();
-            assert_eq!(Some(expected), result.query_params.get("foo"))
+            let expected = vec!["bar".to_string()];
+            assert_eq!(&expected, result.query_params.get("foo").unwrap())
+        }
+        Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
+    }
+}
+
+#[test]
+fn parse_multiple_query_params() {
+    match <Foo as JsonApiResource>::from_str("foo=bar&foo=test") {
+        Ok(result) => {
+            let expected = vec!["bar".to_string(), "test".to_string()];
+            assert_eq!(&expected, result.query_params.get("foo").unwrap())
         }
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e)),
     }
