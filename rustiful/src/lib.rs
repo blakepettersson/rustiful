@@ -63,3 +63,11 @@ pub mod status {
 }
 
 pub mod json_option;
+
+#[cfg(feature = "rustiful-derive")]
+#[allow(unused_imports)]
+#[macro_use]
+extern crate rustiful_derive;
+#[cfg(feature = "rustiful-derive")]
+#[doc(hidden)]
+pub use rustiful_derive::*;

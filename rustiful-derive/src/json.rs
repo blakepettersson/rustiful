@@ -55,17 +55,17 @@ pub fn expand_json_api_models(name: &syn::Ident,
         mod #mod_name {
             #uuid
 
-            extern crate rustiful;
+            extern crate rustiful as _rustiful;
 
             use super::#name;
             use std::str::FromStr;
-            use rustiful::ToJson;
-            use rustiful::TryFrom;
-            use rustiful::TryInto;
-            use rustiful::ToBuilder;
-            use rustiful::JsonApiData;
-            use rustiful::JsonApiBuilder;
-            use rustiful::JsonApiResource;
+            use self::_rustiful::ToJson;
+            use self::_rustiful::TryFrom;
+            use self::_rustiful::TryInto;
+            use self::_rustiful::ToBuilder;
+            use self::_rustiful::JsonApiData;
+            use self::_rustiful::JsonApiBuilder;
+            use self::_rustiful::JsonApiResource;
 
             #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
             pub struct JsonApiAttributes {
@@ -160,7 +160,7 @@ pub fn expand_json_api_models(name: &syn::Ident,
 pub fn generate_option_field(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
     if util::is_option_ty(ty) && generate_serde_attribute {
         quote! {
-                #[serde(default, deserialize_with = "rustiful::json_option::some_option")]
+                #[serde(default, deserialize_with = "self::_rustiful::json_option::some_option")]
                 pub #ident: Option<#ty>
         }
     } else {
