@@ -59,9 +59,11 @@ pub fn expand_json_api_builders(name: &Ident,
         mod #mod_name {
             #uuid
 
+            extern crate rustiful as _rustiful;
+
             use super::#name;
-            use rustiful::ToBuilder;
-            use rustiful::JsonApiBuilder;
+            use self::_rustiful::ToBuilder;
+            use self::_rustiful::JsonApiBuilder;
 
             #[derive(Debug, Default)]
             pub struct Builder {

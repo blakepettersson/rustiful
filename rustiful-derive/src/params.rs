@@ -1,5 +1,4 @@
 extern crate syn;
-extern crate rustiful;
 extern crate inflector;
 
 use self::inflector::Inflector;
@@ -48,13 +47,15 @@ pub fn expand_json_api_fields(name: &syn::Ident,
         pub mod #lower_cased_ident {
             #uuid
 
+            extern crate rustiful as _rustiful;
+
             use super::#name;
             use std::slice::Iter;
-            use rustiful::TryFrom;
-            use rustiful::SortOrder;
-            use rustiful::JsonApiParams;
-            use rustiful::JsonApiResource;
-            use rustiful::QueryStringParseError;
+            use self::_rustiful::TryFrom;
+            use self::_rustiful::SortOrder;
+            use self::_rustiful::JsonApiParams;
+            use self::_rustiful::JsonApiResource;
+            use self::_rustiful::QueryStringParseError;
 
             #[derive(Debug, PartialEq, Eq, Clone)]
             #[allow(non_camel_case_types)]
