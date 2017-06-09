@@ -11,7 +11,6 @@ use rustiful::JsonApiData;
 use rustiful::JsonApiResource;
 use rustiful::QueryStringParseError;
 use rustiful::SortOrder::*;
-use rustiful::ToJson;
 use std::str::FromStr;
 
 #[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
@@ -231,7 +230,7 @@ fn test_into_conversions_with_int_id() {
     };
 
     let expected_id = test.bar.to_string();
-    let result: JsonApiData<<Foo as ToJson>::Attrs> = test.into_json(&Default::default());
+    let result: JsonApiData<Foo> = test.into_json(&Default::default());
     assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
     assert_eq!(2, result.attributes.foo.expect("unexpected None on foo!"));
     assert_eq!("abc".to_string(),
@@ -246,7 +245,7 @@ fn test_into_conversions_with_string_id() {
     };
 
     let expected_id = test.id.clone();
-    let result: JsonApiData<<Bar as ToJson>::Attrs> = test.into_json(&Default::default());
+    let result: JsonApiData<Bar> = test.into_json(&Default::default());
     assert_eq!(expected_id, result.id.expect("unexpected None on id!"));
     assert_eq!(1, result.attributes.bar.expect("unexpected None on bar!"));
 }

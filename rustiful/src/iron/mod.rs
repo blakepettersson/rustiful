@@ -199,7 +199,7 @@ fn id<'a>(req: &'a Request) -> &'a str {
 /// #
 /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
 /// #                 ctx: Self::Context)
-/// #            -> Result<Vec<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
 /// #          Ok(vec![MyResource::default().into_json(params)])
 /// #      }
 /// }
@@ -285,7 +285,7 @@ fn id<'a>(req: &'a Request) -> &'a str {
 /// #
 /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
 /// #                 ctx: Self::Context)
-/// #            -> Result<Vec<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
 /// #          Ok(vec![MyResource::default().into_json(params)])
 /// #      }
 /// # }
@@ -465,7 +465,7 @@ impl JsonApiRouterBuilder {
     /// #
     /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #                 ctx: Self::Context)
-    /// #            -> Result<Vec<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
     /// #          Ok(vec![MyResource::default().into_json(params)])
     /// #      }
     /// }
@@ -536,7 +536,7 @@ impl JsonApiRouterBuilder {
     /// #
     /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #                 ctx: Self::Context)
-    /// #            -> Result<Vec<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
     /// #          Ok(vec![MyResource::default().into_json(params)])
     /// #      }
     /// # }
@@ -636,7 +636,7 @@ impl JsonApiRouterBuilder {
     /// #     fn find(id: Self::JsonApiIdType,
     /// #             params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #             ctx: Self::Context)
-    /// #            -> Result<Option<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, Self::Error> {
     /// #          Ok(Some(MyResource::default().into_json(params)))
     /// #      }
     /// }
@@ -708,7 +708,7 @@ impl JsonApiRouterBuilder {
     /// #     fn find(id: Self::JsonApiIdType,
     /// #             params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #             ctx: Self::Context)
-    /// #            -> Result<Option<rustiful::JsonApiData<Self::Attrs>>, Self::Error> {
+    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, Self::Error> {
     /// #          Ok(Some(MyResource::default().into_json(params)))
     /// #      }
     /// # }
@@ -966,10 +966,10 @@ impl JsonApiRouterBuilder {
     /// #    type Context = MyCtx;
     /// #    type Error = MyError;
     /// #
-    /// #    fn create(json: rustiful::JsonApiData<Self::Attrs>,
+    /// #    fn create(json: rustiful::JsonApiData<Self>,
     /// #         params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #          ctx: Self::Context)
-    /// #          -> Result<rustiful::JsonApiData<Self::Attrs>, Self::Error> {
+    /// #          -> Result<rustiful::JsonApiData<Self>, Self::Error> {
     /// #         Ok(MyResource::default().into_json(params))
     /// #    }
     /// }
@@ -1037,10 +1037,10 @@ impl JsonApiRouterBuilder {
     /// #    type Context = MyCtx;
     /// #    type Error = MyError;
     /// #
-    /// #    fn create(json: rustiful::JsonApiData<Self::Attrs>,
+    /// #    fn create(json: rustiful::JsonApiData<Self>,
     /// #         params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #          ctx: Self::Context)
-    /// #          -> Result<rustiful::JsonApiData<Self::Attrs>, Self::Error> {
+    /// #          -> Result<rustiful::JsonApiData<Self>, Self::Error> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -1065,7 +1065,7 @@ impl JsonApiRouterBuilder {
     /// This resource will then have the route `POST /my-resources`.
     pub fn jsonapi_post<'a, T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: JsonPost + for<'b> PostHandler<'b, T>,
+              T: 'static + JsonPost + for<'b> PostHandler<'b, T>,
               T::Error: 'static,
               T::Attrs: 'static + for<'b> Deserialize<'b>,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
@@ -1144,10 +1144,10 @@ impl JsonApiRouterBuilder {
     /// #    type Error = MyError;
     /// #
     /// #    fn update(id: Self::JsonApiIdType,
-    /// #              json: rustiful::JsonApiData<Self::Attrs>,
+    /// #              json: rustiful::JsonApiData<Self>,
     /// #              params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #              ctx: Self::Context)
-    /// #              -> Result<rustiful::JsonApiData<Self::Attrs>, Self::Error> {
+    /// #              -> Result<rustiful::JsonApiData<Self>, Self::Error> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -1222,10 +1222,10 @@ impl JsonApiRouterBuilder {
     /// #    type Error = MyError;
     /// #
     /// #    fn update(id: Self::JsonApiIdType,
-    /// #              json: rustiful::JsonApiData<Self::Attrs>,
+    /// #              json: rustiful::JsonApiData<Self>,
     /// #              params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #              ctx: Self::Context)
-    /// #              -> Result<rustiful::JsonApiData<Self::Attrs>, Self::Error> {
+    /// #              -> Result<rustiful::JsonApiData<Self>, Self::Error> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -1251,7 +1251,7 @@ impl JsonApiRouterBuilder {
     /// This resource will then have the route `PATCH /my-resources/{id}`.
     pub fn jsonapi_patch<'a, T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: JsonPatch + for<'b> PatchHandler<'b, T>,
+              T: 'static + JsonPatch + for<'b> PatchHandler<'b, T>,
               T::Error: 'static,
               T::Attrs: 'static + for<'b> Deserialize<'b>,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,

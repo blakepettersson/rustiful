@@ -40,7 +40,7 @@ impl JsonGet for Todo {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, Self::Error> {
         table
             .find(id)
             .first::<Todo>(ctx.conn())
@@ -57,7 +57,7 @@ impl JsonIndex for Todo {
     /// Gets all records from the database
     fn find_all(params: &Self::Params,
                 ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+                -> Result<Vec<JsonApiData<Self>>, Self::Error> {
 
         let mut query = table.into_boxed();
 
@@ -126,10 +126,10 @@ impl JsonPatch for Todo {
     /// the record along with the JSON patch to a new instance that has the updated columns, before
     /// saving it in the database.
     fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self::Attrs>,
+              json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let record = table
             .find(&id)
             .first(ctx.conn())
@@ -166,10 +166,10 @@ impl JsonPost for Todo {
     /// must create a record with the given id. If the id is not specified (i.e the record will get
     /// an auto-generated id), then make sure that you return a record with the generated id. This
     /// is handled with the `get_result` method below.
-    fn create(record: JsonApiData<Self::Attrs>,
+    fn create(record: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let todo: Todo = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
         let result: NewTodo = todo.into();
         diesel::insert(&result)

@@ -80,10 +80,10 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 }
             }
 
-            impl TryFrom<JsonApiData<JsonApiAttributes>> for #name {
+            impl TryFrom<JsonApiData<#name>> for #name {
                 type Error = String;
 
-                fn try_from(json: JsonApiData<JsonApiAttributes>) -> Result<Self, Self::Error> {
+                fn try_from(json: JsonApiData<#name>) -> Result<Self, Self::Error> {
                     let id = json.id.clone().map(|id| {
                         match #json_api_id_ty::from_str(&id) {
                             Ok(result) => Ok(result),
@@ -104,10 +104,10 @@ pub fn expand_json_api_models(name: &syn::Ident,
                 }
             }
 
-            impl TryFrom<(#name, JsonApiData<JsonApiAttributes>)> for #name {
+            impl TryFrom<(#name, JsonApiData<#name>)> for #name {
                 type Error = String;
 
-                fn try_from((model, updated_attrs): (#name, JsonApiData<JsonApiAttributes>))
+                fn try_from((model, updated_attrs): (#name, JsonApiData<#name>))
                 -> Result<Self, Self::Error> {
                     let mut builder = <#name as ToBuilder>::Builder::new(model);
                     #(#jsonapi_builder_setter)*
