@@ -1,5 +1,5 @@
 use params::JsonApiParams;
-use params::JsonApiResource;
+use resource::JsonApiResource;
 use to_json::ToJson;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
