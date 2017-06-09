@@ -4,7 +4,7 @@ use errors::RepositoryError;
 use errors::RequestError;
 use object::JsonApiObject;
 use service::JsonGet;
-use sort_order::SortOrder;
+use params::SortOrder;
 use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;
@@ -23,7 +23,7 @@ pub fn get<'a, T>(id: T::JsonApiIdType,
           T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
           T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
 {
-    let params = T::from_str(query).map_err(|e| RequestError::QueryStringParseError(e))?;
+    let params = T::Params::from_str(query).map_err(|e| RequestError::QueryStringParseError(e))?;
     let result = T::find(id, &params, ctx)
         .map_err(|e| RequestError::RepositoryError(RepositoryError::new(e)))?;
     let data = result.ok_or(RequestError::NotFound)?;

@@ -12,9 +12,6 @@ pub use to_json::*;
 mod service;
 pub use service::*;
 
-mod sort_order;
-pub use sort_order::*;
-
 mod data;
 pub use data::*;
 
@@ -38,6 +35,9 @@ pub use error::*;
 
 mod builder;
 pub use builder::*;
+
+mod resource;
+pub use resource::*;
 
 mod request;
 

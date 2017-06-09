@@ -14,7 +14,7 @@ use object::JsonApiObject;
 use request::post::post;
 use serde::Deserialize;
 use service::JsonPost;
-use sort_order::SortOrder;
+use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;

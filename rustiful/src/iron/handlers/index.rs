@@ -10,7 +10,7 @@ use errors::FromRequestError;
 use errors::QueryStringParseError;
 use request::index::index;
 use service::JsonIndex;
-use sort_order::SortOrder;
+use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;

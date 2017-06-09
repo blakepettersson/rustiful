@@ -21,6 +21,7 @@ use rustiful::iron::JsonApiRouterBuilder;
 use rustiful::status::Status;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi)]
 struct Foo {
@@ -194,7 +195,7 @@ fn parse_json_api_index_get() {
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
     let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
+    let params = <Foo as JsonApiResource>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),
@@ -237,7 +238,7 @@ fn parse_json_api_single_get() {
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
     let record: JsonApiObject<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    let params = <Foo as JsonApiResource>::from_str("").expect("failed to unwrap params");
+    let params = <Foo as JsonApiResource>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
         id: "1".to_string(),

@@ -35,6 +35,7 @@ use std::env;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::str::FromStr;
 use uuid::Uuid;
 
 infer_schema!("dotenv:DATABASE_URL");
@@ -248,7 +249,7 @@ fn test_crud() {
                  &Default::default(),
                  DB(DB_POOL.get().expect("cannot get connection")))
             .unwrap();
-    let params = <Test as JsonApiResource>::from_str("").unwrap();
+    let params = <Test as JsonApiResource>::Params::from_str("").unwrap();
     let model_as_json: JsonApiData<_> = model.into_json(&Default::default());
     assert_eq!(model_as_json,
                Test::find(id.clone(),
