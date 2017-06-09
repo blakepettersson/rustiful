@@ -16,7 +16,7 @@ use object::JsonApiObject;
 use request::patch::patch;
 use serde::Deserialize;
 use service::JsonPatch;
-use sort_order::SortOrder;
+use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;

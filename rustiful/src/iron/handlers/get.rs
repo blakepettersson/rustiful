@@ -13,7 +13,7 @@ use errors::RequestError;
 use iron::id;
 use request::get::get;
 use service::JsonGet;
-use sort_order::SortOrder;
+use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;

@@ -2,7 +2,6 @@ extern crate url;
 
 use self::url::form_urlencoded;
 use errors::QueryStringParseError;
-use sort_order::SortOrder;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::Occupied;
 use std::collections::hash_map::Entry::Vacant;
@@ -161,12 +160,10 @@ impl <F, S> FromStr for JsonApiParams<F, S>
 
                 let fields = value.split(',').filter(|&f| !f.is_empty());
                 for mut field in fields {
-                    let sort_order = if field.starts_with('-') {
+                    let sort_order = SortOrder::from(field);
+                    if sort_order == SortOrder::Desc {
                         field = field.trim_left_matches('-');
-                        SortOrder::Desc
-                    } else {
-                        SortOrder::Asc
-                    };
+                    }
 
                     match S::try_from((field, sort_order)) {
                         Ok(result) => sort_params.push(result),
@@ -240,4 +237,56 @@ pub struct Sort<S> {
 /// attribute in rustiful-derive.
 pub struct FieldSet<F> {
     pub fields: Vec<F>,
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+/// This enum specifies how a parameter should be sorted.
+pub enum SortOrder {
+    /// The parameter should be sorted in an ascending order
+    Asc,
+    /// The parameter should be sorted in a descending order
+    Desc,
+}
+
+
+/// Converts a string slice to a `SortOrder`.
+///
+/// If any parts of the field parameter are prefixed with a `-` in the incoming request,
+/// then it should be sorted in a descending order, otherwise in an ascending order.
+///
+/// # Example
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # use rustiful::SortOrder;
+/// #
+/// # fn main() {
+/// let asc_param = "foo";
+/// let desc_param = "-foo";
+/// assert_eq!(SortOrder::Asc, SortOrder::from(asc_param));
+/// assert_eq!(SortOrder::Desc, SortOrder::from(desc_param));
+/// # }
+/// ```
+impl <'a> From<&'a str> for SortOrder {
+    fn from(field: &'a str) -> Self {
+        if field.starts_with('-') {
+            SortOrder::Desc
+        } else {
+            SortOrder::Asc
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_order() {
+        let asc_param = "foo";
+        let desc_param = "-foo";
+        assert_eq!(SortOrder::Asc, SortOrder::from(asc_param));
+        assert_eq!(SortOrder::Desc, SortOrder::from(desc_param));
+    }
 }

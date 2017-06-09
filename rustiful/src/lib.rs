@@ -12,9 +12,6 @@ pub use to_json::*;
 mod service;
 pub use service::*;
 
-mod sort_order;
-pub use sort_order::*;
-
 mod data;
 pub use data::*;
 

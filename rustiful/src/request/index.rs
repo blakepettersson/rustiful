@@ -4,7 +4,7 @@ use errors::QueryStringParseError;
 use errors::RepositoryError;
 use errors::RequestError;
 use service::JsonIndex;
-use sort_order::SortOrder;
+use params::SortOrder;
 use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;

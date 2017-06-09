@@ -24,7 +24,7 @@ use serde::Serialize;
 use serde::de::Deserialize;
 use service::*;
 use service::JsonPatch;
-use sort_order::SortOrder;
+use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::fmt::Debug;
