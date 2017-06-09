@@ -6,7 +6,6 @@ use sort_order::SortOrder;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::Occupied;
 use std::collections::hash_map::Entry::Vacant;
-use std::fmt::Debug;
 use std::str::FromStr;
 use try_from::TryFrom;
 
@@ -47,15 +46,15 @@ use try_from::TryFrom;
 pub struct JsonApiParams<F, S> {
     /// A type-safe container for the "sort" query parameter in JSONAPI.
     ///
-    /// The type parameter `<S>` will be an enum type that is generated using the `JsonApi`
+    /// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
     /// attribute in rustiful-derive.
     pub sort: Sort<S>,
     /// A type-safe container for the "fields" query parameter in JSONAPI.
     ///
-    /// The type parameter `<F>` will be an enum type that is generated using the `JsonApi`
+    /// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
     /// attribute in rustiful-derive.
     pub fieldset: FieldSet<F>,
-    /// A hashmap representing all query parameters that is not "sort" nor "fields[*]".
+    /// A hashmap representing all other query parameters that are not `sort` or `fields[*]`.
     pub query_params: HashMap<String, Vec<String>>,
 }
 
@@ -72,105 +71,82 @@ impl<F, S> JsonApiParams<F, S> {
     }
 }
 
-impl<F, S> Default for JsonApiParams<F, S> {
-    fn default() -> Self {
-        let query_params: HashMap<String, Vec<String>> = Default::default();
-        JsonApiParams::new(vec![], vec![], query_params)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-/// A type-safe container for the "sort" query parameter in JSONAPI.
+/// Converts a query string to a type-safe representation.
 ///
-/// The type parameter `<S>` will be an enum type that is generated using the `JsonApi` attribute in
-/// rustiful-derive.
-pub struct Sort<S> {
-    pub fields: Vec<S>,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-/// A type-safe container for the "fields" query parameter in JSONAPI.
+/// This function converts a query string to `JsonApiParams<F, S>` for any type `F` that has a
+/// `TryFrom<(&'b str, Vec<&'b str>)` implementation and for any type `S` that has a
+/// `TryFrom<(&'b str, SortOrder)` implementation. All of these types and implementations will
+/// typically be automatically generated when deriving `JsonApi` on your resource type.
 ///
-/// The type parameter `<F>` will be an enum type that is generated using the `JsonApi` attribute in
-/// rustiful-derive.
-pub struct FieldSet<F> {
-    pub fields: Vec<F>,
-}
+/// # Errors
+///
+/// * If any field name in the `fields` query parameter doesn't match with any of the field
+/// names in the type deriving this trait (or rather if the string doesn't match with a string
+/// present in the `TryFrom` impl of the generated `field` enum.)
+/// * If any field name in the `sort` query parameter doesn't match with any of the field
+/// names in the type deriving this trait (or rather if the string doesn't match with a string
+/// present in the `TryFrom` impl of the generated `sort` enum.)
+///
+/// # Example
+///
+/// Given a resource that has a `JsonApi` derive, such as the one below:
+///
+/// ```
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// struct MyResource {
+///     id: String,
+///     foo: bool,
+///     bar: String
+/// }
+/// #
+/// # fn main() {
+/// # }
+/// ```
+///
+/// Then you can call `from_str` with a query string to create a new instance of
+/// `JsonApiParams<MyResource::FilterField, MyResource::SortField>`.
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// # use rustiful::TryFrom;
+/// # use rustiful::JsonApiParams;
+/// # use rustiful::JsonApiResource;
+/// # use rustiful::SortOrder;
+/// # use std::collections::HashMap;
+/// # use std::str::FromStr;
+/// #
+/// # #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// # struct MyResource {
+/// #    id: String,
+/// #    foo: bool,
+/// #    bar: String
+/// # }
+/// #
+/// # fn main() {
+/// let query_string = "sort=-foo&fields[my-resources]=bar&other=test&other=abc";
+/// let params = <MyResource as JsonApiResource>::Params::from_str(query_string);
+/// # }
+/// ```
+impl <F, S> FromStr for JsonApiParams<F, S>
+    where S: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+          F: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError> {
 
-/// This trait is implemented for any type that derives the `JsonApi` attribute.
-pub trait JsonApiResource: Sized {
-    /// An alias for `JsonApiParams<Self::SortField, Self::FilterField>`
-    type Params;
-    /// This type is generated in rustiful-derive.
-    type SortField;
-    /// This type is generated in rustiful-derive.
-    type FilterField;
-    /// The type of a field named `id` or the type of a field that has the `#[JsonApiId]` attribute
-    /// on the type deriving `JsonApi`.
-    type JsonApiIdType: FromStr + Debug;
-    /// This is the pluralized lower-cased name of the type deriving `JsonApi`.
-    fn resource_name() -> &'static str;
+    type Err = QueryStringParseError;
 
-    /// Converts a query string to a type-safe representation.
-    ///
-    /// This function converts a query string to a
-    /// `JsonApiParams<Self::SortField, Self::FilterField>` type. This is aliased as `Self::Params`.
-    ///
-    /// Returns `Ok(Self::Params)` if there are no errors when attempting to parse the query string.
-    ///
-    /// # Errors
-    /// * If any field name in the `fields` query parameter doesn't match with any of the field
-    /// names in the type deriving this trait (or rather if the string doesn't match with a string
-    /// present in the `TryFrom` impl of the generated `field` enum.)
-    /// * If any field name in the `sort` query parameter doesn't match with any of the field
-    /// names in the type deriving this trait (or rather if the string doesn't match with a string
-    /// present in the `TryFrom` impl of the generated `sort` enum.)
-    ///
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate rustiful;
-    ///
-    /// #[macro_use]
-    /// extern crate serde_derive;
-    ///
-    /// #[macro_use]
-    /// extern crate rustiful_derive;
-    ///
-    /// use rustiful::TryFrom;
-    /// use rustiful::SortOrder;
-    /// use rustiful::JsonApiParams;
-    /// use rustiful::JsonApiResource;
-    /// use rustiful::QueryStringParseError;
-    /// use std::collections::HashMap;
-    ///
-    /// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
-    /// struct MyResource {
-    ///     id: String,
-    ///     foo: bool,
-    ///     bar: String
-    /// }
-    ///
-    /// fn main() {
-    ///     let fields = vec![self::my_resource::field::bar];
-    ///     let sort = vec![self::my_resource::sort::foo(SortOrder::Desc)];
-    ///     let mut query_params = HashMap::new();
-    ///     query_params.insert("other".to_string(), vec!["test".to_string(), "abc".to_string()]);
-    ///
-    ///     let expected = JsonApiParams::new(fields, sort, query_params);
-    ///     let query_string = "sort=-foo&fields[my-resources]=bar&other=test&other=abc";
-    ///     let params = MyResource::from_str(query_string);
-    ///     assert_eq!(expected, params.unwrap());
-    /// }
-    /// ```
-    fn from_str<'a>
-        (query_string: &'a str)
-         -> Result<JsonApiParams<Self::FilterField, Self::SortField>, QueryStringParseError>
-        where Self::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              Self::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                                 Error = QueryStringParseError>
-    {
+    fn from_str<'a>(query_string: &'a str) -> Result<Self, Self::Err> {
         let mut sort_params = Vec::new();
         let mut field_params = Vec::new();
         let mut query_params: HashMap<String, Vec<String>> = HashMap::new();
@@ -192,12 +168,11 @@ pub trait JsonApiResource: Sized {
                         SortOrder::Asc
                     };
 
-                    match Self::SortField::try_from((field, sort_order)) {
+                    match S::try_from((field, sort_order)) {
                         Ok(result) => sort_params.push(result),
                         Err(err) => return Err(err),
                     }
                 }
-
             } else if key.starts_with("fields") {
                 let mut model = key.trim_left_matches("fields");
 
@@ -220,11 +195,10 @@ pub trait JsonApiResource: Sized {
                     return Err(QueryStringParseError::EmptyFieldsetValue(model.to_string()));
                 }
 
-                match Self::FilterField::try_from((model, fields)) {
+                match F::try_from((model, fields)) {
                     Ok(result) => field_params.push(result),
                     Err(err) => return Err(err),
                 }
-
             } else {
                 match query_params.entry(key) {
                     // Already a Vec here, push onto it
@@ -241,4 +215,29 @@ pub trait JsonApiResource: Sized {
 
         Ok(JsonApiParams::new(field_params, sort_params, query_params))
     }
+}
+
+impl<F, S> Default for JsonApiParams<F, S> {
+    fn default() -> Self {
+        let query_params: HashMap<String, Vec<String>> = Default::default();
+        JsonApiParams::new(vec![], vec![], query_params)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+/// A type-safe container for the "sort" query parameter in JSONAPI.
+///
+/// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
+/// attribute in rustiful-derive.
+pub struct Sort<S> {
+    pub fields: Vec<S>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+/// A type-safe container for the "fields" query parameter in JSONAPI.
+///
+/// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
+/// attribute in rustiful-derive.
+pub struct FieldSet<F> {
+    pub fields: Vec<F>,
 }

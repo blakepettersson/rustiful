@@ -23,7 +23,7 @@ pub fn post<'a, T>(query: &'a str,
           T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
           <T::JsonApiIdType as FromStr>::Err: Error
 {
-    let params = T::from_str(query)
+    let params = T::Params::from_str(query)
         .map_err(|e| RequestError::QueryStringParseError(e))?;
     let result = T::create(json, &params, ctx)
         .map_err(|e| RequestError::RepositoryError(RepositoryError::new(e)))?;

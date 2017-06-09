@@ -22,7 +22,7 @@ pub fn index<'a, T>(query: &'a str,
           T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
           T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
 {
-    let params = T::from_str(query)
+    let params = T::Params::from_str(query)
         .map_err(|e| RequestError::QueryStringParseError(e))?;
     let result = T::find_all(&params, ctx)
         .map_err(|e| RequestError::RepositoryError(RepositoryError::new(e)))?;
