@@ -75,7 +75,7 @@ impl JsonGet for Foo {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, Self::Error> {
 
         if id == "fail" {
             Err(TestError("fail in get".to_string()))
@@ -97,7 +97,7 @@ impl JsonIndex for Foo {
 
     fn find_all(params: &Self::Params,
                 ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+                -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         if let Some(_) = params.query_params.get("fail") {
             return Err(TestError("fail in index".to_string()));
         }
@@ -130,10 +130,10 @@ impl JsonPost for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn create(json: JsonApiData<Self::Attrs>,
+    fn create(json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         if let Some(id) = json.id {
             if id == "fail" {
                 return Err(TestError("fail in post".to_string()));
@@ -155,10 +155,10 @@ impl JsonPatch for Foo {
     type Context = FooService;
 
     fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self::Attrs>,
+              json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         if let Some(id) = json.id {
             if id == "fail" {
                 return Err(TestError("fail in patch".to_string()));
@@ -194,7 +194,7 @@ fn parse_json_api_index_get() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
+    let records: JsonApiContainer<Vec<JsonApiData<Foo>>> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -203,8 +203,8 @@ fn parse_json_api_index_get() {
         title: "test".to_string(),
         published: true,
     };
-    let data: JsonApiData<<Foo as ToJson>::Attrs> = (test, &params).into();
-    let expected = JsonApiArray { data: vec![data] };
+    let data: JsonApiData<Foo> = (test, &params).into();
+    let expected = JsonApiContainer { data: vec![data] };
 
     assert_eq!(expected, records);
 }
@@ -221,11 +221,11 @@ fn parse_json_api_index_get_with_fieldset() {
         .get::<ContentType>()
         .expect("no content type found!");
     let result = response::extract_body_to_string(response);
-    let records: JsonApiArray<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
+    let records: JsonApiContainer<Vec<JsonApiData<Foo>>> = serde_json::from_str(&result).unwrap();
     let data = JsonApiData::new(Some("1"),
                                 "foos",
                                 <Foo as ToJson>::Attrs::new(Some("test".to_string()), None, None));
-    let expected = JsonApiArray { data: vec![data] };
+    let expected = JsonApiContainer { data: vec![data] };
 
     assert_eq!(expected, records);
 }
@@ -237,7 +237,7 @@ fn parse_json_api_single_get() {
                                 Headers::new(),
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
-    let record: JsonApiObject<<Foo as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
+    let record: JsonApiContainer<JsonApiData<Foo>> = serde_json::from_str(&result).unwrap();
     let params = <Foo as JsonApiResource>::Params::from_str("").expect("failed to unwrap params");
 
     let test = Foo {
@@ -246,8 +246,8 @@ fn parse_json_api_single_get() {
         title: "test".to_string(),
         published: true,
     };
-    let data: JsonApiData<<Foo as ToJson>::Attrs> = (test, &params).into();
-    let expected = JsonApiObject { data: data };
+    let data: JsonApiData<Foo> = (test, &params).into();
+    let expected = JsonApiContainer { data: data };
 
     assert_eq!(expected, record);
 }

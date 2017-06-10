@@ -108,7 +108,7 @@ impl JsonGet for Test {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, Self::Error> {
         table
             .find(id)
             .first::<Test>(ctx.conn())
@@ -123,10 +123,10 @@ impl JsonPatch for Test {
     type Context = DB;
 
     fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self::Attrs>,
+              json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let record = table
             .find(&id)
             .first(ctx.conn())
@@ -146,10 +146,10 @@ impl JsonPost for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn create(json: JsonApiData<Self::Attrs>,
+    fn create(json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
 
         diesel::insert(&result)
@@ -166,7 +166,7 @@ impl JsonIndex for Test {
 
     fn find_all(params: &Self::Params,
                 ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+                -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         let mut query = table.into_boxed();
 
         {

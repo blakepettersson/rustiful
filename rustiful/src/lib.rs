@@ -24,11 +24,8 @@ pub use params::*;
 mod errors;
 pub use errors::query_string_parse_error::QueryStringParseError;
 
-mod array;
-pub use array::*;
-
-mod object;
-pub use object::*;
+mod container;
+pub use container::*;
 
 mod error;
 pub use error::*;

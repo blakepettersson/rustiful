@@ -2,18 +2,22 @@ use params::JsonApiParams;
 use resource::JsonApiResource;
 use to_json::ToJson;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JsonApiData<T> {
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// The JSONAPI representation of a resource.
+pub struct JsonApiData<T> where T: ToJson, T::Attrs: Clone {
+    // The id of the JSONAPI resource.
     pub id: Option<String>,
     #[serde(rename = "type")]
+    // The type name of the JSONAPI resource, equivalent to the resource name.
     pub lower_case_type: String,
-    pub attributes: T,
+    // The attribute type of the JSONAPI resource.
+    pub attributes: T::Attrs,
 }
 
-impl<T> JsonApiData<T> {
+impl<T> JsonApiData<T> where T: ToJson, T::Attrs: Clone {
     pub fn new<Id: Into<String>, Type: Into<String>>(id: Option<Id>,
                                                      lower_case_type: Type,
-                                                     attrs: T)
+                                                     attrs: T::Attrs)
                                                      -> JsonApiData<T> {
         JsonApiData {
             id: id.map(|i| i.into()),
@@ -28,9 +32,81 @@ impl<T> JsonApiData<T> {
     }
 }
 
+impl <T> Clone for JsonApiData<T> where T: ToJson, T::Attrs: Clone {
+    fn clone(&self) -> Self {
+        JsonApiData {
+            id: self.id.clone(),
+            lower_case_type: self.lower_case_type.clone(),
+            attributes: self.attributes.clone()
+        }
+    }
+}
 
-/// Converts a `(T, T::Params)` to a `JsonApiData<T>`.
-impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonApiData<T::Attrs>
+/// Converts `(T, T::Params)` to `JsonApiData<T>` for any `T` that implements `ToJson`.
+///
+/// This implementation is used by `IntoJson` to convert a resource with its parameters to its
+/// JSONAPI representation. Prefer the use of `IntoJson` instead of using this implementation
+/// directly.
+///
+/// * `model` - The resource to convert to its JSONAPI representation.
+/// * `params` - Filters out fields that should not be serialized when sending to the client.
+///
+/// # Example
+///
+/// Given a resource that implements `ToJson` (this is automatically implemented when
+/// deriving `JsonApi`), such as the one below:
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// struct MyResource {
+///     id: String,
+///     foo: bool,
+///     bar: String
+/// }
+/// #
+/// # fn main() {
+/// # }
+/// ```
+///
+/// Then you can convert a `MyResource` list to a list of `JsonApiData<MyResource>`.
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// # use rustiful::IntoJson;
+/// # use rustiful::JsonApiData;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// # struct MyResource {
+/// #     id: String,
+/// #     foo: bool,
+/// #     bar: String
+/// # }
+/// #
+/// # fn main() {
+/// let resource = MyResource {
+///     id: "foo".to_string(),
+///     foo: true,
+///     bar: "abc".to_string()
+/// };
+/// let resource_list: JsonApiData<MyResource> = (resource, &Default::default()).into();
+/// # }
+/// ```
+impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonApiData<T>
     where T: ToJson + JsonApiResource,
           T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
 {
@@ -46,30 +122,141 @@ pub trait IntoJson<T, F, S> {
     fn into_json<'a>(self, params: &'a JsonApiParams<F, S>) -> T;
 }
 
-/// Converts a `T` into `JsonApiData<T::Attrs>`. A wrapper for the `From` implementation where a
-/// tuple of `(T, JsonApiParams<T::FilterField, T::SortField>)` gets converted into
-/// `JsonApiData<T::Attrs>`.
-impl<T> IntoJson<JsonApiData<T::Attrs>, T::FilterField, T::SortField> for T
+/// Converts `T` into `JsonApiData<T>` for any `T` that implements `ToJson`.
+///
+/// `params` - Filters out fields that should not be serialized when sending to the client.
+///
+/// # Example
+///
+/// Given a resource that implements `ToJson` (this is automatically implemented when
+/// deriving `JsonApi`), such as the one below:
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// struct MyResource {
+///     id: String,
+///     foo: bool,
+///     bar: String
+/// }
+/// #
+/// # fn main() {
+/// # }
+/// ```
+///
+/// Then you can convert a `MyResource` into a `JsonApiData<MyResource>`.
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// # use rustiful::IntoJson;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// # struct MyResource {
+/// #     id: String,
+/// #     foo: bool,
+/// #     bar: String
+/// # }
+/// #
+/// # fn main() {
+/// let resource = MyResource {
+///     id: "foo".to_string(),
+///     foo: true,
+///     bar: "abc".to_string()
+/// };
+/// let resource_list = resource.into_json(&Default::default());
+/// # }
+/// ```
+impl<T> IntoJson<JsonApiData<T>, T::FilterField, T::SortField> for T
     where T: ToJson + JsonApiResource,
           T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn into_json<'a>(self,
                      params: &'a JsonApiParams<T::FilterField, T::SortField>)
-                     -> JsonApiData<T::Attrs> {
+                     -> JsonApiData<T> {
         (self, params).into()
     }
 }
 
-/// Converts a `Vec<T>` into `Vec<JsonApiData<T::Attrs>>`.  A wrapper for the `From` implementation
-/// where a tuple of `(T, JsonApiParams<T::FilterField, T::SortField>)` gets converted into
-/// `JsonApiData<T::Attrs>`.
-impl<T> IntoJson<Vec<JsonApiData<T::Attrs>>, T::FilterField, T::SortField> for Vec<T>
+/// Converts `Vec<T>` into `Vec<JsonApiData<T>>` for any `T` that implements `ToJson`.
+///
+/// `params` - Filters out fields that should not be serialized when sending to the client.
+///
+/// # Example
+///
+/// Given a resource that implements `ToJson` (this is automatically implemented when
+/// deriving `JsonApi`), such as the one below:
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// struct MyResource {
+///     id: String,
+///     foo: bool,
+///     bar: String
+/// }
+/// #
+/// # fn main() {
+/// # }
+/// ```
+///
+/// Then you can convert a `MyResource` list into a list of `JsonApiData<MyResource::Attrs>`.
+///
+/// ```
+/// # extern crate rustiful;
+/// #
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// #
+/// # #[macro_use]
+/// # extern crate rustiful_derive;
+/// #
+/// # use rustiful::IntoJson;
+/// # use rustiful::JsonApiData;
+/// #
+/// #[derive(Debug, PartialEq, Eq, Clone, JsonApi, Default)]
+/// # struct MyResource {
+/// #     id: String,
+/// #     foo: bool,
+/// #     bar: String
+/// # }
+/// #
+/// # fn main() {
+/// let resource = MyResource {
+///     id: "foo".to_string(),
+///     foo: true,
+///     bar: "abc".to_string()
+/// };
+/// let resource_list: Vec<JsonApiData<MyResource>> = vec![resource].into_json(&Default::default());
+/// # }
+/// ```
+impl<T> IntoJson<Vec<JsonApiData<T>>, T::FilterField, T::SortField> for Vec<T>
     where T: ToJson + JsonApiResource,
           T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn into_json<'a>(self,
                      params: &'a JsonApiParams<T::FilterField, T::SortField>)
-                     -> Vec<JsonApiData<T::Attrs>> {
+                     -> Vec<JsonApiData<T>> {
         self.into_iter().map(|i| (i, params).into()).collect()
     }
 }

@@ -37,7 +37,7 @@ use r2d2_diesel::ConnectionManager;
 use rustiful::FromRequest;
 use rustiful::IntoJson;
 use rustiful::JsonApiData;
-use rustiful::JsonApiObject;
+use rustiful::JsonApiContainer;
 use rustiful::JsonDelete;
 use rustiful::JsonGet;
 use rustiful::JsonIndex;
@@ -128,7 +128,7 @@ impl JsonGet for Test {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, Self::Error> {
         if id == "fail" {
             return Err(MyErr::UpdateError("test fail".to_string()));
         }
@@ -146,10 +146,10 @@ impl JsonPatch for Test {
     type Context = DB;
 
     fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self::Attrs>,
+              json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let record = table
             .find(&id)
             .first(ctx.conn())
@@ -171,7 +171,7 @@ impl JsonIndex for Test {
 
     fn find_all(params: &Self::Params,
                 ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+                -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         let mut query = table.into_boxed();
 
         {
@@ -223,10 +223,10 @@ impl JsonPost for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn create(json: JsonApiData<Self::Attrs>,
+    fn create(json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         let has_client_id = json.has_id(); // Client-supplied id
         let mut result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
 
@@ -473,20 +473,19 @@ fn update_with_fieldset() {
     }
 }
 
-fn do_get<T: Display>(id: &T) -> JsonApiObject<<Test as ToJson>::Attrs> {
+fn do_get<T: Display>(id: &T) -> JsonApiContainer<JsonApiData<Test>> {
     let response = request::get(&format!("http://localhost:3000/tests/{}", id),
                                 Headers::new(),
                                 &app_router());
     let result = response::extract_body_to_string(response.unwrap());
-    let retrieved: JsonApiObject<<Test as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    retrieved
+    serde_json::from_str(&result).unwrap()
 }
 
-fn do_post(json: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
+fn do_post(json: &str) -> JsonApiContainer<JsonApiData<Test>> {
     do_post_with_url(json, "http://localhost:3000/tests")
 }
 
-fn do_post_with_url(json: &str, url: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
+fn do_post_with_url(json: &str, url: &str) -> JsonApiContainer<JsonApiData<Test>> {
     let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
     let mut headers = Headers::new();
@@ -495,18 +494,14 @@ fn do_post_with_url(json: &str, url: &str) -> JsonApiObject<<Test as ToJson>::At
     let response = request::post(url, headers, &json, &app_router());
     let result = response::extract_body_to_string(response.unwrap());
 
-    let created: JsonApiObject<<Test as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    created
+    serde_json::from_str(&result).unwrap()
 }
 
-fn do_patch<T: Display>(id: &T, json: &str) -> JsonApiObject<<Test as ToJson>::Attrs> {
+fn do_patch<T: Display>(id: &T, json: &str) -> JsonApiContainer<JsonApiData<Test>> {
     do_patch_with_url(id, json, "")
 }
 
-fn do_patch_with_url<T: Display>(id: &T,
-                                 json: &str,
-                                 query: &str)
-                                 -> JsonApiObject<<Test as ToJson>::Attrs> {
+fn do_patch_with_url<T: Display>(id: &T, json: &str, query: &str) -> JsonApiContainer<JsonApiData<Test>> {
     let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
     let mut headers = Headers::new();
@@ -517,7 +512,5 @@ fn do_patch_with_url<T: Display>(id: &T,
                                   &json,
                                   &app_router());
     let result = response::extract_body_to_string(response.unwrap());
-
-    let created: JsonApiObject<<Test as ToJson>::Attrs> = serde_json::from_str(&result).unwrap();
-    created
+    serde_json::from_str(&result).unwrap()
 }
