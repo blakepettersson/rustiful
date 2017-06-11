@@ -38,9 +38,7 @@ autoimpl! {
 
             let id = match <T::JsonApiIdType>::from_str(id(req)) {
                 Ok(result) => result,
-                Err(e) => {
-                    return RequestError::IdParseError::<T::Error, T::JsonApiIdType>(IdParseError(e)).into()
-                }
+                Err(e) => return IdParseError(e).into()
             };
 
             let result = get::<T>(id, req.url.query().unwrap_or(""), ctx);

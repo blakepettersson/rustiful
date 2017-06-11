@@ -30,27 +30,19 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::str::FromStr;
 use try_from::TryFrom;
+use errors::IdParseError;
 
 fn json_api_type() -> Mime {
     "application/vnd.api+json".parse().unwrap()
 }
 
 #[derive(Debug)]
-struct RequestResult<T, E, I>(Result<T, RequestError<E, I>>, Status)
-    where T: Serialize,
-          E: Send + Error,
-          I: FromStr + Debug,
-          <I as FromStr>::Err: Error;
+struct RequestResult<T, E>(Result<T, RequestError<E>>, Status) where T: Serialize, E: Send + Error;
 
-impl<T, E, I> TryFrom<RequestResult<T, E, I>> for Response
-    where T: Serialize,
-          E: Send + Error + 'static,
-          I: FromStr + Debug,
-          <I as FromStr>::Err: Error
-{
+impl<T, E> TryFrom<RequestResult<T, E>> for Response where T: Serialize, E: Send + Error + 'static {
     type Error = IronError;
 
-    fn try_from(request: RequestResult<T, E, I>) -> IronResult<Response> {
+    fn try_from(request: RequestResult<T, E>) -> IronResult<Response> {
         let result = request.0;
 
         match result {
@@ -71,12 +63,8 @@ impl<T, E, I> TryFrom<RequestResult<T, E, I>> for Response
     }
 }
 
-impl<E, I> From<RequestError<E, I>> for IronResult<Response>
-    where E: Send + Error,
-          I: FromStr + Debug,
-          <I as FromStr>::Err: Error
-{
-    fn from(err: RequestError<E, I>) -> IronResult<Response> {
+impl<E> From<RequestError<E>> for IronResult<Response> where E: Send + Error {
+    fn from(err: RequestError<E>) -> IronResult<Response> {
         let status = err.status();
         let json = JsonApiErrorArray::new(&err, status);
 
@@ -103,6 +91,18 @@ impl<T> From<FromRequestError<T>> for IronResult<Response>
 
 impl From<BodyParserError> for IronResult<Response> {
     fn from(err: BodyParserError) -> IronResult<Response> {
+        let status = Status::BadRequest;
+        let json = JsonApiErrorArray::new(&err, status);
+
+        match serde_json::to_string(&json) {
+            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
+            Err(e) => Err(IronError::new(e, status)),
+        }
+    }
+}
+
+impl <E> From<IdParseError<E>> for IronResult<Response> where E: Error {
+    fn from(err: IdParseError<E>) -> IronResult<Response> {
         let status = Status::BadRequest;
         let json = JsonApiErrorArray::new(&err, status);
 
@@ -1325,7 +1325,7 @@ mod tests {
     #[test]
     fn test_201_created() {
         let test = Test { foo: "bar".to_string() };
-        let req: RequestResult<Test, ParseError, String> = RequestResult(Ok(test),
+        let req: RequestResult<Test, ParseError> = RequestResult(Ok(test),
                                                                          Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
@@ -1341,7 +1341,7 @@ mod tests {
     #[test]
     fn test_204_no_content() {
         let test = Test { foo: "bar".to_string() };
-        let req: RequestResult<Test, ParseError, String> = RequestResult(Ok(test),
+        let req: RequestResult<Test, ParseError> = RequestResult(Ok(test),
                                                                          Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");
@@ -1356,7 +1356,7 @@ mod tests {
 
     #[test]
     fn test_error_json() {
-        let req: RequestResult<Test, RequestError<ParseError, String>, String> =
+        let req: RequestResult<Test, RequestError<ParseError>> =
             RequestResult(Err(RequestError::NoBody), Status::NoContent);
         let resp: IronResult<Response> = req.try_into();
         let result = resp.expect("Invalid response!");

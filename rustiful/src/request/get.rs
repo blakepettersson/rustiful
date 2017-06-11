@@ -17,7 +17,7 @@ use container::JsonApiContainer;
 pub fn get<'a, T>(id: T::JsonApiIdType,
                   query: &'a str,
                   ctx: T::Context)
-                  -> Result<JsonApiContainer<JsonApiData<T>>, RequestError<T::Error, T::JsonApiIdType>>
+                  -> Result<JsonApiContainer<JsonApiData<T>>, RequestError<T::Error>>
     where T: ToJson + JsonGet,
           <T::JsonApiIdType as FromStr>::Err: Error,
           Status: for<'b> From<&'b T::Error>,

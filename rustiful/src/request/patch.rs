@@ -17,7 +17,7 @@ pub fn patch<'a, T>(id: T::JsonApiIdType,
                     query: &'a str,
                     json: JsonApiData<T>,
                     ctx: T::Context)
-                    -> Result<JsonApiContainer<JsonApiData<T>>, RequestError<T::Error, T::JsonApiIdType>>
+                    -> Result<JsonApiContainer<JsonApiData<T>>, RequestError<T::Error>>
     where T: JsonPatch,
           Status: for<'b> From<&'b T::Error>,
           T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,

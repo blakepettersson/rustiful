@@ -38,7 +38,7 @@ autoimpl! {
             let json = match req.get::<bodyparser::Struct<JsonApiContainer<JsonApiData<T>>>>() {
                 Ok(Some(patch)) => patch,
                 Ok(None) => {
-                    let err:RequestError<T::Error, T::JsonApiIdType> = RequestError::NoBody;
+                    let err:RequestError<T::Error> = RequestError::NoBody;
                     return err.into()
                 },
                 Err(e) => return BodyParserError(e).into()

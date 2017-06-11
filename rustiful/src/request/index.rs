@@ -16,7 +16,7 @@ use container::JsonApiContainer;
 ///
 pub fn index<'a, T>(query: &'a str,
                     ctx: T::Context)
-                    -> Result<JsonApiContainer<Vec<JsonApiData<T>>>, RequestError<T::Error, T::JsonApiIdType>>
+                    -> Result<JsonApiContainer<Vec<JsonApiData<T>>>, RequestError<T::Error>>
     where T: ToJson + JsonIndex,
           <T::JsonApiIdType as FromStr>::Err: Error,
           Status: for<'b> From<&'b T::Error>,
