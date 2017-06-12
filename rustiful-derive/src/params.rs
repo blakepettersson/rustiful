@@ -83,7 +83,7 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                 fn try_from((field, order): (&'a str, SortOrder)) -> Result<Self, Self::Error> {
                     match field {
                         #(#sort_cases),*
-                        _ => return Err(QueryStringParseError::InvalidValue(field.to_string()))
+                        _ => return Err(QueryStringParseError::InvalidSortValue(field.to_string()))
                     }
                 }
             }
@@ -99,7 +99,7 @@ pub fn expand_json_api_fields(name: &syn::Ident,
                                     #(#filter_cases),*
                                     _ => {
                                         let field_val = field.to_string();
-                                        return Err(QueryStringParseError::InvalidValue(field_val))
+                                        return Err(QueryStringParseError::InvalidFieldValue(field_val))
                                     }
                                 }
                             }

@@ -6,15 +6,22 @@ static UNIMPLEMENTED: &'static str = "Unimplemented";
 #[derive(Debug, PartialEq, Eq)]
 /// All types of errors that can happen when attempting to parse a query string.
 pub enum QueryStringParseError {
-    EmptyKey(String),
-    EmptyValue(String),
-    InvalidParam(String),
-    InvalidKeyParam(String),
-    InvalidValue(String),
-    EmptyFieldsetKey(String),
+    /// `fields` query param is in an invalid format
+    InvalidFieldsetKey(String),
+
+    /// `fields` value does not match field name
+    InvalidFieldValue(String),
+
+    /// `sort` value does not match field name
+    InvalidSortValue(String),
+
+    /// No `fields[*]` values specified in value
     EmptyFieldsetValue(String),
-    ParseError(String),
+
+    /// Multiple `sort` query param keys, e.g `sort=foo&sort=bar`
     DuplicateSortKey(String),
+
+    /// Currently unsupported functionality when parsing the query param, notably relationships
     UnImplementedError,
 }
 
@@ -22,15 +29,11 @@ impl Display for QueryStringParseError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         use self::QueryStringParseError::*;
 
-        let msg = "Query string parse error: ";
+        let msg = "Query string parse error:";
         match *self {
-            InvalidParam(ref desc) => write!(f, "{} Invalid param: {}", msg, desc),
-            InvalidKeyParam(ref desc) => write!(f, "{} Invalid key: {}", msg, desc),
-            InvalidValue(ref desc) => write!(f, "{} Invalid value: {}", msg, desc),
-            ParseError(ref desc) => write!(f, "{} Parse error: {}", msg, desc),
-            EmptyKey(ref desc) => write!(f, "{} Empty key in query parameter: {}", msg, desc),
-            EmptyValue(ref desc) => write!(f, "{} Empty value in query parameter: {}", msg, desc),
-            EmptyFieldsetKey(ref desc) => write!(f, "{} No field type specified for {}", msg, desc),
+            InvalidFieldsetKey(ref desc) => write!(f, "{} Invalid key: {}", msg, desc),
+            InvalidFieldValue(ref desc) => write!(f, "{} Invalid value: {}", msg, desc),
+            InvalidSortValue(ref desc) => write!(f, "{} Invalid value: {}", msg, desc),
             EmptyFieldsetValue(ref desc) => {
                 write!(f, "{} No values specified for fields[{}]", msg, desc)
             },
@@ -54,13 +57,9 @@ fn description(error: &QueryStringParseError) -> &str {
     use self::QueryStringParseError::*;
 
     match *error {
-        InvalidParam(ref desc) => desc,
-        InvalidKeyParam(ref desc) => desc,
-        InvalidValue(ref desc) => desc,
-        ParseError(ref desc) => desc,
-        EmptyKey(ref desc) => desc,
-        EmptyValue(ref desc) => desc,
-        EmptyFieldsetKey(ref desc) => desc,
+        InvalidFieldValue(ref desc) => desc,
+        InvalidSortValue(ref desc) => desc,
+        InvalidFieldsetKey(ref desc) => desc,
         EmptyFieldsetValue(ref desc) => desc,
         DuplicateSortKey(ref desc) => desc,
         UnImplementedError => UNIMPLEMENTED,
