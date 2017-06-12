@@ -174,13 +174,13 @@ impl <F, S> FromStr for JsonApiParams<F, S>
                 let mut model = key.trim_left_matches("fields");
 
                 if !model.starts_with('[') || !model.ends_with(']') {
-                    return Err(QueryStringParseError::InvalidKeyParam(model.to_string()));
+                    return Err(QueryStringParseError::InvalidFieldsetKey(model.to_string()));
                 }
 
                 model = model.trim_left_matches('[').trim_right_matches(']');
 
                 if model.is_empty() {
-                    return Err(QueryStringParseError::EmptyFieldsetKey(key.to_string()));
+                    return Err(QueryStringParseError::InvalidFieldsetKey(key.to_string()));
                 }
 
                 // This can introduce duplicates, but we don't really care. If there are

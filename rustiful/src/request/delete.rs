@@ -7,12 +7,10 @@ use std::str::FromStr;
 
 /// This is a utility function that calls `T::delete()` and returns `()` if successful.
 ///
-pub fn delete<'a, T>(id: T::JsonApiIdType, ctx: T::Context)
-    -> Result<(), RequestError<T::Error, T::JsonApiIdType>>
+pub fn delete<'a, T>(id: T::JsonApiIdType, ctx: T::Context) -> Result<(), RequestError<T::Error>>
     where
         T: JsonDelete,
-        Status: for<'b> From<&'b T::Error>,
-        <T::JsonApiIdType as FromStr>::Err: Error {
+        Status: for<'b> From<&'b T::Error> {
 
     match T::delete(id, ctx) {
         Ok(_) => Ok(()),

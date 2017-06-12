@@ -36,8 +36,6 @@ pub use builder::*;
 mod resource;
 pub use resource::*;
 
-mod request;
-
 #[cfg(feature = "iron")]
 pub mod iron;
 

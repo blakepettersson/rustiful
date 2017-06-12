@@ -4,19 +4,18 @@ extern crate serde;
 extern crate serde_json;
 
 use self::iron::prelude::*;
-use super::super::RequestResult;
+use super::super::into_json_api_response;
 use FromRequest;
 use errors::FromRequestError;
 use errors::QueryStringParseError;
-use request::index::index;
-use service::JsonIndex;
+use errors::RepositoryError;
 use params::SortOrder;
+use service::JsonIndex;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
-use try_from::TryInto;
 
 autoimpl! {
     pub trait IndexHandler<'a, T> where
@@ -33,8 +32,15 @@ autoimpl! {
                 Err(e) => return FromRequestError::<<T::Context as FromRequest>::Error>(e).into()
             };
 
-            let result = index::<T>(req.url.query().unwrap_or(""), ctx);
-            RequestResult(result, Status::Ok).try_into()
+            let params = match T::Params::from_str(req.url.query().unwrap_or("")) {
+                Ok(result) => result,
+                Err(e) => return e.into()
+            };
+
+            match T::find_all(&params, ctx) {
+                Ok(result) => into_json_api_response(result, Status::Ok),
+                Err(e) => RepositoryError::new(e).into()
+            }
         }
     }
 }

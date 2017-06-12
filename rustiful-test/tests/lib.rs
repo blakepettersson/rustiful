@@ -49,7 +49,7 @@ fn parse_renamed_json_struct_fails_on_original_name() {
 fn parse_params_fails_on_id_param() {
     match <Bar as JsonApiResource>::Params::from_str("fields[renamed]=id") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => assert_eq!(QueryStringParseError::InvalidValue("id".to_string()), e),
+        Err(e) => assert_eq!(QueryStringParseError::InvalidFieldValue("id".to_string()), e),
     }
 }
 
@@ -83,7 +83,7 @@ fn parse_field_that_is_not_present() {
 fn parse_fields_fails_if_query_param_is_not_valid() {
     match <Foo as JsonApiResource>::Params::from_str("fields=body=foo") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => assert_eq!(QueryStringParseError::InvalidKeyParam("".to_string()), e),
+        Err(e) => assert_eq!(QueryStringParseError::InvalidFieldsetKey("".to_string()), e),
     }
 }
 
@@ -103,7 +103,7 @@ fn parse_fields_fails_if_field_value_contains_field_that_does_not_exist() {
     match <Foo as JsonApiResource>::Params::from_str("fields[foos]=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("non_existent".to_string()),
+            assert_eq!(QueryStringParseError::InvalidFieldValue("non_existent".to_string()),
                        e)
         }
     }
@@ -114,7 +114,7 @@ fn parse_single_field_fails_if_field_doesnt_contain_left_bracket() {
     match <Foo as JsonApiResource>::Params::from_str("fieldsarticles]=title") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidKeyParam("articles]".to_string()),
+            assert_eq!(QueryStringParseError::InvalidFieldsetKey("articles]".to_string()),
                        e)
         }
     }
@@ -125,7 +125,7 @@ fn parse_single_field_fails_if_field_does_not_contain_right_bracket() {
     match <Foo as JsonApiResource>::Params::from_str("fields[articles=title") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidKeyParam("[articles".to_string()),
+            assert_eq!(QueryStringParseError::InvalidFieldsetKey("[articles".to_string()),
                        e)
         }
     }
@@ -195,7 +195,7 @@ fn parse_multiple_query_params() {
 fn parse_sort_field_fails_on_id_param() {
     match <Foo as JsonApiResource>::Params::from_str("sort=bar") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => assert_eq!(QueryStringParseError::InvalidValue("bar".to_string()), e),
+        Err(e) => assert_eq!(QueryStringParseError::InvalidSortValue("bar".to_string()), e),
     }
 }
 
@@ -215,7 +215,7 @@ fn parse_sort_field_fails_on_non_existent_param() {
     match <Foo as JsonApiResource>::Params::from_str("sort=non_existent") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
-            assert_eq!(QueryStringParseError::InvalidValue("non_existent".to_string()),
+            assert_eq!(QueryStringParseError::InvalidSortValue("non_existent".to_string()),
                        e)
         }
     }

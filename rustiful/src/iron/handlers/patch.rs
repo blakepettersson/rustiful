@@ -5,25 +5,24 @@ extern crate serde_json;
 
 use self::iron::prelude::*;
 use super::errors::BodyParserError;
-use super::super::RequestResult;
+use super::super::into_json_api_response;
 use FromRequest;
+use container::JsonApiContainer;
+use data::JsonApiData;
 use errors::FromRequestError;
 use errors::IdParseError;
 use errors::QueryStringParseError;
+use errors::RepositoryError;
 use errors::RequestError;
 use iron::id;
-use request::patch::patch;
+use params::SortOrder;
 use serde::Deserialize;
 use service::JsonPatch;
-use params::SortOrder;
 use status::Status;
 use std::error::Error;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;
-use try_from::TryInto;
-use container::JsonApiContainer;
-use data::JsonApiData;
 
 autoimpl! {
     pub trait PatchHandler<'a, T> where
@@ -38,10 +37,7 @@ autoimpl! {
         fn respond(req: &'a mut Request) -> IronResult<Response> {
             let json = match req.get::<bodyparser::Struct<JsonApiContainer<JsonApiData<T>>>>() {
                 Ok(Some(patch)) => patch,
-                Ok(None) => {
-                    let err:RequestError<T::Error, T::JsonApiIdType> = RequestError::NoBody;
-                    return err.into()
-                },
+                Ok(None) => return RequestError::NoBody.into(),
                 Err(e) => return BodyParserError(e).into()
             };
 
@@ -52,13 +48,18 @@ autoimpl! {
 
             let id = match <T::JsonApiIdType>::from_str(id(req)) {
                 Ok(result) => result,
-                Err(e) => {
-                    return RequestError::IdParseError::<T::Error, T::JsonApiIdType>(IdParseError(e)).into()
-                }
+                Err(e) => return IdParseError(e).into()
             };
 
-            let result = patch::<T>(id, req.url.query().unwrap_or(""), json.data, ctx);
-            RequestResult(result, Status::Ok).try_into()
+            let params = match T::Params::from_str(req.url.query().unwrap_or("")) {
+                Ok(result) => result,
+                Err(e) => return e.into()
+            };
+
+            match T::update(id, json.data, &params, ctx) {
+                Ok(result) => into_json_api_response(result, Status::Ok),
+                Err(e) => RepositoryError::new(e).into()
+            }
         }
     }
 }
