@@ -1,61 +1,49 @@
-use errors::IdParseError;
-use errors::QueryStringParseError;
-use errors::RepositoryError;
 use status::Status;
 use std::error::Error;
 use std::fmt::*;
-use std::str::FromStr;
 
 static NO_BODY: &'static str = "No body";
 static NOT_FOUND: &'static str = "Not found";
 
-#[derive(Debug)]
-/// The general error type that wraps all errors that can happen when requesting a JsonApi resource.
-pub enum RequestError<E> where E: Error + Sized + Send
-{
+#[derive(Debug, Copy, Clone)]
+/// Wraps request related errors
+///
+/// This is a container for HTTP related errors. Currently there's only a variant for not `POST`ing
+/// or `PUT`ing a body, or if a resource cannot be found.
+pub enum RequestError {
     NoBody,
-    NotFound,
-    RepositoryError(RepositoryError<E>),
-    QueryStringParseError(QueryStringParseError),
+    NotFound
 }
 
-impl<E> RequestError<E> where E: Error + Sized + Send {
+impl RequestError {
     pub fn status(&self) -> Status {
         match *self {
             RequestError::NotFound => Status::NotFound,
-            RequestError::RepositoryError(ref err) => err.status,
-            _ => Status::BadRequest,
+            RequestError::NoBody => Status::BadRequest,
         }
     }
 }
 
-impl<E> Display for RequestError<E> where E: Error + Sized + Send
-{
+impl Display for RequestError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
             RequestError::NoBody => write!(f, "{}", self.description()),
-            RequestError::NotFound => write!(f, "{}", self.description()),
-            RequestError::RepositoryError(ref err) => write!(f, "{}", err),
-            RequestError::QueryStringParseError(ref err) => write!(f, "{}", err),
+            RequestError::NotFound => write!(f, "{}", self.description())
         }
     }
 }
 
-impl<E> Error for RequestError<E> where E: Error + Sized + Send  {
+impl Error for RequestError {
     fn description(&self) -> &str {
         match *self {
             RequestError::NoBody => NO_BODY,
-            RequestError::NotFound => NOT_FOUND,
-            RequestError::RepositoryError(ref err) => err.description(),
-            RequestError::QueryStringParseError(ref err) => err.description()
+            RequestError::NotFound => NOT_FOUND
         }
     }
 
     fn cause(&self) -> Option<&Error> {
         match *self {
-            RequestError::NoBody | RequestError::NotFound => None,
-            RequestError::RepositoryError(ref err) => Some(err),
-            RequestError::QueryStringParseError(ref err) => Some(err),
+            RequestError::NoBody | RequestError::NotFound => None
         }
     }
 }
