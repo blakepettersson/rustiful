@@ -3,7 +3,7 @@ extern crate iron;
 use self::iron::prelude::*;
 use super::Status;
 use super::super::json_api_type;
-use FromRequest;
+use super::super::FromRequest;
 use errors::FromRequestError;
 use errors::IdParseError;
 use errors::RepositoryError;
@@ -17,6 +17,7 @@ pub trait DeleteHandler
 {
     fn respond<'r>(req: &'r mut Request) -> IronResult<Response>
         where Status: for<'b> From<&'b Self::Error>,
+              Self::Context: FromRequest,
               <Self::JsonApiIdType as FromStr>::Err: Error
     {
         let ctx = match <Self::Context as FromRequest>::from_request(req) {

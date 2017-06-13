@@ -39,9 +39,6 @@ pub use resource::*;
 #[cfg(feature = "iron")]
 pub mod iron;
 
-#[cfg(feature = "iron")]
-pub use iron::from_request::*;
-
 #[macro_use]
 extern crate serde_derive;
 

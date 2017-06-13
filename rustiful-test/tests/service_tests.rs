@@ -29,6 +29,7 @@ use r2d2::Pool;
 use r2d2::PooledConnection;
 use r2d2_diesel::ConnectionManager;
 use rustiful::*;
+use rustiful::iron::*;
 use rustiful::SortOrder::*;
 use rustiful::status::Status;
 use std::env;
