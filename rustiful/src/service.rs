@@ -2,6 +2,8 @@ use data::JsonApiData;
 use resource::JsonApiResource;
 use std;
 use to_json::ToJson;
+use try_from::TryFrom;
+use try_from::TryInto;
 
 /// A trait for implementing GET `/{resource-name}/{id}` on a resource type.
 ///
@@ -54,7 +56,7 @@ use to_json::ToJson;
 ///     type Context = MyCtx;
 ///
 ///     fn find(id: Self::JsonApiIdType,
-///         params: &JsonApiParams<Self::FilterField, Self::SortField>,
+///         params: &Self::Params,
 ///         ctx: Self::Context)
 ///         -> Result<Option<JsonApiData<Self>>, Self::Error> {
 ///         let resource = MyResource {
@@ -158,7 +160,7 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
 ///     type Context = MyCtx;
 ///
 ///     fn create(json: JsonApiData<Self>,
-///               params: &JsonApiParams<Self::FilterField, Self::SortField>,
+///               params: &Self::Params,
 ///               ctx: Self::Context)
 ///             -> Result<JsonApiData<Self>, Self::Error> {
 ///         if let Some(_) = json.id {
@@ -268,17 +270,21 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 ///
 ///     fn update(id: Self::JsonApiIdType,
 ///               json: JsonApiData<Self>,
-///               params: &JsonApiParams<Self::FilterField, Self::SortField>,
+///               params: &Self::Params,
 ///               ctx: Self::Context)
 ///               -> Result<JsonApiData<Self>, Self::Error> {
-///         let resource = MyResource {
+///         let mut resource = MyResource {
 ///             id: "magic_id".to_string(),
 ///             foo: true,
 ///             bar: "hello".to_string()
 ///         };
 ///
 ///         if id == resource.id {
-///             Ok(resource.into_json(params))
+///             // The `patch` method will only overwrite fields that are explicitly sent in the
+///             // JSON patch, i.e if the field has a value or is explicitly set to `null`. Fields
+///             // that are omitted will not be updated.
+///             let updated: MyResource = resource.patch(json).map_err(|e| MyError(e))?;
+///             Ok(updated.into_json(params))
 ///         } else {
 ///             Err(MyError("Cannot patch resource!".to_string()))
 ///         }
@@ -293,7 +299,7 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 ///     let expected = MyResource {
 ///         id: "magic_id".to_string(),
 ///         foo: true,
-///         bar: "hello".to_string()
+///         bar: "updated".to_string()
 ///     };
 ///
 ///     let result = MyResource::update(id.clone(), json.clone(), &Default::default(), MyCtx {});
@@ -313,6 +319,100 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
 
     /// A user-defined type
     type Context;
+
+    /// Attempts to update a resource with the given JSON patch.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # extern crate rustiful;
+    /// #
+    /// # #[macro_use]
+    /// # extern crate serde_derive;
+    /// #
+    /// # #[macro_use]
+    /// # extern crate rustiful_derive;
+    /// #
+    /// # use std::error::Error;
+    /// # use std::fmt::Display;
+    /// # use rustiful::JsonPatch;
+    /// # use rustiful::ToJson;
+    /// # use rustiful::IntoJson;
+    /// # use rustiful::JsonApiData;
+    /// # use rustiful::JsonApiParams;
+    /// #
+    /// #[derive(Debug, PartialEq, Eq, JsonApi, Default, Clone)]
+    /// struct MyResource {
+    ///     id: String,
+    ///     foo: bool,
+    ///     bar: String
+    /// }
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # struct MyError(String);
+    /// #
+    /// # impl Error for MyError {
+    /// #    fn description(&self) -> &str {
+    /// #        &self.0
+    /// #    }
+    /// # }
+    /// #
+    /// # impl Display for MyError {
+    /// #    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    /// #        self.0.fmt(f)
+    /// #    }
+    /// # }
+    /// #
+    /// # struct MyCtx {
+    /// # }
+    /// #
+    /// impl JsonPatch for MyResource {
+    /// #    type Error = MyError;
+    /// #    type Context = MyCtx;
+    /// #
+    /// #    fn update(id: Self::JsonApiIdType,
+    /// #              json: JsonApiData<Self>,
+    /// #              params: &Self::Params,
+    /// #              ctx: Self::Context)
+    /// #              -> Result<JsonApiData<Self>, Self::Error> {
+    /// #        Err(MyError("This is just here to demonstrate patch".to_string()))
+    /// #    }
+    /// }
+    ///
+    /// fn main() {
+    ///     let resource = MyResource {
+    ///         id: "magic_id".to_string(),
+    ///         foo: true,
+    ///         bar: "not_updated_yet".to_string()
+    ///     };
+    ///
+    ///     let id = "magic_id".to_string();
+    ///     let attrs = <MyResource as ToJson>::Attrs::new(None, None);
+    ///     let mut json = JsonApiData::new(Some(id.clone()), "my-resources".to_string(), attrs);
+    ///
+    ///     // Nothing gets changed here
+    ///     let update_with_nones = resource.clone().patch(json.clone());
+    ///     assert_eq!(resource.clone(), update_with_nones.unwrap());
+    ///
+    ///     // Let's do an update here
+    ///     let updated = MyResource {
+    ///         id: "magic_id".to_string(),
+    ///         foo: false,
+    ///         bar: "updated".to_string()
+    ///     };
+    ///     let new_attrs = <MyResource as ToJson>::Attrs::new(Some(false),
+    ///                                                        Some("updated".to_string()));
+    ///     json.attributes = new_attrs;
+    ///
+    ///     let update_with_somes = resource.clone().patch(json);
+    ///     assert_eq!(updated, update_with_somes.unwrap());
+    /// }
+    ///
+    /// ```
+    fn patch(self, json: JsonApiData<Self>) -> Result<Self, String>
+        where Self: TryFrom<(Self, JsonApiData<Self>), Error = String> {
+        (self, json).try_into()
+    }
 
     /// Updates a resource.
     ///
@@ -385,7 +485,7 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
 ///     type Error = MyError;
 ///     type Context = MyCtx;
 ///
-///     fn find_all(params: &JsonApiParams<Self::FilterField, Self::SortField>,
+///     fn find_all(params: &Self::Params,
 ///                 ctx: Self::Context)
 ///                 -> Result<Vec<JsonApiData<Self>>, Self::Error> {
 ///         let resource = MyResource {
