@@ -45,9 +45,6 @@ pub use iron::from_request::*;
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
-extern crate autoimpl;
-
 extern crate hyper;
 
 /// Status Codes
