@@ -8,7 +8,7 @@ use self::r2d2::{GetTimeout, Pool, PooledConnection};
 use self::r2d2_diesel::ConnectionManager;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use rustiful::FromRequest;
+use rustiful::iron::FromRequest;
 use std::env;
 
 /// This struct is a simple wrapper for a Postgres connection pool.

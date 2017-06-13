@@ -14,6 +14,7 @@ use params::SortOrder;
 use std::error::Error;
 use std::str::FromStr;
 use try_from::TryFrom;
+use super::from_request::FromRequest;
 
 /// Constructs a builder for configuring routes for resources implementing any of the `JsonGet`,
 /// `JsonPost`, `JsonIndex`, `JsonPatch` or `JsonDelete` traits.
@@ -57,7 +58,7 @@ use try_from::TryFrom;
 /// # struct MyCtx {
 /// # }
 /// #
-/// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+/// # impl rustiful::iron::FromRequest for MyCtx {
 /// #     type Error = MyError;
 /// #
 /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -143,7 +144,7 @@ use try_from::TryFrom;
 /// # struct MyCtx {
 /// # }
 /// #
-/// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+/// # impl rustiful::iron::FromRequest for MyCtx {
 /// #     type Error = MyError;
 /// #
 /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -323,7 +324,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -394,7 +395,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -449,6 +450,7 @@ impl JsonApiRouterBuilder {
     pub fn jsonapi_index<'a, T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
               T: IndexHandler,
+              T::Context: FromRequest,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>
@@ -490,7 +492,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -562,7 +564,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -618,6 +620,7 @@ impl JsonApiRouterBuilder {
     pub fn jsonapi_get<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
               T: GetHandler,
+              T::Context: FromRequest,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>,
@@ -659,7 +662,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -727,7 +730,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -780,6 +783,7 @@ impl JsonApiRouterBuilder {
     pub fn jsonapi_delete<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
               T: DeleteHandler,
+              T::Context: FromRequest,
               <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router
@@ -819,7 +823,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -890,7 +894,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -952,6 +956,7 @@ impl JsonApiRouterBuilder {
         where Status: for<'b> From<&'b T::Error>,
               T: 'static,
               T: PostHandler,
+              T::Context: FromRequest,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>
@@ -992,7 +997,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -1070,7 +1075,7 @@ impl JsonApiRouterBuilder {
     /// # struct MyCtx {
     /// # }
     /// #
-    /// # impl rustiful::iron::from_request::FromRequest for MyCtx {
+    /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
     /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
@@ -1134,6 +1139,7 @@ impl JsonApiRouterBuilder {
         where Status: for<'b> From<&'b T::Error>,
               T: 'static,
               T: PatchHandler,
+              T::Context: FromRequest,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>,

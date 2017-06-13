@@ -1,5 +1,7 @@
 mod handlers;
-pub mod from_request;
+
+mod from_request;
+pub use self::from_request::*;
 
 mod router_builder;
 pub use self::router_builder::*;

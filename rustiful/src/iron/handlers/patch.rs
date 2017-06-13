@@ -4,7 +4,7 @@ extern crate bodyparser;
 use self::iron::prelude::*;
 use super::errors::BodyParserError;
 use super::super::into_json_api_response;
-use FromRequest;
+use super::super::FromRequest;
 use container::JsonApiContainer;
 use data::JsonApiData;
 use errors::FromRequestError;
@@ -28,6 +28,7 @@ pub trait PatchHandler
         where Status: for<'b> From<&'b Self::Error>,
               Self: 'static,
               Self: ToJson,
+              Self::Context: FromRequest,
               Self::SortField: TryFrom<(&'r str, SortOrder), Error = QueryStringParseError>,
               Self::FilterField: TryFrom<(&'r str, Vec<&'r str>), Error = QueryStringParseError>,
               <Self::JsonApiIdType as FromStr>::Err: Error

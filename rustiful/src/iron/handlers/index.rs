@@ -2,7 +2,7 @@ extern crate iron;
 
 use self::iron::prelude::*;
 use super::super::into_json_api_response;
-use FromRequest;
+use super::super::FromRequest;
 use errors::FromRequestError;
 use errors::QueryStringParseError;
 use errors::RepositoryError;
@@ -19,6 +19,7 @@ pub trait IndexHandler
     fn respond<'r>(req: &'r mut Request) -> IronResult<Response>
         where Status: for<'b> From<&'b Self::Error>,
               Self: ToJson,
+              Self::Context: FromRequest,
               Self::SortField: TryFrom<(&'r str, SortOrder), Error = QueryStringParseError>,
               Self::FilterField: TryFrom<(&'r str, Vec<&'r str>), Error = QueryStringParseError>
     {
