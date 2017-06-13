@@ -9,11 +9,8 @@ use self::router::Router;
 
 use super::handlers::*;
 use super::status::*;
-use FromRequest;
 use errors::QueryStringParseError;
 use params::SortOrder;
-use serde::de::Deserialize;
-use service::*;
 use std::error::Error;
 use std::str::FromStr;
 use try_from::TryFrom;
@@ -451,14 +448,11 @@ impl JsonApiRouterBuilder {
     /// This resource will then have the route `GET /my-resources`.
     pub fn jsonapi_index<'a, T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: JsonIndex + for<'b> IndexHandler<'b, T>,
-              T::Error: 'static,
+              T: IndexHandler,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>,
-              <T::JsonApiIdType as FromStr>::Err: Error + 'static
+                                              Error = QueryStringParseError>
     {
-
         self.router
             .get(format!("/{}", T::resource_name()),
                  move |r: &mut Request| T::respond(r),
@@ -621,16 +615,14 @@ impl JsonApiRouterBuilder {
     /// ```
     ///
     /// This resource will then have the route `GET /my-resources/{id}`.
-    pub fn jsonapi_get<'a, T>(&mut self)
+    pub fn jsonapi_get<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: JsonGet + for<'b> GetHandler<'b, T>,
-              T::Error: 'static,
+              T: GetHandler,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>,
-              <T::JsonApiIdType as FromStr>::Err: Error + 'static
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
-
         self.router
             .get(format!("/{}/:id", T::resource_name()),
                  move |r: &mut Request| T::respond(r),
@@ -785,13 +777,11 @@ impl JsonApiRouterBuilder {
     /// ```
     ///
     /// This resource will then have the route `DELETE /my-resources/{id}`.
-    pub fn jsonapi_delete<'a, T>(&mut self)
+    pub fn jsonapi_delete<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: JsonDelete + for<'b> DeleteHandler<'b, T>,
-              T::Error: 'static,
-              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+              T: DeleteHandler,
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
-
         self.router
             .delete(format!("/{}/:id", T::resource_name()),
                     move |r: &mut Request| T::respond(r),
@@ -958,18 +948,14 @@ impl JsonApiRouterBuilder {
     /// # }
     /// ```
     /// This resource will then have the route `POST /my-resources`.
-    pub fn jsonapi_post<'a, T>(&mut self)
+    pub fn jsonapi_post<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: 'static + JsonPost + for<'b> PostHandler<'b, T>,
-              T::Error: 'static,
-              T::Attrs: 'static + for<'b> Deserialize<'b>,
+              T: 'static,
+              T: PostHandler,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>,
-              <T::Context as FromRequest>::Error: 'static,
-              <T::JsonApiIdType as FromStr>::Err: Send + Error + 'static
+                                              Error = QueryStringParseError>
     {
-
         self.router
             .post(format!("/{}", T::resource_name()),
                   move |r: &mut Request| T::respond(r),
@@ -1144,17 +1130,15 @@ impl JsonApiRouterBuilder {
     /// ```
     ///
     /// This resource will then have the route `PATCH /my-resources/{id}`.
-    pub fn jsonapi_patch<'a, T>(&mut self)
+    pub fn jsonapi_patch<T>(&mut self)
         where Status: for<'b> From<&'b T::Error>,
-              T: 'static + JsonPatch + for<'b> PatchHandler<'b, T>,
-              T::Error: 'static,
-              T::Attrs: 'static + for<'b> Deserialize<'b>,
+              T: 'static,
+              T: PatchHandler,
               T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
               T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
                                               Error = QueryStringParseError>,
-              <T::JsonApiIdType as FromStr>::Err: Error + 'static
+              <T::JsonApiIdType as FromStr>::Err: Error
     {
-
         self.router
             .patch(format!("/{}/:id", T::resource_name()),
                    move |r: &mut Request| T::respond(r),
