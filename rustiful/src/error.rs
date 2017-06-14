@@ -1,4 +1,3 @@
-use super::status::Status;
 use std::error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -7,7 +6,7 @@ pub struct JsonApiErrorArray {
 }
 
 impl JsonApiErrorArray {
-    pub fn new<T: Error>(error: &T, status: Status) -> JsonApiErrorArray {
+    pub fn new<T: Error>(error: &T, status: u16) -> JsonApiErrorArray {
         JsonApiErrorArray { errors: vec![JsonApiError::new(error, status)] }
     }
 }
@@ -20,10 +19,10 @@ pub struct JsonApiError {
 }
 
 impl JsonApiError {
-    pub fn new<T: Error>(error: &T, status: Status) -> JsonApiError {
+    pub fn new<T: Error>(error: &T, status: u16) -> JsonApiError {
         JsonApiError {
             title: error.description().to_string(),
-            status: status.to_u16().to_string(),
+            status: status.to_string(),
             detail: format!("{}", error),
         }
     }

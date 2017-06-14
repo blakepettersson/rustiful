@@ -14,7 +14,7 @@ extern crate serde_json;
 
 use self::iron::mime::Mime;
 use self::iron::prelude::*;
-use self::iron::status;
+use self::status::Status;
 use container::JsonApiContainer;
 use error::JsonApiErrorArray;
 use errors::FromRequestError;
@@ -25,8 +25,16 @@ use errors::RequestError;
 use iron::handlers::BodyParserError;
 use iron::router::Router;
 use serde::Serialize;
-use status::Status;
 use std::error::Error;
+
+/// Status Codes
+pub mod status {
+    extern crate hyper;
+
+    pub use self::hyper::status::StatusClass;
+    pub use self::hyper::status::StatusCode as Status;
+    pub use self::hyper::status::StatusCode::*;
+}
 
 fn json_api_type() -> Mime {
     "application/vnd.api+json".parse().unwrap()
@@ -45,8 +53,12 @@ fn into_json_api_response<T>(data: T, status: Status) -> IronResult<Response>
 
 impl From<RequestError> for IronResult<Response> {
     fn from(err: RequestError) -> IronResult<Response> {
-        let status = err.status();
-        let json = JsonApiErrorArray::new(&err, status);
+        let status = match err {
+            RequestError::NotFound => Status::NotFound,
+            RequestError::NoBody => Status::BadRequest,
+        };
+
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
@@ -60,7 +72,7 @@ impl<T> From<FromRequestError<T>> for IronResult<Response>
 {
     fn from(err: FromRequestError<T>) -> IronResult<Response> {
         let status = Status::InternalServerError;
-        let json = JsonApiErrorArray::new(&err, status);
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
@@ -72,7 +84,7 @@ impl<T> From<FromRequestError<T>> for IronResult<Response>
 impl From<BodyParserError> for IronResult<Response> {
     fn from(err: BodyParserError) -> IronResult<Response> {
         let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status);
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
@@ -84,7 +96,7 @@ impl From<BodyParserError> for IronResult<Response> {
 impl From<QueryStringParseError> for IronResult<Response> {
     fn from(err: QueryStringParseError) -> IronResult<Response> {
         let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status);
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
@@ -93,12 +105,12 @@ impl From<QueryStringParseError> for IronResult<Response> {
     }
 }
 
-impl<E> From<RepositoryError<E>> for IronResult<Response>
+impl<E> From<RepositoryError<E, Status>> for IronResult<Response>
     where E: Error + Send
 {
-    fn from(err: RepositoryError<E>) -> IronResult<Response> {
+    fn from(err: RepositoryError<E, Status>) -> IronResult<Response> {
         let status = err.status;
-        let json = JsonApiErrorArray::new(&err, status);
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
@@ -112,7 +124,7 @@ impl<E> From<IdParseError<E>> for IronResult<Response>
 {
     fn from(err: IdParseError<E>) -> IronResult<Response> {
         let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status);
+        let json = JsonApiErrorArray::new(&err, status.to_u16());
 
         match serde_json::to_string(&json) {
             Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),

@@ -42,15 +42,6 @@ pub mod iron;
 #[macro_use]
 extern crate serde_derive;
 
-extern crate hyper;
-
-/// Status Codes
-pub mod status {
-    pub use hyper::status::StatusClass;
-    pub use hyper::status::StatusCode as Status;
-    pub use hyper::status::StatusCode::*;
-}
-
 pub mod json_option;
 
 #[cfg(feature = "rustiful-derive")]

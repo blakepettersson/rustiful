@@ -17,7 +17,7 @@ use iron::prelude::*;
 use iron_test::{request, response};
 use rustiful::*;
 use rustiful::iron::*;
-use rustiful::status::Status;
+use rustiful::iron::status::Status;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -63,7 +63,7 @@ impl Display for TestError {
 
 impl<'a> From<&'a TestError> for Status {
     fn from(error: &'a TestError) -> Self {
-        rustiful::status::ImATeapot
+        Status::ImATeapot
     }
 }
 

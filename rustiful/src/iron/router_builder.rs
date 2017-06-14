@@ -23,7 +23,7 @@ use super::from_request::FromRequest;
 /// is what `JsonApiRouterBuilder` does. This builder can create routes for any type implementing
 /// any of the `JsonGet`, `JsonPost`, `JsonIndex`, `JsonPatch` or `JsonDelete` traits. We also need
 /// to ensure that there are corresponding `From` implementations for all of the distinct error
-/// types that are implemented on the above resource traits for `rustiful::status::Status`.
+/// types that are implemented on the above resource traits for `rustiful::iron::status::Status`.
 ///
 /// By default a resource will have a pluralized, lower-cased, dasherized name of its type name (aka
 /// kebab-case). If a resource is named `MyResource`, it will have the resource name `my-resources`.
@@ -109,9 +109,9 @@ use super::from_request::FromRequest;
 /// # struct MyError {
 /// # }
 /// #
-/// impl<'a> From<&'a MyError> for rustiful::status::Status {
+/// impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
 ///     fn from(error: &'a MyError) -> Self {
-///         rustiful::status::ImATeapot
+///         rustiful::iron::status::ImATeapot
 ///     }
 /// }
 /// ```
@@ -183,9 +183,9 @@ use super::from_request::FromRequest;
 /// #      }
 /// # }
 /// #
-/// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+/// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
 /// #   fn from(error: &'a MyError) -> Self {
-/// #       rustiful::status::ImATeapot
+/// #       rustiful::iron::status::ImATeapot
 /// #   }
 /// # }
 /// #
@@ -434,9 +434,9 @@ impl JsonApiRouterBuilder {
     /// #      }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
     /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::status::ImATeapot
+    /// #       rustiful::iron::status::ImATeapot
     /// #   }
     /// # }
     /// #
@@ -604,9 +604,9 @@ impl JsonApiRouterBuilder {
     /// #      }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
     /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::status::ImATeapot
+    /// #       rustiful::iron::status::ImATeapot
     /// #   }
     /// # }
     /// #
@@ -767,9 +767,9 @@ impl JsonApiRouterBuilder {
     /// #    }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
     /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::status::ImATeapot
+    /// #       rustiful::iron::status::ImATeapot
     /// #   }
     /// # }
     /// #
@@ -940,9 +940,9 @@ impl JsonApiRouterBuilder {
     /// #    }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
     /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::status::ImATeapot
+    /// #       rustiful::iron::status::ImATeapot
     /// #   }
     /// # }
     /// #
@@ -1122,9 +1122,9 @@ impl JsonApiRouterBuilder {
     /// #    }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::status::Status {
+    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
     /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::status::ImATeapot
+    /// #       rustiful::iron::status::ImATeapot
     /// #   }
     /// # }
     /// #
