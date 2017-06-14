@@ -1,6 +1,5 @@
 use diesel;
-use rustiful;
-use rustiful::status::Status;
+use rustiful::iron::status::Status;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -48,8 +47,8 @@ impl Display for MyErr {
 impl<'a> From<&'a MyErr> for Status {
     fn from(err: &'a MyErr) -> Self {
         match *err {
-            MyErr::UpdateError(_) => rustiful::status::ImATeapot,
-            _ => rustiful::status::InternalServerError,
+            MyErr::UpdateError(_) => Status::ImATeapot,
+            _ => Status::InternalServerError,
         }
     }
 }

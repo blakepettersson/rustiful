@@ -13,7 +13,7 @@ use errors::RepositoryError;
 use errors::RequestError;
 use params::SortOrder;
 use service::JsonPost;
-use status::Status;
+use super::super::status::Status;
 use std::str::FromStr;
 use to_json::ToJson;
 use try_from::TryFrom;

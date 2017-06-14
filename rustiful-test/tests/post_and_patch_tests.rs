@@ -37,7 +37,7 @@ use r2d2_diesel::ConnectionManager;
 use rustiful::*;
 use rustiful::SortOrder::*;
 use rustiful::iron::*;
-use rustiful::status::Status;
+use rustiful::iron::status::Status;
 use std::env;
 use std::error::Error;
 use std::fmt::Display;
@@ -105,8 +105,8 @@ impl FromRequest for DB {
 impl<'a> From<&'a MyErr> for Status {
     fn from(err: &'a MyErr) -> Self {
         match *err {
-            MyErr::UpdateError(_) => rustiful::status::ImATeapot,
-            _ => rustiful::status::InternalServerError,
+            MyErr::UpdateError(_) => Status::ImATeapot,
+            _ => Status::InternalServerError
         }
     }
 }
