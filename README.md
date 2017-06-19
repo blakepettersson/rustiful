@@ -119,7 +119,7 @@ impl JsonGet for Todo {
     fn find(id: String,
             _: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self::Attrs>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, Self::Error> {
         Err(MyErr("Unimplemented"))
     }
 }
@@ -128,7 +128,7 @@ impl JsonIndex for Todo {
     type Error = MyErr;
     type Context = Context;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         Err(MyErr("Unimplemented"))
     }
 }
@@ -146,10 +146,10 @@ impl JsonPost for Todo {
     type Error = MyErr;
     type Context = Context;
 
-    fn create(json: JsonApiData<Self::Attrs>, 
+    fn create(json: JsonApiData<Self>, 
               params: &Self::Params, 
               ctx: Self::Context) 
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         Err(MyErr("Unimplemented"))
     }
 }
@@ -159,10 +159,10 @@ impl JsonPatch for Todo {
     type Context = Context;
 
     fn update(id: String,
-              json: JsonApiData<Self::Attrs>,
+              json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self::Attrs>, Self::Error> {
+              -> Result<JsonApiData<Self>, Self::Error> {
         Err(MyErr("Unimplemented"))              
     }
 }
@@ -220,7 +220,7 @@ impl JsonIndex for Todo {
     type Error = MyErr;
     type Context = Context;
 
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         Ok(vec![Todo {
                     id: "1".to_string(),
                     body: "test".to_string(),
@@ -266,7 +266,7 @@ impl JsonIndex for Todo {
     type Error = MyErr;
     type Context = Context;
     
-    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self::Attrs>>, Self::Error> {
+    fn find_all(params: &Self::Params, ctx: Self::Context) -> Result<Vec<JsonApiData<Self>>, Self::Error> {
         let mut query = table.into_boxed();
 
         {
