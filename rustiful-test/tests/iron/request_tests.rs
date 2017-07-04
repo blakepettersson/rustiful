@@ -15,17 +15,17 @@ use std::str::FromStr;
 
 impl FromRequest for FooService {
     type Error = TestError;
-    fn from_request(request: &Request) -> Result<Self, Self::Error> {
+    fn from_request(request: &Request) -> Result<Self, (Self::Error, Status)> {
         if let Some(_) = request.headers.get_raw("test-fail") {
-            return Err(TestError("from request fail".to_string()));
+            return Err((TestError("from request fail".to_string()), Status::InternalServerError));
         }
         Ok(FooService {})
     }
 }
 
-impl<'a> From<&'a TestError> for Status {
-    fn from(_: &'a TestError) -> Self {
-        Status::ImATeapot
+impl From<TestError> for (TestError, Status) {
+    fn from(err: TestError) -> Self {
+        (err, Status::ImATeapot)
     }
 }
 
@@ -122,7 +122,7 @@ fn parse_json_api_single_get_fail_in_from_request() {
         response,
         JsonApiError {
             title: "from request fail".to_string(),
-            detail: "From request error: from request fail".to_string(),
+            detail: "from request fail".to_string(),
             status: "500".to_string(),
         },
     );
@@ -139,7 +139,7 @@ fn parse_json_api_index_get_fail_in_from_request() {
         response,
         JsonApiError {
             title: "from request fail".to_string(),
-            detail: "From request error: from request fail".to_string(),
+            detail: "from request fail".to_string(),
             status: "500".to_string(),
         },
     );
@@ -156,7 +156,7 @@ fn parse_json_api_delete_fail_in_from_request() {
         response,
         JsonApiError {
             title: "from request fail".to_string(),
-            detail: "From request error: from request fail".to_string(),
+            detail: "from request fail".to_string(),
             status: "500".to_string(),
         },
     );
@@ -187,7 +187,7 @@ fn parse_json_api_post_fail_in_from_request() {
         response,
         JsonApiError {
             title: "from request fail".to_string(),
-            detail: "From request error: from request fail".to_string(),
+            detail: "from request fail".to_string(),
             status: "500".to_string(),
         },
     );
@@ -223,7 +223,7 @@ fn parse_json_api_patch_fail_in_from_request() {
         response,
         JsonApiError {
             title: "from request fail".to_string(),
-            detail: "From request error: from request fail".to_string(),
+            detail: "from request fail".to_string(),
             status: "500".to_string(),
         },
     );
@@ -241,7 +241,7 @@ fn parse_json_api_custom_failure_in_get() {
         response,
         JsonApiError {
             title: "fail in get".to_string(),
-            detail: "Error in repository: fail in get".to_string(),
+            detail: "fail in get".to_string(),
             status: "418".to_string(),
         },
     );
@@ -259,7 +259,7 @@ fn parse_json_api_custom_failure_in_index() {
         response,
         JsonApiError {
             title: "fail in index".to_string(),
-            detail: "Error in repository: fail in index".to_string(),
+            detail: "fail in index".to_string(),
             status: "418".to_string(),
         },
     );
@@ -277,7 +277,7 @@ fn parse_json_api_custom_failure_in_delete() {
         response,
         JsonApiError {
             title: "fail in delete".to_string(),
-            detail: "Error in repository: fail in delete".to_string(),
+            detail: "fail in delete".to_string(),
             status: "418".to_string(),
         },
     );
@@ -307,7 +307,7 @@ fn parse_json_api_custom_failure_in_post() {
         response,
         JsonApiError {
             title: "fail in post".to_string(),
-            detail: "Error in repository: fail in post".to_string(),
+            detail: "fail in post".to_string(),
             status: "418".to_string(),
         },
     );
@@ -342,7 +342,7 @@ fn parse_json_api_custom_failure_in_patch() {
         response,
         JsonApiError {
             title: "fail in patch".to_string(),
-            detail: "Error in repository: fail in patch".to_string(),
+            detail: "fail in patch".to_string(),
             status: "418".to_string(),
         },
     )
@@ -444,9 +444,9 @@ fn parse_invalid_json_in_post() {
     assert_json_api_error(
         response,
         JsonApiError {
-            detail: "Error when parsing json: Can't parse body to the struct".to_string(),
-            status: "400".to_string(),
             title: "Can't parse body to the struct".to_string(),
+            detail: "Can't parse body to the struct".to_string(),
+            status: "400".to_string()
         },
     );
 }
@@ -473,9 +473,9 @@ fn parse_invalid_json_in_patch() {
     assert_json_api_error(
         response,
         JsonApiError {
-            detail: "Error when parsing json: Can't parse body to the struct".to_string(),
-            status: "400".to_string(),
             title: "Can't parse body to the struct".to_string(),
+            detail: "Can't parse body to the struct".to_string(),
+            status: "400".to_string()
         },
     );
 }

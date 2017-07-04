@@ -5,6 +5,15 @@ use to_json::ToJson;
 use try_from::TryFrom;
 use try_from::TryInto;
 
+/// A trait containing framework-specific types.
+///
+/// This is currently used to set the `Status` type for `JsonGet`, `JsonPost`, `JsonIndex`,
+/// `JsonPatch` and `JsonDelete`. There is a blanket impl in `iron/mod.rs` for all `T` implementing
+/// `JsonApiResource`, which sets the `Status` to the Hyper `Status` type.
+pub trait Handler {
+    type Status: Send;
+}
+
 /// A trait for implementing GET `/{resource-name}/{id}` on a resource type.
 ///
 /// # Example
@@ -58,7 +67,7 @@ use try_from::TryInto;
 ///     fn find(id: Self::JsonApiIdType,
 ///         params: &Self::Params,
 ///         ctx: Self::Context)
-///         -> Result<Option<JsonApiData<Self>>, Self::Error> {
+///         -> Result<Option<JsonApiData<Self>>, (Self::Error, Self::Status)> {
 ///         let resource = MyResource {
 ///             id: "magic_id".to_string(),
 ///             foo: true,
@@ -83,7 +92,9 @@ use try_from::TryInto;
 ///     assert_eq!(Ok(None), MyResource::find("foo".to_string(), &Default::default(), MyCtx {}));
 /// }
 /// ```
-pub trait JsonGet where Self: JsonApiResource + ToJson
+pub trait JsonGet: Handler
+where
+    Self: JsonApiResource + ToJson
 {
     /// A user-defined error type
     type Error: std::error::Error + Send;
@@ -102,10 +113,11 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
     /// implemented when `JsonApi` is derived. See `JsonApiParams` for more info.
     /// * `ctx` - A user defined context type. This is used to instantiate the given
     /// type on each request. This type can be used for whatever you like, such as an auth token
-    fn find(id: Self::JsonApiIdType,
-            params: &Self::Params,
-            ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self>>, Self::Error>;
+    fn find(
+        id: Self::JsonApiIdType,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<Option<JsonApiData<Self>>, (Self::Error, Self::Status)>;
 }
 
 /// A trait for implementing POST `/{resource-name}` on a resource type.
@@ -129,6 +141,7 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
 /// use rustiful::IntoJson;
 /// use rustiful::JsonApiData;
 /// use rustiful::JsonApiParams;
+/// use rustiful::iron::status::Status;
 ///
 /// #[derive(Debug, PartialEq, Eq, JsonApi, Default)]
 /// struct MyResource {
@@ -162,11 +175,11 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
 ///     fn create(json: JsonApiData<Self>,
 ///               params: &Self::Params,
 ///               ctx: Self::Context)
-///             -> Result<JsonApiData<Self>, Self::Error> {
+///             -> Result<JsonApiData<Self>, (Self::Error, Status)> {
 ///         if let Some(_) = json.id {
-///             Err(MyError("invalid id!".to_string()))
+///             Err((MyError("invalid id!".to_string()), Status::BadRequest))
 ///         } else {
-///             let mut resource: Self = json.try_into().map_err(|e| MyError(e))?;
+///             let mut resource: Self = json.try_into().map_err(|e| (MyError(e), Status::BadRequest))?;
 ///             resource.id = "created!".to_string();
 ///             Ok(resource.into_json(params))
 ///         }
@@ -178,7 +191,7 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
 ///     let attrs = <<MyResource as ToJson>::Attrs>::new(Some(true), Some("hello".to_string()));
 ///     let mut resource = JsonApiData::new(Some(id), "my-resources".to_string(), attrs);
 ///
-///     let err = Err(MyError("invalid id!".to_string()));
+///     let err = Err((MyError("invalid id!".to_string()), Status::BadRequest));
 ///     assert_eq!(err, MyResource::create(resource.clone(), &Default::default(), MyCtx {}));
 ///
 ///     let mut expected = resource.clone();
@@ -189,7 +202,9 @@ pub trait JsonGet where Self: JsonApiResource + ToJson
 ///     assert_eq!(Ok(expected), MyResource::create(resource, &Default::default(), MyCtx {}));
 /// }
 /// ```
-pub trait JsonPost where Self: JsonApiResource + ToJson
+pub trait JsonPost: Handler
+where
+    Self: JsonApiResource + ToJson
 {
     /// A user-defined error type
     type Error: std::error::Error + Send;
@@ -212,10 +227,11 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
     /// * `ctx` - A user defined context type. This is used to instantiate the given
     /// type on each request. This type can be used for whatever you like, such as an auth token
     /// or a database connection.
-    fn create(json: JsonApiData<Self>,
-              params: &Self::Params,
-              ctx: Self::Context)
-              -> Result<JsonApiData<Self>, Self::Error>;
+    fn create(
+        json: JsonApiData<Self>,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)>;
 }
 
 /// A trait for implementing PATCH `/{resource-name}/{id}` on a resource type.
@@ -238,6 +254,7 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 /// use rustiful::IntoJson;
 /// use rustiful::JsonApiData;
 /// use rustiful::JsonApiParams;
+/// use rustiful::iron::status::Status;
 ///
 /// #[derive(Debug, PartialEq, Eq, JsonApi, Default)]
 /// struct MyResource {
@@ -272,7 +289,7 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 ///               json: JsonApiData<Self>,
 ///               params: &Self::Params,
 ///               ctx: Self::Context)
-///               -> Result<JsonApiData<Self>, Self::Error> {
+///               -> Result<JsonApiData<Self>, (Self::Error, Status)> {
 ///         let mut resource = MyResource {
 ///             id: "magic_id".to_string(),
 ///             foo: true,
@@ -283,10 +300,10 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 ///             // The `patch` method will only overwrite fields that are explicitly sent in the
 ///             // JSON patch, i.e if the field has a value or is explicitly set to `null`. Fields
 ///             // that are omitted will not be updated.
-///             let updated: MyResource = resource.patch(json).map_err(|e| MyError(e))?;
+///             let updated: MyResource = resource.patch(json).map_err(|e| (MyError(e), Status::BadRequest))?;
 ///             Ok(updated.into_json(params))
 ///         } else {
-///             Err(MyError("Cannot patch resource!".to_string()))
+///             Err((MyError("Cannot patch resource!".to_string()), Status::BadRequest))
 ///         }
 ///     }
 /// }
@@ -308,11 +325,13 @@ pub trait JsonPost where Self: JsonApiResource + ToJson
 ///
 ///     let id = "some_other_id".to_string();
 ///     let result = MyResource::update(id, json, &Default::default(), MyCtx {});
-///     let err = Err(MyError("Cannot patch resource!".to_string()));
+///     let err = Err((MyError("Cannot patch resource!".to_string()), Status::BadRequest));
 ///     assert_eq!(err, result);
 /// }
 /// ```
-pub trait JsonPatch where Self: JsonApiResource + ToJson
+pub trait JsonPatch: Handler
+where
+    Self: JsonApiResource + ToJson
 {
     /// A user-defined error type
     type Error: std::error::Error + Send;
@@ -340,7 +359,8 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
     /// # use rustiful::IntoJson;
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonApiParams;
-    /// #
+    /// # use rustiful::iron::status::Status;
+    ///
     /// #[derive(Debug, PartialEq, Eq, JsonApi, Default, Clone)]
     /// struct MyResource {
     ///     id: String,
@@ -374,8 +394,8 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
     /// #              json: JsonApiData<Self>,
     /// #              params: &Self::Params,
     /// #              ctx: Self::Context)
-    /// #              -> Result<JsonApiData<Self>, Self::Error> {
-    /// #        Err(MyError("This is just here to demonstrate patch".to_string()))
+    /// #              -> Result<JsonApiData<Self>, (Self::Error, Status)> {
+    /// #        Err((MyError("This is just here to demonstrate patch".to_string()), Status::BadRequest))
     /// #    }
     /// }
     ///
@@ -410,7 +430,9 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
     ///
     /// ```
     fn patch(self, json: JsonApiData<Self>) -> Result<Self, String>
-        where Self: TryFrom<(Self, JsonApiData<Self>), Error = String> {
+    where
+        Self: TryFrom<(Self, JsonApiData<Self>), Error = String>
+    {
         (self, json).try_into()
     }
 
@@ -428,11 +450,12 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
     /// * `ctx` - A user defined context type. This is used to instantiate the given
     /// type on each request. This type can be used for whatever you like, such as an auth token
     /// or a database connection.
-    fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self>,
-              params: &Self::Params,
-              ctx: Self::Context)
-              -> Result<JsonApiData<Self>, Self::Error>;
+    fn update(
+        id: Self::JsonApiIdType,
+        json: JsonApiData<Self>,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)>;
 }
 
 /// A trait for implementing GET `/{resource-name}` on a resource type.
@@ -487,7 +510,7 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
 ///
 ///     fn find_all(params: &Self::Params,
 ///                 ctx: Self::Context)
-///                 -> Result<Vec<JsonApiData<Self>>, Self::Error> {
+///                 -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)> {
 ///         let resource = MyResource {
 ///             id: "magic_id".to_string(),
 ///             foo: true,
@@ -506,7 +529,9 @@ pub trait JsonPatch where Self: JsonApiResource + ToJson
 ///     assert_eq!(vec![expected], resource.unwrap());
 /// }
 /// ```
-pub trait JsonIndex where Self: JsonApiResource + ToJson
+pub trait JsonIndex: Handler
+where
+    Self: JsonApiResource + ToJson
 {
     /// A user-defined error type
     type Error: std::error::Error + Send;
@@ -522,9 +547,10 @@ pub trait JsonIndex where Self: JsonApiResource + ToJson
     /// * `ctx` - A user defined context type. This is used to instantiate the given
     /// type on each request. This type can be used for whatever you like, such as an auth token
     /// or a database connection.
-    fn find_all(params: &Self::Params,
-                ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self>>, Self::Error>;
+    fn find_all(
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)>;
 }
 
 /// A trait for implementing DELETE `/{resource-name}/{id}` on a resource type.
@@ -547,6 +573,7 @@ pub trait JsonIndex where Self: JsonApiResource + ToJson
 /// use rustiful::IntoJson;
 /// use rustiful::JsonApiData;
 /// use rustiful::JsonApiParams;
+/// use rustiful::iron::status::Status;
 ///
 /// #[derive(Debug, PartialEq, Eq, JsonApi, Default)]
 /// struct MyResource {
@@ -577,7 +604,7 @@ pub trait JsonIndex where Self: JsonApiResource + ToJson
 ///     type Error = MyError;
 ///     type Context = MyCtx;
 ///
-///     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
+///     fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Status)> {
 ///         let resource = MyResource {
 ///             id: "magic_id".to_string(),
 ///             foo: true,
@@ -587,19 +614,21 @@ pub trait JsonIndex where Self: JsonApiResource + ToJson
 ///         if id == resource.id {
 ///             Ok(())
 ///         } else {
-///             Err(MyError("Invalid id!".to_string()))
+///             Err((MyError("Invalid id!".to_string()), Status::BadRequest))
 ///         }
 ///     }
 /// }
 ///
 /// fn main() {
 ///     let id = "magic_id".to_string();
-///     let err = Err(MyError("Invalid id!".to_string()));
+///     let err = Err((MyError("Invalid id!".to_string()), Status::BadRequest));
 ///     assert_eq!(Ok(()), MyResource::delete("magic_id".to_string(), MyCtx {}));
 ///     assert_eq!(err, MyResource::delete("other_id".to_string(), MyCtx {}));
 /// }
 /// ```
-pub trait JsonDelete where Self: JsonApiResource
+pub trait JsonDelete: Handler
+where
+    Self: JsonApiResource
 {
     /// A user-defined error type
     type Error: std::error::Error + Send;
@@ -617,5 +646,8 @@ pub trait JsonDelete where Self: JsonApiResource
     /// * `ctx` - A user defined context type. This is used to instantiate the given
     /// type on each request. This type can be used for whatever you like, such as an auth token
     /// or a database connection.
-    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error>;
+    fn delete(
+        id: Self::JsonApiIdType,
+        ctx: Self::Context
+    ) -> Result<(), (Self::Error, Self::Status)>;
 }

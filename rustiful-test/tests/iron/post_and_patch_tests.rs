@@ -15,19 +15,19 @@ use uuid::Uuid;
 impl FromRequest for DB {
     type Error = GetTimeout;
 
-    fn from_request(_: &Request) -> Result<DB, Self::Error> {
+    fn from_request(_: &Request) -> Result<DB, (Self::Error, Status)> {
         match DB_POOL.get() {
             Ok(conn) => Ok(DB(conn)),
-            Err(e) => Err(e),
+            Err(e) => Err((e, Status::InternalServerError)),
         }
     }
 }
 
-impl<'a> From<&'a MyErr> for Status {
-    fn from(err: &'a MyErr) -> Self {
-        match *err {
-            MyErr::UpdateError(_) => Status::ImATeapot,
-            _ => Status::InternalServerError,
+impl From<MyErr> for (MyErr, Status) {
+    fn from(err: MyErr) -> Self {
+        match err {
+            MyErr::UpdateError(_) => (err, Status::ImATeapot),
+            _ => (err, Status::InternalServerError),
         }
     }
 }

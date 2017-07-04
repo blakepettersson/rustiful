@@ -9,6 +9,7 @@ use self::r2d2_diesel::ConnectionManager;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
 use rustiful::iron::FromRequest;
+use rustiful::iron::status::Status;
 use std::env;
 
 /// This struct is a simple wrapper for a Postgres connection pool.
@@ -39,10 +40,10 @@ lazy_static! {
 impl FromRequest for DB {
     type Error = GetTimeout;
 
-    fn from_request(_: &Request) -> Result<DB, Self::Error> {
+    fn from_request(_: &Request) -> Result<DB, (Self::Error, Status)> {
         match DB_POOL.get() {
             Ok(conn) => Ok(DB(conn)),
-            Err(e) => Err(e),
+            Err(e) => Err((e, Status::InternalServerError)),
         }
     }
 }

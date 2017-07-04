@@ -6,15 +6,16 @@ extern crate persistent;
 use self::iron::prelude::*;
 use self::persistent::Read;
 use self::router::Router;
+use super::from_request::FromRequest;
 
 use super::handlers::*;
 use super::status::*;
 use errors::QueryStringParseError;
 use params::SortOrder;
+use service::Handler;
 use std::error::Error;
 use std::str::FromStr;
 use try_from::TryFrom;
-use super::from_request::FromRequest;
 
 /// Constructs a builder for configuring routes for resources implementing any of the `JsonGet`,
 /// `JsonPost`, `JsonIndex`, `JsonPatch` or `JsonDelete` traits.
@@ -47,6 +48,7 @@ use super::from_request::FromRequest;
 /// # use rustiful::JsonApiData;
 /// # use rustiful::JsonIndex;
 /// # use rustiful::IntoJson;
+/// # use rustiful::iron::status::Status;
 /// #
 /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
 /// struct MyResource {
@@ -61,7 +63,7 @@ use super::from_request::FromRequest;
 /// # impl rustiful::iron::FromRequest for MyCtx {
 /// #     type Error = MyError;
 /// #
-/// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+/// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
 /// #         Ok(MyCtx {})
 /// #     }
 /// # }
@@ -92,28 +94,13 @@ use super::from_request::FromRequest;
 /// #
 /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
 /// #                 ctx: Self::Context)
-/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
+/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
 /// #          Ok(vec![MyResource::default().into_json(params)])
 /// #      }
 /// }
 /// #
 /// # fn main() {
 /// # }
-/// ```
-///
-/// We also need to ensure that we are able to convert `JsonIndex::Error` to an Iron HTTP status.
-///
-/// ```
-/// # extern crate rustiful;
-/// #
-/// # struct MyError {
-/// # }
-/// #
-/// impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-///     fn from(error: &'a MyError) -> Self {
-///         rustiful::iron::status::ImATeapot
-///     }
-/// }
 /// ```
 ///
 /// Construct a `GET` route for this resource by calling `jsonapi_index`.
@@ -133,6 +120,7 @@ use super::from_request::FromRequest;
 /// # use rustiful::JsonIndex;
 /// # use rustiful::IntoJson;
 /// # use rustiful::iron::JsonApiRouterBuilder;
+/// # use rustiful::iron::status::Status;
 /// #
 /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
 /// # struct MyResource {
@@ -147,7 +135,7 @@ use super::from_request::FromRequest;
 /// # impl rustiful::iron::FromRequest for MyCtx {
 /// #     type Error = MyError;
 /// #
-/// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+/// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
 /// #         Ok(MyCtx {})
 /// #     }
 /// # }
@@ -178,15 +166,9 @@ use super::from_request::FromRequest;
 /// #
 /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
 /// #                 ctx: Self::Context)
-/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
+/// #            -> Result<Vec<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
 /// #          Ok(vec![MyResource::default().into_json(params)])
 /// #      }
-/// # }
-/// #
-/// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-/// #   fn from(error: &'a MyError) -> Self {
-/// #       rustiful::iron::status::ImATeapot
-/// #   }
 /// # }
 /// #
 /// # fn main() {
@@ -239,7 +221,7 @@ use super::from_request::FromRequest;
 #[allow(missing_debug_implementations)] // The underlying Router doesn't implement Debug...
 pub struct JsonApiRouterBuilder {
     router: Router,
-    max_body_length: usize,
+    max_body_length: usize
 }
 
 /// This `Default` implementation sets up an Iron `Router` and sets the default bodyparser size to
@@ -271,7 +253,7 @@ impl JsonApiRouterBuilder {
     pub fn new(router: Router, max_body_length: usize) -> Self {
         JsonApiRouterBuilder {
             router: router,
-            max_body_length: max_body_length,
+            max_body_length: max_body_length
         }
     }
 
@@ -313,6 +295,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonIndex;
     /// # use rustiful::IntoJson;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// struct MyResource {
@@ -327,7 +310,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -358,7 +341,7 @@ impl JsonApiRouterBuilder {
     /// #
     /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #                 ctx: Self::Context)
-    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
+    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
     /// #          Ok(vec![MyResource::default().into_json(params)])
     /// #      }
     /// }
@@ -384,6 +367,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonIndex;
     /// # use rustiful::IntoJson;
     /// # use rustiful::iron::JsonApiRouterBuilder;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// # struct MyResource {
@@ -398,7 +382,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -429,15 +413,9 @@ impl JsonApiRouterBuilder {
     /// #
     /// #     fn find_all(params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #                 ctx: Self::Context)
-    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, Self::Error> {
+    /// #            -> Result<Vec<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
     /// #          Ok(vec![MyResource::default().into_json(params)])
     /// #      }
-    /// # }
-    /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-    /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::iron::status::ImATeapot
-    /// #   }
     /// # }
     /// #
     /// # fn main() {
@@ -448,17 +426,18 @@ impl JsonApiRouterBuilder {
     ///
     /// This resource will then have the route `GET /my-resources`.
     pub fn jsonapi_index<'a, T>(&mut self)
-        where Status: for<'b> From<&'b T::Error>,
-              T: IndexHandler,
-              T::Context: FromRequest,
-              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>
+    where
+        T: Handler<Status = Status>,
+        T: IndexHandler,
+        T::Context: FromRequest,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
-        self.router
-            .get(format!("/{}", T::resource_name()),
-                 move |r: &mut Request| T::respond(r),
-                 format!("index_{}", T::resource_name()));
+        self.router.get(
+            format!("/{}", T::resource_name()),
+            move |r: &mut Request| T::respond(r),
+            format!("index_{}", T::resource_name())
+        );
     }
 
     /// Setup a route for a struct that implements `JsonGet` and `JsonApiResource`.
@@ -481,6 +460,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonGet;
     /// # use rustiful::IntoJson;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// struct MyResource {
@@ -495,7 +475,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -527,7 +507,7 @@ impl JsonApiRouterBuilder {
     /// #     fn find(id: Self::JsonApiIdType,
     /// #             params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #             ctx: Self::Context)
-    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, Self::Error> {
+    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
     /// #          Ok(Some(MyResource::default().into_json(params)))
     /// #      }
     /// }
@@ -553,6 +533,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonGet;
     /// # use rustiful::IntoJson;
     /// # use rustiful::iron::JsonApiRouterBuilder;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// # struct MyResource {
@@ -567,7 +548,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -599,15 +580,9 @@ impl JsonApiRouterBuilder {
     /// #     fn find(id: Self::JsonApiIdType,
     /// #             params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #             ctx: Self::Context)
-    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, Self::Error> {
+    /// #            -> Result<Option<rustiful::JsonApiData<Self>>, (Self::Error, Status)> {
     /// #          Ok(Some(MyResource::default().into_json(params)))
     /// #      }
-    /// # }
-    /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-    /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::iron::status::ImATeapot
-    /// #   }
     /// # }
     /// #
     /// # fn main() {
@@ -618,18 +593,19 @@ impl JsonApiRouterBuilder {
     ///
     /// This resource will then have the route `GET /my-resources/{id}`.
     pub fn jsonapi_get<T>(&mut self)
-        where Status: for<'b> From<&'b T::Error>,
-              T: GetHandler,
-              T::Context: FromRequest,
-              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>,
-              <T::JsonApiIdType as FromStr>::Err: Error
+    where
+        T: Handler<Status = Status>,
+        T: GetHandler,
+        T::Context: FromRequest,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
-        self.router
-            .get(format!("/{}/:id", T::resource_name()),
-                 move |r: &mut Request| T::respond(r),
-                 format!("get_{}", T::resource_name()));
+        self.router.get(
+            format!("/{}/:id", T::resource_name()),
+            move |r: &mut Request| T::respond(r),
+            format!("get_{}", T::resource_name())
+        );
     }
 
     /// Setup a route for a struct that implements `JsonDelete` and `JsonApiResource`.
@@ -651,6 +627,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonDelete;
     /// # use rustiful::IntoJson;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// struct MyResource {
@@ -665,7 +642,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -694,7 +671,7 @@ impl JsonApiRouterBuilder {
     /// #    type Context = MyCtx;
     /// #    type Error = MyError;
     /// #
-    /// #    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
+    /// #    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Status)> {
     /// #         Ok(())
     /// #    }
     /// }
@@ -719,6 +696,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonDelete;
     /// # use rustiful::IntoJson;
     /// # use rustiful::iron::JsonApiRouterBuilder;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// # struct MyResource {
@@ -733,7 +711,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -762,15 +740,9 @@ impl JsonApiRouterBuilder {
     /// #    type Context = MyCtx;
     /// #    type Error = MyError;
     /// #
-    /// #    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
+    /// #    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Status)> {
     /// #         Ok(())
     /// #    }
-    /// # }
-    /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-    /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::iron::status::ImATeapot
-    /// #   }
     /// # }
     /// #
     /// # fn main() {
@@ -781,15 +753,17 @@ impl JsonApiRouterBuilder {
     ///
     /// This resource will then have the route `DELETE /my-resources/{id}`.
     pub fn jsonapi_delete<T>(&mut self)
-        where Status: for<'b> From<&'b T::Error>,
-              T: DeleteHandler,
-              T::Context: FromRequest,
-              <T::JsonApiIdType as FromStr>::Err: Error
+    where
+        T: Handler<Status = Status>,
+        T: DeleteHandler,
+        T::Context: FromRequest,
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
-        self.router
-            .delete(format!("/{}/:id", T::resource_name()),
-                    move |r: &mut Request| T::respond(r),
-                    format!("delete_{}", T::resource_name()));
+        self.router.delete(
+            format!("/{}/:id", T::resource_name()),
+            move |r: &mut Request| T::respond(r),
+            format!("delete_{}", T::resource_name())
+        );
     }
 
 
@@ -812,6 +786,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonPost;
     /// # use rustiful::IntoJson;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// struct MyResource {
@@ -826,7 +801,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -858,7 +833,7 @@ impl JsonApiRouterBuilder {
     /// #    fn create(json: rustiful::JsonApiData<Self>,
     /// #         params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #          ctx: Self::Context)
-    /// #          -> Result<rustiful::JsonApiData<Self>, Self::Error> {
+    /// #          -> Result<rustiful::JsonApiData<Self>, (Self::Error, Status)> {
     /// #         Ok(MyResource::default().into_json(params))
     /// #    }
     /// }
@@ -883,6 +858,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonPost;
     /// # use rustiful::IntoJson;
     /// # use rustiful::iron::JsonApiRouterBuilder;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// # struct MyResource {
@@ -897,7 +873,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -929,7 +905,7 @@ impl JsonApiRouterBuilder {
     /// #    fn create(json: rustiful::JsonApiData<Self>,
     /// #         params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #          ctx: Self::Context)
-    /// #          -> Result<rustiful::JsonApiData<Self>, Self::Error> {
+    /// #          -> Result<rustiful::JsonApiData<Self>, (Self::Error, Status)> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -940,11 +916,6 @@ impl JsonApiRouterBuilder {
     /// #    }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-    /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::iron::status::ImATeapot
-    /// #   }
-    /// # }
     /// #
     /// # fn main() {
     /// let mut router = JsonApiRouterBuilder::default();
@@ -953,18 +924,19 @@ impl JsonApiRouterBuilder {
     /// ```
     /// This resource will then have the route `POST /my-resources`.
     pub fn jsonapi_post<T>(&mut self)
-        where Status: for<'b> From<&'b T::Error>,
-              T: 'static,
-              T: PostHandler,
-              T::Context: FromRequest,
-              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>
+    where
+        T: Handler<Status = Status>,
+        T: 'static,
+        T: PostHandler,
+        T::Context: FromRequest,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
-        self.router
-            .post(format!("/{}", T::resource_name()),
-                  move |r: &mut Request| T::respond(r),
-                  format!("create_{}", T::resource_name()));
+        self.router.post(
+            format!("/{}", T::resource_name()),
+            move |r: &mut Request| T::respond(r),
+            format!("create_{}", T::resource_name())
+        );
     }
 
     /// Configures a route for a type that implements `JsonPatch` and `JsonApiResource`.
@@ -986,6 +958,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonApiData;
     /// # use rustiful::JsonPatch;
     /// # use rustiful::IntoJson;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// struct MyResource {
@@ -1000,7 +973,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -1033,7 +1006,7 @@ impl JsonApiRouterBuilder {
     /// #              json: rustiful::JsonApiData<Self>,
     /// #              params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #              ctx: Self::Context)
-    /// #              -> Result<rustiful::JsonApiData<Self>, Self::Error> {
+    /// #              -> Result<rustiful::JsonApiData<Self>, (Self::Error, Status)> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -1064,6 +1037,7 @@ impl JsonApiRouterBuilder {
     /// # use rustiful::JsonPatch;
     /// # use rustiful::IntoJson;
     /// # use rustiful::iron::JsonApiRouterBuilder;
+    /// # use rustiful::iron::status::Status;
     /// #
     /// # #[derive(Debug, Default, PartialEq, Eq, Clone, JsonApi)]
     /// # struct MyResource {
@@ -1078,7 +1052,7 @@ impl JsonApiRouterBuilder {
     /// # impl rustiful::iron::FromRequest for MyCtx {
     /// #     type Error = MyError;
     /// #
-    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, Self::Error> {
+    /// #     fn from_request(req: &iron::request::Request) -> Result<Self, (Self::Error, Status)> {
     /// #         Ok(MyCtx {})
     /// #     }
     /// # }
@@ -1111,7 +1085,7 @@ impl JsonApiRouterBuilder {
     /// #              json: rustiful::JsonApiData<Self>,
     /// #              params: &rustiful::JsonApiParams<Self::FilterField, Self::SortField>,
     /// #              ctx: Self::Context)
-    /// #              -> Result<rustiful::JsonApiData<Self>, Self::Error> {
+    /// #              -> Result<rustiful::JsonApiData<Self>, (Self::Error, Status)> {
     /// #         let resource = MyResource {
     /// #             id: "some_id".to_string(),
     /// #             foo: true,
@@ -1122,12 +1096,6 @@ impl JsonApiRouterBuilder {
     /// #    }
     /// # }
     /// #
-    /// # impl<'a> From<&'a MyError> for rustiful::iron::status::Status {
-    /// #   fn from(error: &'a MyError) -> Self {
-    /// #       rustiful::iron::status::ImATeapot
-    /// #   }
-    /// # }
-    /// #
     /// # fn main() {
     /// let mut router = JsonApiRouterBuilder::default();
     /// router.jsonapi_patch::<MyResource>();
@@ -1136,19 +1104,20 @@ impl JsonApiRouterBuilder {
     ///
     /// This resource will then have the route `PATCH /my-resources/{id}`.
     pub fn jsonapi_patch<T>(&mut self)
-        where Status: for<'b> From<&'b T::Error>,
-              T: 'static,
-              T: PatchHandler,
-              T::Context: FromRequest,
-              T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-              T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>),
-                                              Error = QueryStringParseError>,
-              <T::JsonApiIdType as FromStr>::Err: Error
+    where
+        T: Handler<Status = Status>,
+        T: 'static,
+        T: PatchHandler,
+        T::Context: FromRequest,
+        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
+        <T::JsonApiIdType as FromStr>::Err: Error
     {
-        self.router
-            .patch(format!("/{}/:id", T::resource_name()),
-                   move |r: &mut Request| T::respond(r),
-                   format!("update_{}", T::resource_name()));
+        self.router.patch(
+            format!("/{}/:id", T::resource_name()),
+            move |r: &mut Request| T::respond(r),
+            format!("update_{}", T::resource_name())
+        );
     }
 
     /// Constructs an iron `Chain` with the routes that were previously specified in `jsonapi_get`,

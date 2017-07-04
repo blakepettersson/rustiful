@@ -1,5 +1,4 @@
 use diesel;
-use rustiful::iron::status::Status;
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -39,16 +38,6 @@ impl Display for MyErr {
             MyErr::Diesel(ref err) => err.fmt(f),
             MyErr::UpdateError(ref err) => err.fmt(f),
             MyErr::TooManySortColumns(ref err) => err.fmt(f),
-        }
-    }
-}
-
-/// This specifies which HTTP status code should be returned on an Error.
-impl<'a> From<&'a MyErr> for Status {
-    fn from(err: &'a MyErr) -> Self {
-        match *err {
-            MyErr::UpdateError(_) => Status::ImATeapot,
-            _ => Status::InternalServerError,
         }
     }
 }

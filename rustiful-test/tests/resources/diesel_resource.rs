@@ -65,16 +65,16 @@ impl JsonGet for Test {
         id: Self::JsonApiIdType,
         params: &Self::Params,
         ctx: Self::Context,
-    ) -> Result<Option<JsonApiData<Self>>, Self::Error> {
+    ) -> Result<Option<JsonApiData<Self>>, (Self::Error, Self::Status)> {
         if id == "fail" {
-            return Err(MyErr::UpdateError("test fail".to_string()));
+            return Err(MyErr::UpdateError("test fail".to_string()).into());
         }
         table
             .find(id)
             .first::<Test>(ctx.conn())
             .optional()
             .map(|r| r.map(|i| i.into_json(params)))
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| MyErr::Diesel(e).into())
     }
 }
 
@@ -87,7 +87,7 @@ impl JsonPatch for Test {
         json: JsonApiData<Self>,
         params: &Self::Params,
         ctx: Self::Context,
-    ) -> Result<JsonApiData<Self>, Self::Error> {
+    ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
         let record = table.find(&id).first(ctx.conn()).map_err(
             |e| MyErr::Diesel(e),
         )?;
@@ -95,8 +95,8 @@ impl JsonPatch for Test {
         diesel::update(table.find(&id))
             .set(&patch)
             .execute(ctx.conn())
-            .map_err(|e| MyErr::Diesel(e))?;
-        Ok(patch.into_json(params))
+            .map(|_| patch.into_json(params))
+            .map_err(|e| MyErr::Diesel(e).into())
     }
 }
 
@@ -107,7 +107,7 @@ impl JsonIndex for Test {
     fn find_all(
         params: &Self::Params,
         ctx: Self::Context,
-    ) -> Result<Vec<JsonApiData<Self>>, Self::Error> {
+    ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)> {
         let mut query = table.into_boxed();
 
         {
@@ -139,7 +139,7 @@ impl JsonIndex for Test {
         query
             .load::<Test>(ctx.conn())
             .map(|r| r.into_json(params))
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| MyErr::Diesel(e).into())
     }
 }
 
@@ -147,11 +147,11 @@ impl JsonDelete for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
+    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Self::Status)> {
         diesel::delete(table.find(id))
             .execute(ctx.conn())
             .map(|_| ())
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| MyErr::Diesel(e).into())
     }
 }
 
@@ -163,7 +163,7 @@ impl JsonPost for Test {
         json: JsonApiData<Self>,
         params: &Self::Params,
         ctx: Self::Context,
-    ) -> Result<JsonApiData<Self>, Self::Error> {
+    ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
         let has_client_id = json.has_id(); // Client-supplied id
         let mut result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;
 
@@ -176,7 +176,7 @@ impl JsonPost for Test {
         diesel::insert(&result)
             .into(table)
             .execute(ctx.conn())
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| MyErr::Diesel(e).into())
             .map(|_| result.into_json(params))
     }
 }

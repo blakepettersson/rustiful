@@ -4,6 +4,7 @@ use diesel;
 use diesel::*;
 use errors::MyErr;
 use rustiful::*;
+use rustiful::iron::status::Status;
 
 extern crate uuid;
 
@@ -40,13 +41,13 @@ impl JsonGet for Todo {
     fn find(id: Self::JsonApiIdType,
             params: &Self::Params,
             ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self>>, Self::Error> {
+            -> Result<Option<JsonApiData<Self>>, (Self::Error, Status)> {
         table
             .find(id)
             .first::<Todo>(ctx.conn())
             .map(|r| r.into_json(params))
             .optional()
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))
     }
 }
 
@@ -57,7 +58,7 @@ impl JsonIndex for Todo {
     /// Gets all records from the database
     fn find_all(params: &Self::Params,
                 ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self>>, Self::Error> {
+                -> Result<Vec<JsonApiData<Self>>, (Self::Error, Status)> {
 
         let mut query = table.into_boxed();
 
@@ -107,14 +108,14 @@ impl JsonIndex for Todo {
                                          order_columns.remove(0),
                                          order_columns.remove(0)))
                 }
-                _ => return Err(MyErr::TooManySortColumns("too many sort columns".to_string())),
+                _ => return Err((MyErr::TooManySortColumns("too many sort columns".to_string()), Status::BadRequest)),
             }
         }
 
         query
             .load::<Todo>(ctx.conn())
             .map(|r| r.into_json(params))
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))
     }
 }
 
@@ -129,18 +130,18 @@ impl JsonPatch for Todo {
               json: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self>, Self::Error> {
+              -> Result<JsonApiData<Self>, (Self::Error, Status)> {
         let record = table
             .find(&id)
             .first(ctx.conn())
-            .map_err(|e| MyErr::Diesel(e))?;
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))?;
         let patch = (record, json)
             .try_into()
-            .map_err(|e| MyErr::UpdateError(e))?;
+            .map_err(|e| (MyErr::UpdateError(e), Status::ImATeapot))?;
         diesel::update(table.find(&id))
             .set(&patch)
             .execute(ctx.conn())
-            .map_err(|e| MyErr::Diesel(e))?;
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))?;
         Ok(patch.into_json(params))
     }
 }
@@ -150,11 +151,11 @@ impl JsonDelete for Todo {
     type Context = DB;
 
     /// Deletes a record from the database with the given id
-    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), Self::Error> {
+    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Status)> {
         diesel::delete(table.find(id))
             .execute(ctx.conn())
             .map(|_| ())
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))
     }
 }
 
@@ -169,14 +170,14 @@ impl JsonPost for Todo {
     fn create(record: JsonApiData<Self>,
               params: &Self::Params,
               ctx: Self::Context)
-              -> Result<JsonApiData<Self>, Self::Error> {
-        let todo: Todo = record.try_into().map_err(|e| MyErr::UpdateError(e))?;
+              -> Result<JsonApiData<Self>, (Self::Error, Status)> {
+        let todo: Todo = record.try_into().map_err(|e| (MyErr::UpdateError(e), Status::ImATeapot))?;
         let result: NewTodo = todo.into();
         diesel::insert(&result)
             .into(table)
             .get_result::<Todo>(ctx.conn())
             .map(|r| r.into_json(params))
-            .map_err(|e| MyErr::Diesel(e))
+            .map_err(|e| (MyErr::Diesel(e), Status::InternalServerError))
     }
 }
 
