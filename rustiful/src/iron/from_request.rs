@@ -1,6 +1,7 @@
 extern crate iron;
 
 use self::iron::prelude::*;
+use super::status::Status;
 use std;
 
 /// A trait used to initialize a type from an Iron request.
@@ -15,6 +16,7 @@ use std;
 /// # use std::fmt::Display;
 /// # use std::fmt::Formatter;
 /// # use rustiful::iron::FromRequest;
+/// # use rustiful::iron::status::Status;
 /// #
 /// struct Foo {
 ///     magic_header: String
@@ -42,11 +44,11 @@ use std;
 /// impl FromRequest for Foo {
 ///     type Error = FooError;
 ///
-///     fn from_request(request: &iron::Request) -> Result<Self, Self::Error> {
+///     fn from_request(request: &iron::Request) -> Result<Self, (Self::Error, Status)> {
 ///         let magic_header = request.headers.get_raw("my-magic-header");
 ///
 ///         if magic_header == None {
-///             Err(FooError("header not present!".to_string()))
+///             Err((FooError("header not present!".to_string()), Status::BadRequest))
 ///         } else {
 ///             // Get first header value if present.. there are better ways to do this, but this is
 ///             // for demo purposes only
@@ -63,5 +65,5 @@ use std;
 pub trait FromRequest: Sized {
     type Error: std::error::Error + Send;
 
-    fn from_request(request: &Request) -> Result<Self, Self::Error>;
+    fn from_request(request: &Request) -> Result<Self, (Self::Error, Status)>;
 }

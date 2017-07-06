@@ -17,15 +17,15 @@ use self::iron::prelude::*;
 use self::status::Status;
 use container::JsonApiContainer;
 use error::JsonApiErrorArray;
-use errors::FromRequestError;
-use errors::IdParseError;
-use errors::QueryStringParseError;
-use errors::RepositoryError;
-use errors::RequestError;
-use iron::handlers::BodyParserError;
 use iron::router::Router;
+use resource::JsonApiResource;
 use serde::Serialize;
+use service::Handler;
 use std::error::Error;
+
+impl<T: JsonApiResource> Handler for T {
+    type Status = Status;
+}
 
 /// Status Codes
 pub mod status {
@@ -40,95 +40,27 @@ fn json_api_type() -> Mime {
     "application/vnd.api+json".parse().unwrap()
 }
 
-fn into_json_api_response<T>(data: T, status: Status) -> IronResult<Response>
-    where T: Serialize
-{
-    let json = JsonApiContainer { data: data };
+#[derive(Debug)]
+struct JsonErrorResponse<E: Error>(E, Status);
 
-    match serde_json::to_string(&json) {
-        Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-        Err(e) => Err(IronError::new(e, Status::InternalServerError)),
-    }
-}
-
-impl From<RequestError> for IronResult<Response> {
-    fn from(err: RequestError) -> IronResult<Response> {
-        let status = match err {
-            RequestError::NotFound => Status::NotFound,
-            RequestError::NoBody => Status::BadRequest,
-        };
-
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
-
-        match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, Status::InternalServerError)),
+impl<E: Error> From<JsonErrorResponse<E>> for IronResult<Response> {
+    fn from(err: JsonErrorResponse<E>) -> IronResult<Response> {
+        match serde_json::to_string(&JsonApiErrorArray::new(&err.0, err.1.to_u16())) {
+            Ok(serialized) => Ok(Response::with((json_api_type(), err.1, serialized))),
+            Err(e) => Err(IronError::new(e, Status::InternalServerError))
         }
     }
 }
 
-impl<T> From<FromRequestError<T>> for IronResult<Response>
-    where T: Error + Send
-{
-    fn from(err: FromRequestError<T>) -> IronResult<Response> {
-        let status = Status::InternalServerError;
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
+#[derive(Debug)]
+struct JsonOkResponse<T: Serialize>(T);
 
+impl<T: Serialize> From<JsonOkResponse<T>> for IronResult<Response> {
+    fn from(data: JsonOkResponse<T>) -> IronResult<Response> {
+        let json = JsonApiContainer { data: data.0 };
         match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, status)),
-        }
-    }
-}
-
-impl From<BodyParserError> for IronResult<Response> {
-    fn from(err: BodyParserError) -> IronResult<Response> {
-        let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
-
-        match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, status)),
-        }
-    }
-}
-
-impl From<QueryStringParseError> for IronResult<Response> {
-    fn from(err: QueryStringParseError) -> IronResult<Response> {
-        let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
-
-        match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, status)),
-        }
-    }
-}
-
-impl<E> From<RepositoryError<E, Status>> for IronResult<Response>
-    where E: Error + Send
-{
-    fn from(err: RepositoryError<E, Status>) -> IronResult<Response> {
-        let status = err.status;
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
-
-        match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, status)),
-        }
-    }
-}
-
-impl<E> From<IdParseError<E>> for IronResult<Response>
-    where E: Error
-{
-    fn from(err: IdParseError<E>) -> IronResult<Response> {
-        let status = Status::BadRequest;
-        let json = JsonApiErrorArray::new(&err, status.to_u16());
-
-        match serde_json::to_string(&json) {
-            Ok(serialized) => Ok(Response::with((json_api_type(), status, serialized))),
-            Err(e) => Err(IronError::new(e, status)),
+            Ok(serialized) => Ok(Response::with((json_api_type(), Status::Ok, serialized))),
+            Err(e) => Err(IronError::new(e, Status::InternalServerError))
         }
     }
 }
@@ -152,11 +84,13 @@ mod tests {
     use self::iron_test::response;
     use super::*;
     use super::iron::headers::ContentType;
-    use std::collections::HashMap;
+    use errors::IdParseError;
+    use errors::QueryStringParseError;
     use serde::de::DeserializeOwned;
+    use std::collections::HashMap;
 
     // Use `QueryStringParseError` to be wrapped in `RepositoryError`, for convenience
-    impl <'a> From<&'a QueryStringParseError> for Status {
+    impl<'a> From<&'a QueryStringParseError> for Status {
         fn from(_: &'a QueryStringParseError) -> Self {
             Status::ImATeapot
         }
@@ -183,8 +117,7 @@ mod tests {
             attributes: attributes
         };
 
-        let result = into_json_api_response(data, Status::Ok);
-        let json = assert_response(result, Status::Ok);
+        let json = assert_response(JsonOkResponse(data).into(), Status::Ok);
         let expected = r#"{"data":{"id":"foo","type":"foos","attributes":{"foo":"bar"}}}"#;
         assert_json_success::<JsonApiContainer<Data>>(expected, &json);
     }
@@ -199,61 +132,34 @@ mod tests {
             attributes: attributes
         };
 
-        let result = into_json_api_response(vec![data], Status::Ok);
-        let json = assert_response(result, Status::Ok);
+        let json = assert_response(JsonOkResponse(vec![data]).into(), Status::Ok);
         let expected = r#"{"data":[{"id":"foo","type":"foos","attributes":{"foo":"bar"}}]}"#;
         assert_json_success::<JsonApiContainer<Vec<Data>>>(expected, &json);
     }
 
     #[test]
-    fn from_request_error_400_conversion() {
-        let error = RequestError::NoBody;
-        let json = assert_response(error.into(), Status::BadRequest);
-        let expected = r#"{"errors":[{"title":"No body","status":"400","detail":"No body"}]}"#;
-        assert_json_error(expected, &json);
-    }
-
-    #[test]
-    fn from_request_error_404_conversion() {
-        let error = RequestError::NotFound;
-        let json = assert_response(error.into(), Status::NotFound);
-        let expected = r#"{"errors":[{"title":"Not found","status":"404","detail":"Not found"}]}"#;
-        assert_json_error(expected, &json);
-    }
-
-    #[test]
-    fn from_from_request_error_conversion() {
-        let error = FromRequestError(RequestError::NotFound);
-        let json = assert_response(error.into(), Status::InternalServerError);
-        let expected = r#"{"errors":[{"title":"Not found","status":"500","detail":"From request error: Not found"}]}"#;
-        assert_json_error(expected, &json);
-    }
-
-    #[test]
     fn from_query_parse_error_conversion() {
         let error = QueryStringParseError::UnImplementedError;
-        let json = assert_response(error.into(), Status::BadRequest);
+        let json = assert_response(
+            JsonErrorResponse(error, Status::BadRequest).into(),
+            Status::BadRequest
+        );
         let expected = r#"{"errors":[{"title":"Unimplemented","status":"400","detail":"Query string parse error: Unimplemented!"}]}"#;
-        assert_json_error(expected, &json);
-    }
-
-    #[test]
-    fn from_repository_error_conversion() {
-        let error = RepositoryError::new(QueryStringParseError::UnImplementedError);
-        let json = assert_response(error.into(), Status::ImATeapot);
-        let expected = r#"{"errors":[{"title":"Unimplemented","status":"418","detail":"Error in repository: Unimplemented"}]}"#;
         assert_json_error(expected, &json);
     }
 
     #[test]
     fn from_body_parser_error_conversion() {
         let serde_fail = serde_json::from_str::<JsonApiErrorArray>("");
-        let error = BodyParserError(BodyError {
+        let error = BodyError {
             detail: "test".to_string(),
             cause: BodyErrorCause::JsonError(serde_fail.expect_err("unexpected ok!"))
-        });
-        let json = assert_response(error.into(), Status::BadRequest);
-        let expected = r#"{"errors":[{"title":"test","status":"400","detail":"Error when parsing json: test"}]}"#;
+        };
+        let json = assert_response(
+            JsonErrorResponse(error, Status::BadRequest).into(),
+            Status::BadRequest
+        );
+        let expected = r#"{"errors":[{"title":"test","status":"400","detail":"test"}]}"#;
         assert_json_error(expected, &json);
     }
 
@@ -261,7 +167,10 @@ mod tests {
     fn from_id_parse_error_conversion() {
         let parse_fail: Result<u8, _> = "not a string".parse();
         let error = IdParseError(parse_fail.expect_err("unexpected ok!"));
-        let json = assert_response(error.into(), Status::BadRequest);
+        let json = assert_response(
+            JsonErrorResponse(error, Status::BadRequest).into(),
+            Status::BadRequest
+        );
 
         let expected = r#"{"errors":[{"title":"invalid digit found in string","status":"400","detail":"Error parsing id: invalid digit found in string"}]}"#;
         assert_json_error(expected, &json);
