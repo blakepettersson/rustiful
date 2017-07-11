@@ -1,15 +1,17 @@
+
+use json::generate_option_field;
 use quote::Tokens;
-use util::JsonApiField;
 use syn::Ident;
 use util;
-use json::generate_option_field;
+use util::JsonApiField;
 extern crate inflector;
 
 use self::inflector::Inflector;
 
-pub fn expand_json_api_builders(name: &Ident,
-                                &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
-                                -> Tokens {
+pub fn expand_json_api_builders(
+    name: &Ident,
+    &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)
+) -> Tokens {
     let json_api_id_ty = &id.field.ty;
     let json_api_id_ident = &id.ident;
     let lower_case_name = Ident::new(name.to_string().to_snake_case());

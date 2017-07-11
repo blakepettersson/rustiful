@@ -23,27 +23,27 @@ pub struct Test {
     pub id: String,
     pub title: String,
     pub body: Option<String>,
-    pub published: bool,
+    pub published: bool
 }
 
 #[derive(Debug)]
 pub enum MyErr {
     Diesel(diesel::result::Error),
-    UpdateError(String),
+    UpdateError(String)
 }
 
 impl Error for MyErr {
     fn description(&self) -> &str {
         match *self {
             MyErr::Diesel(ref err) => err.description(),
-            MyErr::UpdateError(ref err) => err,
+            MyErr::UpdateError(ref err) => err
         }
     }
 
     fn cause(&self) -> Option<&Error> {
         match *self {
             MyErr::Diesel(ref err) => err.cause(),
-            MyErr::UpdateError(_) => None,
+            MyErr::UpdateError(_) => None
         }
     }
 }
@@ -52,7 +52,7 @@ impl Display for MyErr {
     fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
         match *self {
             MyErr::Diesel(ref err) => err.fmt(f),
-            MyErr::UpdateError(ref err) => err.fmt(f),
+            MyErr::UpdateError(ref err) => err.fmt(f)
         }
     }
 }
@@ -64,7 +64,7 @@ impl JsonGet for Test {
     fn find(
         id: Self::JsonApiIdType,
         params: &Self::Params,
-        ctx: Self::Context,
+        ctx: Self::Context
     ) -> Result<Option<JsonApiData<Self>>, (Self::Error, Self::Status)> {
         if id == "fail" {
             return Err(MyErr::UpdateError("test fail".to_string()).into());
@@ -86,12 +86,15 @@ impl JsonPatch for Test {
         id: Self::JsonApiIdType,
         json: JsonApiData<Self>,
         params: &Self::Params,
-        ctx: Self::Context,
+        ctx: Self::Context
     ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
-        let record = table.find(&id).first(ctx.conn()).map_err(
-            |e| MyErr::Diesel(e),
-        )?;
-        let patch = (record, json).try_into().map_err(|e| MyErr::UpdateError(e))?;
+        let record = table
+            .find(&id)
+            .first(ctx.conn())
+            .map_err(|e| MyErr::Diesel(e))?;
+        let patch = (record, json)
+            .try_into()
+            .map_err(|e| MyErr::UpdateError(e))?;
         diesel::update(table.find(&id))
             .set(&patch)
             .execute(ctx.conn())
@@ -106,7 +109,7 @@ impl JsonIndex for Test {
 
     fn find_all(
         params: &Self::Params,
-        ctx: Self::Context,
+        ctx: Self::Context
     ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)> {
         let mut query = table.into_boxed();
 
@@ -147,7 +150,10 @@ impl JsonDelete for Test {
     type Error = MyErr;
     type Context = DB;
 
-    fn delete(id: Self::JsonApiIdType, ctx: Self::Context) -> Result<(), (Self::Error, Self::Status)> {
+    fn delete(
+        id: Self::JsonApiIdType,
+        ctx: Self::Context
+    ) -> Result<(), (Self::Error, Self::Status)> {
         diesel::delete(table.find(id))
             .execute(ctx.conn())
             .map(|_| ())
@@ -162,7 +168,7 @@ impl JsonPost for Test {
     fn create(
         json: JsonApiData<Self>,
         params: &Self::Params,
-        ctx: Self::Context,
+        ctx: Self::Context
     ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
         let has_client_id = json.has_id(); // Client-supplied id
         let mut result: Test = json.try_into().map_err(|e| MyErr::UpdateError(e))?;

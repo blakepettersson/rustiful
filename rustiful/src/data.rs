@@ -4,25 +4,34 @@ use to_json::ToJson;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// The JSONAPI representation of a resource.
-pub struct JsonApiData<T> where T: ToJson, T::Attrs: Clone {
+pub struct JsonApiData<T>
+where
+    T: ToJson,
+    T::Attrs: Clone
+{
     // The id of the JSONAPI resource.
     pub id: Option<String>,
     #[serde(rename = "type")]
     // The type name of the JSONAPI resource, equivalent to the resource name.
     pub lower_case_type: String,
     // The attribute type of the JSONAPI resource.
-    pub attributes: T::Attrs,
+    pub attributes: T::Attrs
 }
 
-impl<T> JsonApiData<T> where T: ToJson, T::Attrs: Clone {
-    pub fn new<Id: Into<String>, Type: Into<String>>(id: Option<Id>,
-                                                     lower_case_type: Type,
-                                                     attrs: T::Attrs)
-                                                     -> JsonApiData<T> {
+impl<T> JsonApiData<T>
+where
+    T: ToJson,
+    T::Attrs: Clone
+{
+    pub fn new<Id: Into<String>, Type: Into<String>>(
+        id: Option<Id>,
+        lower_case_type: Type,
+        attrs: T::Attrs
+    ) -> JsonApiData<T> {
         JsonApiData {
             id: id.map(|i| i.into()),
             lower_case_type: lower_case_type.into(),
-            attributes: attrs,
+            attributes: attrs
         }
     }
 
@@ -32,7 +41,11 @@ impl<T> JsonApiData<T> where T: ToJson, T::Attrs: Clone {
     }
 }
 
-impl <T> Clone for JsonApiData<T> where T: ToJson, T::Attrs: Clone {
+impl<T> Clone for JsonApiData<T>
+where
+    T: ToJson,
+    T::Attrs: Clone
+{
     fn clone(&self) -> Self {
         JsonApiData {
             id: self.id.clone(),
@@ -107,13 +120,16 @@ impl <T> Clone for JsonApiData<T> where T: ToJson, T::Attrs: Clone {
 /// # }
 /// ```
 impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonApiData<T>
-    where T: ToJson + JsonApiResource,
-          T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
+where
+    T: ToJson + JsonApiResource,
+    T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn from((model, params): (T, &'a JsonApiParams<T::FilterField, T::SortField>)) -> Self {
-        JsonApiData::new(Some(model.id()),
-                         model.type_name(),
-                         T::Attrs::from((model, params)))
+        JsonApiData::new(
+            Some(model.id()),
+            model.type_name(),
+            T::Attrs::from((model, params))
+        )
     }
 }
 
@@ -181,12 +197,14 @@ pub trait IntoJson<T, F, S> {
 /// # }
 /// ```
 impl<T> IntoJson<JsonApiData<T>, T::FilterField, T::SortField> for T
-    where T: ToJson + JsonApiResource,
-          T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
+where
+    T: ToJson + JsonApiResource,
+    T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
-    fn into_json<'a>(self,
-                     params: &'a JsonApiParams<T::FilterField, T::SortField>)
-                     -> JsonApiData<T> {
+    fn into_json<'a>(
+        self,
+        params: &'a JsonApiParams<T::FilterField, T::SortField>
+    ) -> JsonApiData<T> {
         (self, params).into()
     }
 }
@@ -251,12 +269,14 @@ impl<T> IntoJson<JsonApiData<T>, T::FilterField, T::SortField> for T
 /// # }
 /// ```
 impl<T> IntoJson<Vec<JsonApiData<T>>, T::FilterField, T::SortField> for Vec<T>
-    where T: ToJson + JsonApiResource,
-          T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
+where
+    T: ToJson + JsonApiResource,
+    T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
-    fn into_json<'a>(self,
-                     params: &'a JsonApiParams<T::FilterField, T::SortField>)
-                     -> Vec<JsonApiData<T>> {
+    fn into_json<'a>(
+        self,
+        params: &'a JsonApiParams<T::FilterField, T::SortField>
+    ) -> Vec<JsonApiData<T>> {
         self.into_iter().map(|i| (i, params).into()).collect()
     }
 }

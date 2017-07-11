@@ -22,7 +22,7 @@ pub enum QueryStringParseError {
     DuplicateSortKey(String),
 
     /// Currently unsupported functionality when parsing the query param, notably relationships
-    UnImplementedError,
+    UnImplementedError
 }
 
 impl Display for QueryStringParseError {
@@ -36,9 +36,9 @@ impl Display for QueryStringParseError {
             InvalidSortValue(ref desc) => write!(f, "{} Invalid value: {}", msg, desc),
             EmptyFieldsetValue(ref desc) => {
                 write!(f, "{} No values specified for fields[{}]", msg, desc)
-            },
+            }
             DuplicateSortKey(ref desc) => write!(f, "{} Duplicate sort param key: {}", msg, desc),
-            UnImplementedError => write!(f, "{} Unimplemented!", msg),
+            UnImplementedError => write!(f, "{} Unimplemented!", msg)
         }
     }
 }
@@ -62,6 +62,6 @@ fn description(error: &QueryStringParseError) -> &str {
         InvalidFieldsetKey(ref desc) => desc,
         EmptyFieldsetValue(ref desc) => desc,
         DuplicateSortKey(ref desc) => desc,
-        UnImplementedError => UNIMPLEMENTED,
+        UnImplementedError => UNIMPLEMENTED
     }
 }

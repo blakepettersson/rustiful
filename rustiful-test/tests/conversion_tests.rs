@@ -7,7 +7,7 @@ fn test_into_conversions_with_int_id() {
     let test = Foo {
         bar: 1,
         foo: 2,
-        abc: "abc".to_string(),
+        abc: "abc".to_string()
     };
 
     let expected_id = test.bar.to_string();
@@ -24,7 +24,7 @@ fn test_into_conversions_with_int_id() {
 fn test_into_conversions_with_string_id() {
     let test = Bar {
         id: "test".to_string(),
-        bar: 1,
+        bar: 1
     };
 
     let expected_id = test.id.clone();
@@ -41,7 +41,7 @@ fn test_setting_of_id_in_try_from() {
         id: "1".to_string(),
         title: "foo".to_string(),
         body: None,
-        published: false,
+        published: false
     };
 
     let expected_id = test.id.clone();

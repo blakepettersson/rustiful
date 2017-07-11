@@ -10,8 +10,8 @@ use rustiful::iron::*;
 use rustiful::iron::status::Status;
 use serde_json;
 use std::fmt::Display;
-use uuid::Uuid;
 use std::sync::Mutex;
+use uuid::Uuid;
 
 lazy_static! {
     static ref TEST_MUTEX: Mutex<()> = Mutex::new(());
@@ -33,7 +33,7 @@ impl FromRequest for DB {
     fn from_request(_: &Request) -> Result<DB, (Self::Error, Status)> {
         match DB_POOL.get() {
             Ok(conn) => Ok(DB(conn)),
-            Err(e) => Err((e, Status::InternalServerError)),
+            Err(e) => Err((e, Status::InternalServerError))
         }
     }
 }
@@ -42,7 +42,7 @@ impl From<MyErr> for (MyErr, Status) {
     fn from(err: MyErr) -> Self {
         match err {
             MyErr::UpdateError(_) => (err, Status::ImATeapot),
-            _ => (err, Status::InternalServerError),
+            _ => (err, Status::InternalServerError)
         }
     }
 }
@@ -280,7 +280,7 @@ fn do_get<T: Display>(id: &T) -> JsonApiContainer<JsonApiData<Test>> {
     let response = request::get(
         &format!("http://localhost:3000/tests/{}", id),
         Headers::new(),
-        &app_router(),
+        &app_router()
     );
     let result = response::extract_body_to_string(response.unwrap());
     serde_json::from_str(&result).unwrap()
@@ -309,7 +309,7 @@ fn do_patch<T: Display>(id: &T, json: &str) -> JsonApiContainer<JsonApiData<Test
 fn do_patch_with_url<T: Display>(
     id: &T,
     json: &str,
-    query: &str,
+    query: &str
 ) -> JsonApiContainer<JsonApiData<Test>> {
     let content_type: Mime = "application/vnd.api+json".parse().unwrap();
 
@@ -320,7 +320,7 @@ fn do_patch_with_url<T: Display>(
         &format!("http://localhost:3000/tests/{}?{}", id, query),
         headers,
         &json,
-        &app_router(),
+        &app_router()
     );
     let result = response::extract_body_to_string(response.unwrap());
     serde_json::from_str(&result).unwrap()

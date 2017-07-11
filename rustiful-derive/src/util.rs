@@ -13,7 +13,7 @@ use syn::VariantData;
 /// dances when we want to do something with the ident.
 pub struct JsonApiField {
     pub field: Field,
-    pub ident: Ident,
+    pub ident: Ident
 }
 
 pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
@@ -27,7 +27,7 @@ pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
 
                     JsonApiField {
                         field: f,
-                        ident: ident,
+                        ident: ident
                     }
                 })
                 .partition(|f| {
@@ -37,20 +37,24 @@ pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
                 });
 
             if id.len() > 1 {
-                panic!("You can only use a JsonApiId attribute or have an id field, not both at \
-                the same time.")
+                panic!(
+                    "You can only use a JsonApiId attribute or have an id field, not both at \
+                     the same time."
+                )
             }
 
             let json_api_id = id.remove(0);
 
             if is_option_ty(&json_api_id.field.ty) {
-                panic!("Option types are not supported as an id for {}.",
-                       &json_api_id.ident);
+                panic!(
+                    "Option types are not supported as an id for {}.",
+                    &json_api_id.ident
+                );
             }
 
             return (json_api_id, attrs);
         }
-        _ => panic!("#[derive(JsonApi)] can only be used with structs"),
+        _ => panic!("#[derive(JsonApi)] can only be used with structs")
     }
 }
 
@@ -63,7 +67,7 @@ pub fn is_option_ty(ty: &Ty) -> bool {
                 .map(|s| s.ident == option_ident)
                 .unwrap_or(false)
         }
-        _ => false,
+        _ => false
     }
 }
 

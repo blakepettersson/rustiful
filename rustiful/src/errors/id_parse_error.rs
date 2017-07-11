@@ -8,7 +8,10 @@ use std::fmt::*;
 /// in `&str` format to a native id type fails, and it then gets converted to a `JsonApiError`.
 pub struct IdParseError<E: Error>(pub E);
 
-impl<E> Error for IdParseError<E> where E: Error {
+impl<E> Error for IdParseError<E>
+where
+    E: Error
+{
     fn description(&self) -> &str {
         self.0.description()
     }
@@ -18,7 +21,10 @@ impl<E> Error for IdParseError<E> where E: Error {
     }
 }
 
-impl<E> Display for IdParseError<E> where E: Error {
+impl<E> Display for IdParseError<E>
+where
+    E: Error
+{
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "Error parsing id: {}", self.0)
     }

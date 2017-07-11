@@ -43,7 +43,7 @@ impl FromRequest for DB {
     fn from_request(_: &Request) -> Result<DB, (Self::Error, Status)> {
         match DB_POOL.get() {
             Ok(conn) => Ok(DB(conn)),
-            Err(e) => Err((e, Status::InternalServerError)),
+            Err(e) => Err((e, Status::InternalServerError))
         }
     }
 }

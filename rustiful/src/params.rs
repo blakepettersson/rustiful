@@ -54,18 +54,21 @@ pub struct JsonApiParams<F, S> {
     /// attribute in rustiful-derive.
     pub fieldset: FieldSet<F>,
     /// A hashmap representing all other query parameters that are not `sort` or `fields[*]`.
-    pub query_params: HashMap<String, Vec<String>>,
+    pub query_params: HashMap<String, Vec<String>>
 }
 
 impl<F, S> JsonApiParams<F, S> {
-    pub fn new(fieldset: Vec<F>,
-               sort_params: Vec<S>,
-               query_params: HashMap<String, Vec<String>>)
-               -> JsonApiParams<F, S> {
+    pub fn new(
+        fieldset: Vec<F>,
+        sort_params: Vec<S>,
+        query_params: HashMap<String, Vec<String>>
+    ) -> JsonApiParams<F, S> {
         JsonApiParams {
-            sort: Sort { fields: sort_params },
+            sort: Sort {
+                fields: sort_params
+            },
             fieldset: FieldSet { fields: fieldset },
-            query_params: query_params,
+            query_params: query_params
         }
     }
 }
@@ -139,10 +142,11 @@ impl<F, S> JsonApiParams<F, S> {
 /// let params = <MyResource as JsonApiResource>::Params::from_str(query_string);
 /// # }
 /// ```
-impl <F, S> FromStr for JsonApiParams<F, S>
-    where S: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-          F: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError> {
-
+impl<F, S> FromStr for JsonApiParams<F, S>
+where
+    S: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
+    F: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
+{
     type Err = QueryStringParseError;
 
     fn from_str<'a>(query_string: &'a str) -> Result<Self, Self::Err> {
@@ -167,7 +171,7 @@ impl <F, S> FromStr for JsonApiParams<F, S>
 
                     match S::try_from((field, sort_order)) {
                         Ok(result) => sort_params.push(result),
-                        Err(err) => return Err(err),
+                        Err(err) => return Err(err)
                     }
                 }
             } else if key.starts_with("fields") {
@@ -194,7 +198,7 @@ impl <F, S> FromStr for JsonApiParams<F, S>
 
                 match F::try_from((model, fields)) {
                     Ok(result) => field_params.push(result),
-                    Err(err) => return Err(err),
+                    Err(err) => return Err(err)
                 }
             } else {
                 match query_params.entry(key) {
@@ -227,7 +231,7 @@ impl<F, S> Default for JsonApiParams<F, S> {
 /// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
 /// attribute in rustiful-derive.
 pub struct Sort<S> {
-    pub fields: Vec<S>,
+    pub fields: Vec<S>
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -236,7 +240,7 @@ pub struct Sort<S> {
 /// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
 /// attribute in rustiful-derive.
 pub struct FieldSet<F> {
-    pub fields: Vec<F>,
+    pub fields: Vec<F>
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -245,7 +249,7 @@ pub enum SortOrder {
     /// The parameter should be sorted in an ascending order
     Asc,
     /// The parameter should be sorted in a descending order
-    Desc,
+    Desc
 }
 
 
@@ -268,7 +272,7 @@ pub enum SortOrder {
 /// assert_eq!(SortOrder::Desc, SortOrder::from(desc_param));
 /// # }
 /// ```
-impl <'a> From<&'a str> for SortOrder {
+impl<'a> From<&'a str> for SortOrder {
     fn from(field: &'a str) -> Self {
         if field.starts_with('-') {
             SortOrder::Desc

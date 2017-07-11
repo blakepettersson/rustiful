@@ -1,6 +1,7 @@
+
+use errors::QueryStringParseError;
 use std::fmt::Debug;
 use std::str::FromStr;
-use errors::QueryStringParseError;
 
 /// A trait that defines how to convert to/from a JSONAPI representation of the implementing type.
 ///
