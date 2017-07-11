@@ -19,7 +19,8 @@ pub trait TryInto<T>: Sized {
 }
 
 impl<T, U> TryInto<U> for T
-    where U: TryFrom<T>
+where
+    U: TryFrom<T>
 {
     type Error = U::Error;
 

@@ -29,7 +29,9 @@ pub fn generate_json_api(input: TokenStream) -> TokenStream {
 
     // Build the output
     let mut expanded = builder::expand_json_api_builders(name, &pair);
-    expanded.append(params::expand_json_api_fields(name, &source.attrs, &pair).as_str());
+    expanded.append(
+        params::expand_json_api_fields(name, &source.attrs, &pair).as_str()
+    );
     expanded.append(json::expand_json_api_models(name, &pair).as_str());
 
     // Return the generated impl as a TokenStream
@@ -49,7 +51,9 @@ pub fn generate_json_api_builders(input: TokenStream) -> TokenStream {
     let source = parse_derive_input(&input);
     let name = &source.ident;
     let pair = util::get_attrs_and_id(source.body);
-    builder::expand_json_api_builders(name, &pair).parse().unwrap()
+    builder::expand_json_api_builders(name, &pair)
+        .parse()
+        .unwrap()
 }
 
 #[proc_macro_derive(JsonApiParams)]
@@ -57,7 +61,9 @@ pub fn generate_json_api_request_parameters(input: TokenStream) -> TokenStream {
     let source = parse_derive_input(&input);
     let name = &source.ident;
     let pair = util::get_attrs_and_id(source.body);
-    params::expand_json_api_fields(name, &source.attrs, &pair).parse().unwrap()
+    params::expand_json_api_fields(name, &source.attrs, &pair)
+        .parse()
+        .unwrap()
 }
 
 fn parse_derive_input(input: &TokenStream) -> DeriveInput {

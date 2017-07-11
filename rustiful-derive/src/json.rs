@@ -8,9 +8,10 @@ use syn::Ty;
 use util;
 use util::JsonApiField;
 
-pub fn expand_json_api_models(name: &syn::Ident,
-                              &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
-                              -> Tokens {
+pub fn expand_json_api_models(
+    name: &syn::Ident,
+    &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)
+) -> Tokens {
     let json_api_id_ty = &id.field.ty;
     let json_api_id_ident = &id.ident;
 
@@ -157,7 +158,11 @@ pub fn expand_json_api_models(name: &syn::Ident,
     }
 }
 
-pub fn generate_option_field(ident: &syn::Ident, ty: &Ty, generate_serde_attribute: bool) -> Tokens {
+pub fn generate_option_field(
+    ident: &syn::Ident,
+    ty: &Ty,
+    generate_serde_attribute: bool
+) -> Tokens {
     if util::is_option_ty(ty) && generate_serde_attribute {
         quote! {
                 #[serde(default, deserialize_with = "self::_rustiful::json_option::some_option")]

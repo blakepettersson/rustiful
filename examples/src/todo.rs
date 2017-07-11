@@ -15,22 +15,22 @@ use diesel::pg::Pg;
 infer_schema!("dotenv:POSTGRES_URL");
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonApi, Queryable,
-Insertable, AsChangeset)]
-#[table_name="todos"]
+         Insertable, AsChangeset)]
+#[table_name = "todos"]
 #[changeset_options(treat_none_as_null = "true")]
 pub struct Todo {
     id: Uuid,
     title: String,
     body: Option<String>,
-    published: bool,
+    published: bool
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Insertable)]
-#[table_name="todos"]
+#[table_name = "todos"]
 pub struct NewTodo {
     title: String,
     body: Option<String>,
-    published: bool,
+    published: bool
 }
 
 impl JsonGet for Todo {
@@ -38,10 +38,11 @@ impl JsonGet for Todo {
     type Context = DB;
 
     /// Gets a record from the database with the given id
-    fn find(id: Self::JsonApiIdType,
-            params: &Self::Params,
-            ctx: Self::Context)
-            -> Result<Option<JsonApiData<Self>>, (Self::Error, Status)> {
+    fn find(
+        id: Self::JsonApiIdType,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<Option<JsonApiData<Self>>, (Self::Error, Status)> {
         table
             .find(id)
             .first::<Todo>(ctx.conn())
@@ -56,9 +57,10 @@ impl JsonIndex for Todo {
     type Context = DB;
 
     /// Gets all records from the database
-    fn find_all(params: &Self::Params,
-                ctx: Self::Context)
-                -> Result<Vec<JsonApiData<Self>>, (Self::Error, Status)> {
+    fn find_all(
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Status)> {
 
         let mut query = table.into_boxed();
 
@@ -98,17 +100,26 @@ impl JsonIndex for Todo {
                 1 => query = query.order(order_columns.remove(0)),
                 2 => query = query.order((order_columns.remove(0), order_columns.remove(0))),
                 3 => {
-                    query = query.order((order_columns.remove(0),
-                                         order_columns.remove(0),
-                                         order_columns.remove(0)))
+                    query = query.order((
+                        order_columns.remove(0),
+                        order_columns.remove(0),
+                        order_columns.remove(0)
+                    ))
                 }
                 4 => {
-                    query = query.order((order_columns.remove(0),
-                                         order_columns.remove(0),
-                                         order_columns.remove(0),
-                                         order_columns.remove(0)))
+                    query = query.order((
+                        order_columns.remove(0),
+                        order_columns.remove(0),
+                        order_columns.remove(0),
+                        order_columns.remove(0)
+                    ))
                 }
-                _ => return Err((MyErr::TooManySortColumns("too many sort columns".to_string()), Status::BadRequest)),
+                _ => {
+                    return Err((
+                        MyErr::TooManySortColumns("too many sort columns".to_string()),
+                        Status::BadRequest
+                    ))
+                }
             }
         }
 
@@ -126,11 +137,12 @@ impl JsonPatch for Todo {
     /// Updates a record in the database. First we fetch the record from the database, then convert
     /// the record along with the JSON patch to a new instance that has the updated columns, before
     /// saving it in the database.
-    fn update(id: Self::JsonApiIdType,
-              json: JsonApiData<Self>,
-              params: &Self::Params,
-              ctx: Self::Context)
-              -> Result<JsonApiData<Self>, (Self::Error, Status)> {
+    fn update(
+        id: Self::JsonApiIdType,
+        json: JsonApiData<Self>,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<JsonApiData<Self>, (Self::Error, Status)> {
         let record = table
             .find(&id)
             .first(ctx.conn())
@@ -167,11 +179,14 @@ impl JsonPost for Todo {
     /// must create a record with the given id. If the id is not specified (i.e the record will get
     /// an auto-generated id), then make sure that you return a record with the generated id. This
     /// is handled with the `get_result` method below.
-    fn create(record: JsonApiData<Self>,
-              params: &Self::Params,
-              ctx: Self::Context)
-              -> Result<JsonApiData<Self>, (Self::Error, Status)> {
-        let todo: Todo = record.try_into().map_err(|e| (MyErr::UpdateError(e), Status::ImATeapot))?;
+    fn create(
+        record: JsonApiData<Self>,
+        params: &Self::Params,
+        ctx: Self::Context
+    ) -> Result<JsonApiData<Self>, (Self::Error, Status)> {
+        let todo: Todo = record
+            .try_into()
+            .map_err(|e| (MyErr::UpdateError(e), Status::ImATeapot))?;
         let result: NewTodo = todo.into();
         diesel::insert(&result)
             .into(table)
@@ -187,7 +202,7 @@ impl From<Todo> for NewTodo {
         NewTodo {
             title: todo.title,
             body: todo.body,
-            published: todo.published,
+            published: todo.published
         }
     }
 }

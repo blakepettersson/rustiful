@@ -10,10 +10,11 @@ use syn::NestedMetaItem::*;
 use util;
 use util::JsonApiField;
 
-pub fn expand_json_api_fields(name: &syn::Ident,
-                              attrs: &[Attribute],
-                              &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>))
-                              -> Tokens {
+pub fn expand_json_api_fields(
+    name: &syn::Ident,
+    attrs: &[Attribute],
+    &(ref id, ref fields): &(JsonApiField, Vec<JsonApiField>)
+) -> Tokens {
     let json_api_id_ty = &id.field.ty;
 
     let lower_case_name = name.to_string().to_snake_case();
@@ -133,19 +134,23 @@ fn to_match_arm(ident: &syn::Ident, enum_value: &Tokens) -> Tokens {
 }
 
 fn get_json_name(name: &str, attrs: &[Attribute]) -> String {
-    let serde_struct_rename_attr: Vec<_> = attrs.into_iter()
+    let serde_struct_rename_attr: Vec<_> = attrs
+        .into_iter()
         .filter_map(|a| match a.value {
             List(ref ident, ref values) if ident == "serde" => {
                 match values.first() {
                     Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
                         Some(value.to_string())
                     }
-                    _ => None,
+                    _ => None
                 }
             }
-            _ => None,
+            _ => None
         })
         .collect();
 
-    serde_struct_rename_attr.first().map(|s| s.to_string()).unwrap_or_else(|| name.to_string())
+    serde_struct_rename_attr
+        .first()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| name.to_string())
 }

@@ -7,11 +7,16 @@ pub struct Foo {
     pub id: String,
     pub title: String,
     pub body: String,
-    pub published: bool,
+    pub published: bool
 }
 
 impl Foo {
-    fn new<Id: Into<String>, Title: Into<String>, Body: Into<String>>(id: Id, title: Title, body: Body, published: bool) -> Self {
+    fn new<Id: Into<String>, Title: Into<String>, Body: Into<String>>(
+        id: Id,
+        title: Title,
+        body: Body,
+        published: bool
+    ) -> Self {
         Foo {
             id: id.into(),
             title: title.into(),
@@ -56,7 +61,7 @@ impl JsonGet for Foo {
     fn find(
         id: Self::JsonApiIdType,
         params: &Self::Params,
-        _: Self::Context,
+        _: Self::Context
     ) -> Result<Option<JsonApiData<Self>>, (Self::Error, Self::Status)> {
 
         if id == "fail" {
@@ -73,7 +78,7 @@ impl JsonIndex for Foo {
 
     fn find_all(
         params: &Self::Params,
-        _: Self::Context,
+        _: Self::Context
     ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)> {
         if let Some(_) = params.query_params.get("fail") {
             let err = TestError::new("fail in index");
@@ -88,7 +93,10 @@ impl JsonDelete for Foo {
     type Error = TestError;
     type Context = FooService;
 
-    fn delete(id: Self::JsonApiIdType, _: Self::Context) -> Result<(), (Self::Error, Self::Status)> {
+    fn delete(
+        id: Self::JsonApiIdType,
+        _: Self::Context
+    ) -> Result<(), (Self::Error, Self::Status)> {
         if id == "fail" {
             let err = TestError::new("fail in delete");
             return Err(err.into());
@@ -105,7 +113,7 @@ impl JsonPost for Foo {
     fn create(
         json: JsonApiData<Self>,
         params: &Self::Params,
-        _: Self::Context,
+        _: Self::Context
     ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
         if let Some(id) = json.id {
             if id == "fail" {
@@ -126,7 +134,7 @@ impl JsonPatch for Foo {
         _: Self::JsonApiIdType,
         json: JsonApiData<Self>,
         params: &Self::Params,
-        _: Self::Context,
+        _: Self::Context
     ) -> Result<JsonApiData<Self>, (Self::Error, Self::Status)> {
         if let Some(id) = json.id {
             if id == "fail" {

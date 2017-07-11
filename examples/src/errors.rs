@@ -11,7 +11,7 @@ use std::fmt::Result;
 pub enum MyErr {
     Diesel(diesel::result::Error),
     TooManySortColumns(String),
-    UpdateError(String),
+    UpdateError(String)
 }
 
 impl Error for MyErr {
@@ -19,15 +19,14 @@ impl Error for MyErr {
         match *self {
             MyErr::Diesel(ref err) => err.description(),
             MyErr::UpdateError(ref err) => err,
-            MyErr::TooManySortColumns(ref err) => err,
+            MyErr::TooManySortColumns(ref err) => err
         }
     }
 
     fn cause(&self) -> Option<&Error> {
         match *self {
             MyErr::Diesel(ref err) => err.cause(),
-            MyErr::UpdateError(_) |
-            MyErr::TooManySortColumns(_) => None,
+            MyErr::UpdateError(_) | MyErr::TooManySortColumns(_) => None
         }
     }
 }
@@ -37,7 +36,7 @@ impl Display for MyErr {
         match *self {
             MyErr::Diesel(ref err) => err.fmt(f),
             MyErr::UpdateError(ref err) => err.fmt(f),
-            MyErr::TooManySortColumns(ref err) => err.fmt(f),
+            MyErr::TooManySortColumns(ref err) => err.fmt(f)
         }
     }
 }
