@@ -11,6 +11,21 @@ use rustiful::iron::status::Status;
 use serde_json;
 use std::fmt::Display;
 use uuid::Uuid;
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref TEST_MUTEX: Mutex<()> = Mutex::new(());
+}
+
+macro_rules! mutex_test {
+    (fn $name:ident() $body:block) => {
+        #[test]
+        fn $name() {
+            let _guard = TEST_MUTEX.lock().unwrap();
+            $body
+        }
+    }
+}
 
 impl FromRequest for DB {
     type Error = GetTimeout;
@@ -42,222 +57,222 @@ fn app_router() -> Chain {
     router.build()
 }
 
-#[test]
-#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
-fn post_without_client_generated_id() {
-    let data = r#"
-    {
-        "data": {
-            "type": "tests",
-            "attributes": {
-                "body": "test",
-                "title": "test",
-                "published": true
+mutex_test! {
+    fn post_without_client_generated_id() {
+        let data = r#"
+        {
+            "data": {
+                "type": "tests",
+                "attributes": {
+                    "body": "test",
+                    "title": "test",
+                    "published": true
+                }
             }
-        }
-    }"#;
+        }"#;
 
-    let created = do_post(&data);
-    let retrieved = do_get(&created.clone().data.id.unwrap());
+        let created = do_post(&data);
+        let retrieved = do_get(&created.clone().data.id.unwrap());
 
-    assert_eq!(created, retrieved);
-}
-
-#[test]
-#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
-fn post_with_client_generated_id() {
-    let id = Uuid::new_v4().to_string();
-    let data = format!(
-        r#"
-    {{
-        "data": {{
-            "id": "{}",
-            "type": "tests",
-            "attributes": {{
-                "body": "test",
-                "title": "test",
-                "published": true
-            }}
-        }}
-    }}"#,
-        id
-    );
-
-    let created = do_post(&data);
-    let retrieved = do_get(&id);
-
-    assert_eq!(created, retrieved);
-}
-
-#[test]
-#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
-fn post_with_client_generated_id_and_fieldset_params() {
-    let id = Uuid::new_v4().to_string();
-    let data = format!(
-        r#"
-    {{
-        "data": {{
-            "id": "{}",
-            "type": "tests",
-            "attributes": {{
-                "body": "test",
-                "title": "test",
-                "published": true
-            }}
-        }}
-    }}"#,
-        id
-    );
-
-    let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[tests]=title");
-    let expected = JsonApiData::new(
-        Some(id),
-        "tests",
-        <Test as ToJson>::Attrs::new(Some("test".to_string()), Some(None), None),
-    );
-
-    assert_eq!(created.data, expected);
-}
-
-#[test]
-#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
-fn update_with_nullable_field() {
-    let id = Uuid::new_v4().to_string();
-    let data = format!(
-        r#"
-    {{
-        "data": {{
-            "id": "{}",
-            "type": "tests",
-            "attributes": {{
-                "body": "test",
-                "title": "test",
-                "published": true
-            }}
-        }}
-    }}"#,
-        &id
-    );
-
-    do_post(&data);
-
-    {
-        let patch = format!(
-            r#"
-        {{
-            "data": {{
-                "id": "{}",
-                "type": "tests",
-                "attributes": {{
-                    "title": "funky"
-                }}
-            }}
-        }}"#,
-            &id
-        );
-
-        do_patch(&id, &patch);
-
-
-        let retrieved = do_get(&id);
-        assert_eq!(
-            Some("test".to_string()),
-            retrieved.data.attributes.body.unwrap()
-        );
-        assert_eq!(Some("funky".to_string()), retrieved.data.attributes.title);
-    }
-
-    {
-        let patch = format!(
-            r#"
-        {{
-            "data": {{
-                "id": "{}",
-                "type": "tests",
-                "attributes": {{
-                    "body": "new_content"
-                }}
-            }}
-        }}"#,
-            &id
-        );
-
-        do_patch(&id, &patch);
-
-        let retrieved = do_get(&id);
-        assert_eq!(
-            Some("new_content".to_string()),
-            retrieved.data.attributes.body.unwrap()
-        );
-    }
-
-    {
-        let patch = format!(
-            r#"
-        {{
-            "data": {{
-                "id": "{}",
-                "type": "tests",
-                "attributes": {{
-                    "body": null
-                }}
-            }}
-        }}"#,
-            &id
-        );
-
-        do_patch(&id, &patch);
-
-        let retrieved = do_get(&id);
-        assert_eq!(None, retrieved.data.attributes.body.unwrap());
+        assert_eq!(created, retrieved);
     }
 }
 
-#[test]
-#[ignore] // Ignored by default since we need to run this sequentially, due to SQLite locking.
-fn update_with_fieldset() {
-    let id = Uuid::new_v4().to_string();
-    let data = format!(
-        r#"
-    {{
-        "data": {{
-            "id": "{}",
-            "type": "tests",
-            "attributes": {{
-                "body": "test",
-                "title": "test",
-                "published": true
-            }}
-        }}
-    }}"#,
-        &id
-    );
-
-    do_post(&data);
-
-    {
-        let patch = format!(
+mutex_test! {
+    fn post_with_client_generated_id() {
+        let id = Uuid::new_v4().to_string();
+        let data = format!(
             r#"
         {{
             "data": {{
                 "id": "{}",
                 "type": "tests",
                 "attributes": {{
-                    "title": "funky"
+                    "body": "test",
+                    "title": "test",
+                    "published": true
                 }}
             }}
         }}"#,
-            &id
+            id
         );
 
-        let updated = do_patch_with_url(&id, &patch, "fields[tests]=title");
+        let created = do_post(&data);
+        let retrieved = do_get(&id);
+
+        assert_eq!(created, retrieved);
+    }
+}
+
+mutex_test! {
+    fn post_with_client_generated_id_and_fieldset_params() {
+        let id = Uuid::new_v4().to_string();
+        let data = format!(
+            r#"
+        {{
+            "data": {{
+                "id": "{}",
+                "type": "tests",
+                "attributes": {{
+                    "body": "test",
+                    "title": "test",
+                    "published": true
+                }}
+            }}
+        }}"#,
+            id
+        );
+
+        let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[tests]=title");
         let expected = JsonApiData::new(
             Some(id),
             "tests",
-            <Test as ToJson>::Attrs::new(Some("funky".to_string()), Some(None), None),
+            <Test as ToJson>::Attrs::new(Some("test".to_string()), Some(None), None),
         );
 
-        assert_eq!(updated.data, expected);
+        assert_eq!(created.data, expected);
+    }
+}
+
+mutex_test! {
+    fn update_with_nullable_field() {
+        let id = Uuid::new_v4().to_string();
+        let data = format!(
+            r#"
+        {{
+            "data": {{
+                "id": "{}",
+                "type": "tests",
+                "attributes": {{
+                    "body": "test",
+                    "title": "test",
+                    "published": true
+                }}
+            }}
+        }}"#,
+            &id
+        );
+
+        do_post(&data);
+
+        {
+            let patch = format!(
+                r#"
+            {{
+                "data": {{
+                    "id": "{}",
+                    "type": "tests",
+                    "attributes": {{
+                        "title": "funky"
+                    }}
+                }}
+            }}"#,
+                &id
+            );
+
+            do_patch(&id, &patch);
+
+
+            let retrieved = do_get(&id);
+            assert_eq!(
+                Some("test".to_string()),
+                retrieved.data.attributes.body.unwrap()
+            );
+            assert_eq!(Some("funky".to_string()), retrieved.data.attributes.title);
+        }
+
+        {
+            let patch = format!(
+                r#"
+            {{
+                "data": {{
+                    "id": "{}",
+                    "type": "tests",
+                    "attributes": {{
+                        "body": "new_content"
+                    }}
+                }}
+            }}"#,
+                &id
+            );
+
+            do_patch(&id, &patch);
+
+            let retrieved = do_get(&id);
+            assert_eq!(
+                Some("new_content".to_string()),
+                retrieved.data.attributes.body.unwrap()
+            );
+        }
+
+        {
+            let patch = format!(
+                r#"
+            {{
+                "data": {{
+                    "id": "{}",
+                    "type": "tests",
+                    "attributes": {{
+                        "body": null
+                    }}
+                }}
+            }}"#,
+                &id
+            );
+
+            do_patch(&id, &patch);
+
+            let retrieved = do_get(&id);
+            assert_eq!(None, retrieved.data.attributes.body.unwrap());
+        }
+    }
+}
+
+mutex_test! {
+    fn update_with_fieldset() {
+        let id = Uuid::new_v4().to_string();
+        let data = format!(
+            r#"
+        {{
+            "data": {{
+                "id": "{}",
+                "type": "tests",
+                "attributes": {{
+                    "body": "test",
+                    "title": "test",
+                    "published": true
+                }}
+            }}
+        }}"#,
+            &id
+        );
+
+        do_post(&data);
+
+        {
+            let patch = format!(
+                r#"
+            {{
+                "data": {{
+                    "id": "{}",
+                    "type": "tests",
+                    "attributes": {{
+                        "title": "funky"
+                    }}
+                }}
+            }}"#,
+                &id
+            );
+
+            let updated = do_patch_with_url(&id, &patch, "fields[tests]=title");
+            let expected = JsonApiData::new(
+                Some(id),
+                "tests",
+                <Test as ToJson>::Attrs::new(Some("funky".to_string()), Some(None), None),
+            );
+
+            assert_eq!(updated.data, expected);
+        }
     }
 }
 

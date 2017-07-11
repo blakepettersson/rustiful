@@ -27,13 +27,11 @@ before_install:
 before_script:
     - cargo install diesel_cli || true
     - psql -c 'create database rustiful_examples;' -U postgres
-    #- psql -U postgres travis -c 'create extension "uuid-ossp";'
 script:
     - diesel migration run --migration-dir rustiful-test/migrations
     - DATABASE_URL=$POSTGRES_URL diesel migration run --migration-dir examples/migrations
     - cargo build --all --verbose
-    # Let the SQLite tests run sequentially
-    - cargo test --all --verbose && RUST_TEST_THREADS=1 cargo test --all --verbose -- --ignored
+    - cargo test --all --verbose
 
 matrix:
   allow_failures:
