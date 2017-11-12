@@ -38,9 +38,8 @@ pub fn expand_json_api_builders(
         jsonapi_setter_fields.push(quote! { new.#ident = Some(model.#ident); });
         jsonapi_builder_methods.push(quote! {
             pub fn #ident<VALUE: Into<#ty>>(&mut self, value: VALUE) -> &mut Self {
-                let mut new = self;
-                new.#ident = Some(value.into());
-                new
+                self.#ident = Some(value.into());
+                self
             }
         });
 
