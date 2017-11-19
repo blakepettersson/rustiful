@@ -18,5 +18,5 @@ pub trait JsonApiResource: Sized {
     type JsonApiIdType: FromStr + Debug;
     /// This is typically the pluralized, lower-cased and dasherized name of the type deriving
     /// `JsonApi`.
-    fn resource_name() -> &'static str;
+    const RESOURCE_NAME: &'static str;
 }

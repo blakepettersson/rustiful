@@ -123,9 +123,7 @@ pub fn expand_json_api_models(
                     self.#json_api_id_ident.to_string()
                 }
 
-                fn type_name(&self) -> String {
-                    <#name as JsonApiResource>::resource_name().to_string()
-                }
+                const TYPE_NAME: &'static str = <#name as JsonApiResource>::RESOURCE_NAME;
             }
 
             /// Converts a `(T, T::Params)` to a `JsonApiAttributes`.

@@ -1,6 +1,7 @@
 use params::JsonApiParams;
 use resource::JsonApiResource;
 use to_json::ToJson;
+use std::marker::PhantomData;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// The JSONAPI representation of a resource.
@@ -9,12 +10,14 @@ where
     T: ToJson,
     T::Attrs: Clone
 {
-    // The id of the JSONAPI resource.
+    /// The id of the JSONAPI resource.
     pub id: Option<String>,
     #[serde(rename = "type")]
-    // The type name of the JSONAPI resource, equivalent to the resource name.
-    pub lower_case_type: String,
-    // The attribute type of the JSONAPI resource.
+    #[serde(serialize_with = "::json::phantomdata::serialize")]
+    #[serde(deserialize_with = "::json::phantomdata::deserialize")]
+    /// The type name of the JSONAPI resource, equivalent to the resource name.
+    pub _type: PhantomData<T>,
+    /// The attribute type of the JSONAPI resource.
     pub attributes: T::Attrs
 }
 
@@ -23,14 +26,10 @@ where
     T: ToJson,
     T::Attrs: Clone
 {
-    pub fn new<Id: Into<String>, Type: Into<String>>(
-        id: Option<Id>,
-        lower_case_type: Type,
-        attrs: T::Attrs
-    ) -> JsonApiData<T> {
+    pub fn new<Id: Into<String>>(id: Option<Id>, attrs: T::Attrs) -> JsonApiData<T> {
         JsonApiData {
             id: id.map(|i| i.into()),
-            lower_case_type: lower_case_type.into(),
+            _type: PhantomData,
             attributes: attrs
         }
     }
@@ -49,7 +48,7 @@ where
     fn clone(&self) -> Self {
         JsonApiData {
             id: self.id.clone(),
-            lower_case_type: self.lower_case_type.clone(),
+            _type: self._type.clone(),
             attributes: self.attributes.clone()
         }
     }
@@ -127,7 +126,6 @@ where
     fn from((model, params): (T, &'a JsonApiParams<T::FilterField, T::SortField>)) -> Self {
         JsonApiData::new(
             Some(model.id()),
-            model.type_name(),
             T::Attrs::from((model, params))
         )
     }

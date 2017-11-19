@@ -6,6 +6,8 @@ trivial_numeric_casts, unused_import_braces, unused_qualifications)]
 
 extern crate serde;
 
+mod json;
+
 mod to_json;
 pub use to_json::*;
 

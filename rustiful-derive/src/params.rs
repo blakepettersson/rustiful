@@ -119,10 +119,7 @@ pub fn expand_json_api_fields(
                 type Params = JsonApiParams<field, sort>;
                 type SortField = sort;
                 type FilterField = field;
-
-                fn resource_name() -> &'static str {
-                    #pluralized_name.as_ref()
-                }
+                const RESOURCE_NAME: &'static str = #pluralized_name;
             }
         }
     }

@@ -434,9 +434,9 @@ impl JsonApiRouterBuilder {
         T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
         self.router.get(
-            format!("/{}", T::resource_name()),
+            format!("/{}", T::RESOURCE_NAME),
             move |r: &mut Request| T::respond(r),
-            format!("index_{}", T::resource_name())
+            format!("index_{}", T::RESOURCE_NAME)
         );
     }
 
@@ -602,9 +602,9 @@ impl JsonApiRouterBuilder {
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router.get(
-            format!("/{}/:id", T::resource_name()),
+            format!("/{}/:id", T::RESOURCE_NAME),
             move |r: &mut Request| T::respond(r),
-            format!("get_{}", T::resource_name())
+            format!("get_{}", T::RESOURCE_NAME)
         );
     }
 
@@ -760,9 +760,9 @@ impl JsonApiRouterBuilder {
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router.delete(
-            format!("/{}/:id", T::resource_name()),
+            format!("/{}/:id", T::RESOURCE_NAME),
             move |r: &mut Request| T::respond(r),
-            format!("delete_{}", T::resource_name())
+            format!("delete_{}", T::RESOURCE_NAME)
         );
     }
 
@@ -933,9 +933,9 @@ impl JsonApiRouterBuilder {
         T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
         self.router.post(
-            format!("/{}", T::resource_name()),
+            format!("/{}", T::RESOURCE_NAME),
             move |r: &mut Request| T::respond(r),
-            format!("create_{}", T::resource_name())
+            format!("create_{}", T::RESOURCE_NAME)
         );
     }
 
@@ -1114,9 +1114,9 @@ impl JsonApiRouterBuilder {
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router.patch(
-            format!("/{}/:id", T::resource_name()),
+            format!("/{}/:id", T::RESOURCE_NAME),
             move |r: &mut Request| T::respond(r),
-            format!("update_{}", T::resource_name())
+            format!("update_{}", T::RESOURCE_NAME)
         );
     }
 
