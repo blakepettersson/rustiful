@@ -1,4 +1,3 @@
-
 use errors::QueryStringParseError;
 use std::fmt::Debug;
 use std::str::FromStr;

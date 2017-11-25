@@ -1,5 +1,5 @@
-extern crate syn;
 extern crate inflector;
+extern crate syn;
 
 use self::inflector::Inflector;
 use quote::Ident;

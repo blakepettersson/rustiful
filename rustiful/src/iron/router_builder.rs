@@ -1,13 +1,12 @@
-extern crate iron;
-extern crate router;
 extern crate bodyparser;
+extern crate iron;
 extern crate persistent;
+extern crate router;
 
 use self::iron::prelude::*;
 use self::persistent::Read;
 use self::router::Router;
 use super::from_request::FromRequest;
-
 use super::handlers::*;
 use super::status::*;
 use errors::QueryStringParseError;

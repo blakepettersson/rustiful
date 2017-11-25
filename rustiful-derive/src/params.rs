@@ -1,5 +1,5 @@
-extern crate syn;
 extern crate inflector;
+extern crate syn;
 
 use self::inflector::Inflector;
 use super::quote::*;
@@ -100,7 +100,8 @@ pub fn expand_json_api_fields(
                                     #(#filter_cases),*
                                     _ => {
                                         let field_val = field.to_string();
-                                        return Err(QueryStringParseError::InvalidFieldValue(field_val))
+                                        let e = QueryStringParseError::InvalidFieldValue(field_val);
+                                        return Err(e)
                                     }
                                 }
                             }
@@ -134,14 +135,12 @@ fn get_json_name(name: &str, attrs: &[Attribute]) -> String {
     let serde_struct_rename_attr: Vec<_> = attrs
         .into_iter()
         .filter_map(|a| match a.value {
-            List(ref ident, ref values) if ident == "serde" => {
-                match values.first() {
-                    Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
-                        Some(value.to_string())
-                    }
-                    _ => None
+            List(ref ident, ref values) if ident == "serde" => match values.first() {
+                Some(&MetaItem(NameValue(ref i, Str(ref value, _)))) if i == "rename" => {
+                    Some(value.to_string())
                 }
-            }
+                _ => None
+            },
             _ => None
         })
         .collect();

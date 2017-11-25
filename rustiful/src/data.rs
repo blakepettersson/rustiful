@@ -1,7 +1,7 @@
 use params::JsonApiParams;
 use resource::JsonApiResource;
-use to_json::ToJson;
 use std::marker::PhantomData;
+use to_json::ToJson;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// The JSONAPI representation of a resource.
@@ -124,10 +124,7 @@ where
     T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn from((model, params): (T, &'a JsonApiParams<T::FilterField, T::SortField>)) -> Self {
-        JsonApiData::new(
-            Some(model.id()),
-            T::Attrs::from((model, params))
-        )
+        JsonApiData::new(Some(model.id()), T::Attrs::from((model, params)))
     }
 }
 

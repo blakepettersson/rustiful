@@ -1,13 +1,12 @@
-use to_json::ToJson;
-
-use std::marker::PhantomData;
-use serde::de::Error;
-use serde::de::Visitor;
-use serde::de::Unexpected;
 use serde::de::Deserializer;
+use serde::de::Error;
+use serde::de::Unexpected;
+use serde::de::Visitor;
 use serde::ser::Serializer;
 use std::fmt;
+use std::marker::PhantomData;
 use std::str;
+use to_json::ToJson;
 
 /// Serialises a `ToJson::TYPE_NAME` as a type property
 ///
@@ -72,7 +71,11 @@ use std::str;
 /// # }
 ///
 /// ```
-pub fn serialize<S, T>(_: &PhantomData<T>, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer, T: ToJson {
+pub fn serialize<S, T>(_: &PhantomData<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    T: ToJson
+{
     serializer.serialize_str(T::TYPE_NAME)
 }
 
@@ -158,7 +161,8 @@ pub fn serialize<S, T>(_: &PhantomData<T>, serializer: S) -> Result<S::Ok, S::Er
 /// # }
 ///
 /// ```
-pub fn deserialize<'de, D, T>(deserializer: D) -> Result<PhantomData<T>, D::Error> where
+pub fn deserialize<'de, D, T>(deserializer: D) -> Result<PhantomData<T>, D::Error>
+where
     T: ToJson,
     D: Deserializer<'de>
 {
@@ -180,36 +184,39 @@ impl<'de> Visitor<'de> for StringVisitor {
     }
 
     fn visit_str<E>(self, v: &str) -> Result<String, E>
-        where
-            E: Error,
+    where
+        E: Error
     {
         Ok(v.to_owned())
     }
 
     fn visit_string<E>(self, v: String) -> Result<String, E>
-        where
-            E: Error,
+    where
+        E: Error
     {
         Ok(v)
     }
 
     fn visit_bytes<E>(self, v: &[u8]) -> Result<String, E>
-        where
-            E: Error,
+    where
+        E: Error
     {
         match str::from_utf8(v) {
             Ok(s) => Ok(s.to_owned()),
-            Err(_) => Err(Error::invalid_value(Unexpected::Bytes(v), &self)),
+            Err(_) => Err(Error::invalid_value(Unexpected::Bytes(v), &self))
         }
     }
 
     fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<String, E>
-        where
-            E: Error,
+    where
+        E: Error
     {
         match String::from_utf8(v) {
             Ok(s) => Ok(s),
-            Err(e) => Err(Error::invalid_value(Unexpected::Bytes(&e.into_bytes()), &self),),
+            Err(e) => Err(Error::invalid_value(
+                Unexpected::Bytes(&e.into_bytes()),
+                &self
+            ))
         }
     }
 }
