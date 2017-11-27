@@ -36,7 +36,7 @@ fn test_into_conversions_with_string_id() {
 #[test]
 fn test_setting_of_id_in_try_from() {
     let json_attrs = <Test as ToJson>::Attrs::new(Some("3".to_string()), None, None);
-    let json = JsonApiData::new(Some("1".to_string()), "".to_string(), json_attrs);
+    let json = JsonApiData::new(Some("1".to_string()), json_attrs);
     let test = Test {
         id: "1".to_string(),
         title: "foo".to_string(),

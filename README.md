@@ -2,7 +2,7 @@
 
 Create [JSONAPI](http://jsonapi.org), um, APIs in Rust.
 
-Rustiful is based on [Iron](http://ironframework.io) and works with stable Rust (>=1.15).    
+Rustiful is based on [Iron](http://ironframework.io) and works with stable Rust (>=1.20).    
 
 ## TODO
 

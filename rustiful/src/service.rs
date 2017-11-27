@@ -86,7 +86,7 @@ pub trait Handler {
 ///     let id = "magic_id".to_string();
 ///     let attrs = <<MyResource as ToJson>::Attrs>::new(Some(true), Some("hello".to_string()));
 ///     let resource = MyResource::find(id.clone(), &Default::default(), MyCtx {});
-///     let expected = JsonApiData::new(Some(id), "my-resources".to_string(), attrs);
+///     let expected = JsonApiData::new(Some(id), attrs);
 ///     assert_eq!(expected, resource.unwrap().unwrap());
 ///
 ///     assert_eq!(Ok(None), MyResource::find("foo".to_string(), &Default::default(), MyCtx {}));
@@ -189,7 +189,7 @@ where
 /// fn main() {
 ///     let id = "some_id".to_string();
 ///     let attrs = <<MyResource as ToJson>::Attrs>::new(Some(true), Some("hello".to_string()));
-///     let mut resource = JsonApiData::new(Some(id), "my-resources".to_string(), attrs);
+///     let mut resource = JsonApiData::new(Some(id), attrs);
 ///
 ///     let err = Err((MyError("invalid id!".to_string()), Status::BadRequest));
 ///     assert_eq!(err, MyResource::create(resource.clone(), &Default::default(), MyCtx {}));
@@ -311,7 +311,7 @@ where
 /// fn main() {
 ///     let id = "magic_id".to_string();
 ///     let attrs = <<MyResource as ToJson>::Attrs>::new(None, Some("updated".to_string()));
-///     let json = JsonApiData::new(Some(id.clone()), "my-resources".to_string(), attrs);
+///     let json = JsonApiData::new(Some(id.clone()), attrs);
 ///
 ///     let expected = MyResource {
 ///         id: "magic_id".to_string(),
@@ -408,7 +408,7 @@ where
     ///
     ///     let id = "magic_id".to_string();
     ///     let attrs = <MyResource as ToJson>::Attrs::new(None, None);
-    ///     let mut json = JsonApiData::new(Some(id.clone()), "my-resources".to_string(), attrs);
+    ///     let mut json = JsonApiData::new(Some(id.clone()), attrs);
     ///
     ///     // Nothing gets changed here
     ///     let update_with_nones = resource.clone().patch(json.clone());
@@ -525,7 +525,7 @@ where
 ///     let id = "magic_id".to_string();
 ///     let attrs = <<MyResource as ToJson>::Attrs>::new(Some(true), Some("hello".to_string()));
 ///     let resource = MyResource::find_all(&Default::default(), MyCtx {});
-///     let expected = JsonApiData::new(Some(id), "my-resources".to_string(), attrs);
+///     let expected = JsonApiData::new(Some(id), attrs);
 ///     assert_eq!(vec![expected], resource.unwrap());
 /// }
 /// ```

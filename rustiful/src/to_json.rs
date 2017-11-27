@@ -1,4 +1,3 @@
-
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
@@ -7,5 +6,5 @@ pub trait ToJson {
 
     fn id(&self) -> String;
 
-    fn type_name(&self) -> String;
+    const TYPE_NAME: &'static str;
 }

@@ -1,3 +1,4 @@
 format_strings = false
 reorder_imports = true
 trailing_comma = "Never"
+error_on_line_overflow_comments = false

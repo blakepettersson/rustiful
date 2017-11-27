@@ -2,9 +2,11 @@
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
 #![warn(missing_debug_implementations, missing_copy_implementations, trivial_casts,
-trivial_numeric_casts, unused_import_braces, unused_qualifications)]
+        trivial_numeric_casts, unused_import_braces, unused_qualifications)]
 
 extern crate serde;
+
+mod json;
 
 mod to_json;
 pub use to_json::*;

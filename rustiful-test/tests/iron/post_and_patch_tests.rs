@@ -126,7 +126,6 @@ mutex_test! {
         let created = do_post_with_url(&data, "http://localhost:3000/tests?fields[tests]=title");
         let expected = JsonApiData::new(
             Some(id),
-            "tests",
             <Test as ToJson>::Attrs::new(Some("test".to_string()), Some(None), None),
         );
 
@@ -267,7 +266,6 @@ mutex_test! {
             let updated = do_patch_with_url(&id, &patch, "fields[tests]=title");
             let expected = JsonApiData::new(
                 Some(id),
-                "tests",
                 <Test as ToJson>::Attrs::new(Some("funky".to_string()), Some(None), None),
             );
 

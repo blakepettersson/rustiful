@@ -82,7 +82,6 @@ fn parse_json_api_index_get_with_fieldset() {
     let records: JsonApiContainer<Vec<JsonApiData<Foo>>> = serde_json::from_str(&result).unwrap();
     let data = JsonApiData::new(
         Some("1"),
-        "foos",
         <Foo as ToJson>::Attrs::new(Some("test".to_string()), None, None)
     );
     let expected = JsonApiContainer { data: vec![data] };
