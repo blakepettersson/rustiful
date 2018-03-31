@@ -5,6 +5,7 @@ use diesel::*;
 use errors::MyErr;
 use rustiful::*;
 use rustiful::iron::status::Status;
+use std::convert::TryInto;
 
 extern crate uuid;
 

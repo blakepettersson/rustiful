@@ -61,8 +61,8 @@ pub fn expand_json_api_models(
             use super::#name;
             use std::str::FromStr;
             use self::_rustiful::ToJson;
-            use self::_rustiful::TryFrom;
-            use self::_rustiful::TryInto;
+            use std::convert::TryFrom;
+            use std::convert::TryInto;
             use self::_rustiful::ToBuilder;
             use self::_rustiful::JsonApiData;
             use self::_rustiful::JsonApiBuilder;

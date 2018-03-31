@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::Occupied;
 use std::collections::hash_map::Entry::Vacant;
 use std::str::FromStr;
-use try_from::TryFrom;
+use std::convert::TryFrom;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// A type-safe container for all incoming query parameters in a request.
@@ -123,7 +123,7 @@ impl<F, S> JsonApiParams<F, S> {
 /// # #[macro_use]
 /// # extern crate rustiful_derive;
 /// #
-/// # use rustiful::TryFrom;
+/// # use std::convert::TryFrom;
 /// # use rustiful::JsonApiParams;
 /// # use rustiful::JsonApiResource;
 /// # use rustiful::SortOrder;
