@@ -11,7 +11,7 @@ use service::Handler;
 use service::JsonIndex;
 use std::str::FromStr;
 use to_json::ToJson;
-use try_from::TryFrom;
+use std::convert::TryFrom;
 
 pub trait IndexHandler
 where

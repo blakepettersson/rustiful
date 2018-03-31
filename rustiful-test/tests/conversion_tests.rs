@@ -1,6 +1,7 @@
 use resources::diesel_resource::Test;
 use resources::simple_resources::{Bar, Foo};
 use rustiful::*;
+use std::convert::TryInto;
 
 #[test]
 fn test_into_conversions_with_int_id() {

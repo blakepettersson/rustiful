@@ -14,7 +14,7 @@ use params::SortOrder;
 use service::Handler;
 use std::error::Error;
 use std::str::FromStr;
-use try_from::TryFrom;
+use std::convert::TryFrom;
 
 /// Constructs a builder for configuring routes for resources implementing any of the `JsonGet`,
 /// `JsonPost`, `JsonIndex`, `JsonPatch` or `JsonDelete` traits.

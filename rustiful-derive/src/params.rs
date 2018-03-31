@@ -52,7 +52,7 @@ pub fn expand_json_api_fields(
 
             use super::#name;
             use std::slice::Iter;
-            use self::_rustiful::TryFrom;
+            use std::convert::TryFrom;
             use self::_rustiful::SortOrder;
             use self::_rustiful::JsonApiParams;
             use self::_rustiful::JsonApiResource;

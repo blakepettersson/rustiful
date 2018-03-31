@@ -2,8 +2,8 @@ use data::JsonApiData;
 use resource::JsonApiResource;
 use std;
 use to_json::ToJson;
-use try_from::TryFrom;
-use try_from::TryInto;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 
 /// A trait containing framework-specific types.
 ///
@@ -135,7 +135,7 @@ where
 ///
 /// use std::error::Error;
 /// use std::fmt::Display;
-/// use rustiful::TryInto;
+/// use std::convert::TryInto;
 /// use rustiful::JsonPost;
 /// use rustiful::ToJson;
 /// use rustiful::IntoJson;
