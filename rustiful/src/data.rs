@@ -16,7 +16,7 @@ where
     #[serde(serialize_with = "::json::phantomdata::serialize")]
     #[serde(deserialize_with = "::json::phantomdata::deserialize")]
     /// The type name of the JSONAPI resource, equivalent to the resource name.
-    pub _type: PhantomData<T>,
+    _type: PhantomData<T>,
     /// The attribute type of the JSONAPI resource.
     pub attributes: T::Attrs
 }
