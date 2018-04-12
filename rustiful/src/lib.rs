@@ -6,7 +6,7 @@
 
 extern crate serde;
 
-mod json;
+pub mod json;
 
 mod to_json;
 pub use to_json::*;

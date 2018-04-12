@@ -27,8 +27,6 @@ where
         Self: 'static,
         Self: ToJson,
         Self::Context: FromRequest,
-        Self::SortField: TryFrom<(&'r str, SortOrder), Error = QueryStringParseError>,
-        Self::FilterField: TryFrom<(&'r str, Vec<&'r str>), Error = QueryStringParseError>
     {
         let json = match req.get::<bodyparser::Struct<JsonApiContainer<JsonApiData<Self>>>>() {
             Ok(Some(patch)) => patch,

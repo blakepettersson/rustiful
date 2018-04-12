@@ -138,6 +138,7 @@ pub fn expand_json_api_models(
                 fn from((model, params): (#name, &'a <#name as JsonApiResource>::Params)) -> Self {
                     #(#filtered_option_vars)*
 
+                    /*
                     let fields = &params.fieldset.fields;
                     if !fields.is_empty() {
                         for field in super::#lower_case_name::field::iter() {
@@ -147,7 +148,7 @@ pub fn expand_json_api_models(
                                 }
                             }
                         }
-                    }
+                    }*/
 
                     JsonApiAttributes::new(#(#filtered_option_fields),*)
                 }

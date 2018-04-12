@@ -22,8 +22,6 @@ where
         Self: Handler<Status = Status>,
         Self: ToJson,
         Self::Context: FromRequest,
-        Self::SortField: TryFrom<(&'r str, SortOrder), Error = QueryStringParseError>,
-        Self::FilterField: TryFrom<(&'r str, Vec<&'r str>), Error = QueryStringParseError>
     {
         let ctx = match <Self::Context as FromRequest>::from_request(req) {
             Ok(result) => result,

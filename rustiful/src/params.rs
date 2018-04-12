@@ -1,14 +1,11 @@
 extern crate url;
+extern crate serde_qs as qs;
 
-use self::url::form_urlencoded;
-use errors::QueryStringParseError;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry::Occupied;
-use std::collections::hash_map::Entry::Vacant;
 use std::str::FromStr;
-use std::convert::TryFrom;
+use serde::Deserialize;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
 /// A type-safe container for all incoming query parameters in a request.
 ///
 /// # Example
@@ -42,33 +39,33 @@ use std::convert::TryFrom;
 /// assert_eq!(sort, params.sort.fields);
 /// assert_eq!(query_params, params.query_params);
 /// ```
-pub struct JsonApiParams<F, S> {
+pub struct JsonApiParams<F: Default, S: FromStr> {
     /// A type-safe container for the "sort" query parameter in JSONAPI.
     ///
     /// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
     /// attribute in rustiful-derive.
-    pub sort: Sort<S>,
+    #[serde(deserialize_with = "::json::comma_separated::deserialize")]
+    pub sort: Vec<S>,
     /// A type-safe container for the "fields" query parameter in JSONAPI.
     ///
     /// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
     /// attribute in rustiful-derive.
-    pub fieldset: FieldSet<F>,
+    #[serde(rename = "fields")]
+    pub fieldset: F,
     /// A hashmap representing all other query parameters that are not `sort` or `fields[*]`.
     pub query_params: HashMap<String, Vec<String>>
 }
 
-impl<F, S> JsonApiParams<F, S> {
+impl<F: Default, S: FromStr> JsonApiParams<F, S> {
     pub fn new(
-        fieldset: Vec<F>,
-        sort_params: Vec<S>,
+        fieldset: F,
+        sort: Vec<S>,
         query_params: HashMap<String, Vec<String>>
     ) -> JsonApiParams<F, S> {
         JsonApiParams {
-            sort: Sort {
-                fields: sort_params
-            },
-            fieldset: FieldSet { fields: fieldset },
-            query_params: query_params
+            sort,
+            fieldset,
+            query_params
         }
     }
 }
@@ -144,106 +141,26 @@ impl<F, S> JsonApiParams<F, S> {
 /// ```
 impl<F, S> FromStr for JsonApiParams<F, S>
 where
-    S: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-    F: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
+    S: FromStr,
+    F: Default,
+    S: for<'b> Deserialize<'b>,
+    F: for<'b> Deserialize<'b>
 {
-    type Err = QueryStringParseError;
+    type Err = qs::Error;
 
     fn from_str<'a>(query_string: &'a str) -> Result<Self, Self::Err> {
-        let mut sort_params = Vec::new();
-        let mut field_params = Vec::new();
-        let mut query_params: HashMap<String, Vec<String>> = HashMap::new();
-
-        let decoded = form_urlencoded::parse(query_string.as_bytes()).into_owned();
-
-        for (key, value) in decoded {
-            if &key == "sort" {
-                if !sort_params.is_empty() {
-                    return Err(QueryStringParseError::DuplicateSortKey(value));
-                }
-
-                let fields = value.split(',').filter(|&f| !f.is_empty());
-                for mut field in fields {
-                    let sort_order = SortOrder::from(field);
-                    if sort_order == SortOrder::Desc {
-                        field = field.trim_left_matches('-');
-                    }
-
-                    match S::try_from((field, sort_order)) {
-                        Ok(result) => sort_params.push(result),
-                        Err(err) => return Err(err)
-                    }
-                }
-            } else if key.starts_with("fields") {
-                let mut model = key.trim_left_matches("fields");
-
-                if !model.starts_with('[') || !model.ends_with(']') {
-                    return Err(QueryStringParseError::InvalidFieldsetKey(model.to_string()));
-                }
-
-                model = model.trim_left_matches('[').trim_right_matches(']');
-
-                if model.is_empty() {
-                    return Err(QueryStringParseError::InvalidFieldsetKey(key.to_string()));
-                }
-
-                // This can introduce duplicates, but we don't really care. If there are
-                // duplicates it won't have any adverse effects - the field will still be
-                // visible.
-                let fields: Vec<_> = value.split(',').filter(|&f| !f.is_empty()).collect();
-
-                if fields.is_empty() {
-                    return Err(QueryStringParseError::EmptyFieldsetValue(model.to_string()));
-                }
-
-                match F::try_from((model, fields)) {
-                    Ok(result) => field_params.push(result),
-                    Err(err) => return Err(err)
-                }
-            } else {
-                match query_params.entry(key) {
-                    // Already a Vec here, push onto it
-                    Occupied(entry) => {
-                        entry.into_mut().push(value);
-                    }
-                    // No value, create a one-element Vec.
-                    Vacant(entry) => {
-                        entry.insert(vec![value]);
-                    }
-                };
-            }
-        }
-
-        Ok(JsonApiParams::new(field_params, sort_params, query_params))
+        qs::from_str(query_string)
     }
 }
 
-impl<F, S> Default for JsonApiParams<F, S> {
+impl<F: Default, S: FromStr> Default for JsonApiParams<F, S> {
     fn default() -> Self {
         let query_params: HashMap<String, Vec<String>> = Default::default();
-        JsonApiParams::new(vec![], vec![], query_params)
+        JsonApiParams::new(F::default(), Vec::new(), query_params)
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-/// A type-safe container for the "sort" query parameter in JSONAPI.
-///
-/// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
-/// attribute in rustiful-derive.
-pub struct Sort<S> {
-    pub fields: Vec<S>
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-/// A type-safe container for the "fields" query parameter in JSONAPI.
-///
-/// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
-/// attribute in rustiful-derive.
-pub struct FieldSet<F> {
-    pub fields: Vec<F>
-}
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize)]
 /// This enum specifies how a parameter should be sorted.
 pub enum SortOrder {
     /// The parameter should be sorted in an ascending order
@@ -251,7 +168,6 @@ pub enum SortOrder {
     /// The parameter should be sorted in a descending order
     Desc
 }
-
 
 /// Converts a string slice to a `SortOrder`.
 ///

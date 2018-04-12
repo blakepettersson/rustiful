@@ -2,6 +2,7 @@ use params::JsonApiParams;
 use resource::JsonApiResource;
 use std::marker::PhantomData;
 use to_json::ToJson;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// The JSONAPI representation of a resource.
@@ -129,7 +130,7 @@ where
 }
 
 /// Converts `Self` into `T`. See the implementations to see what the conversions are intended for.
-pub trait IntoJson<T, F, S> {
+pub trait IntoJson<T, F: Default, S: FromStr> {
     fn into_json<'a>(self, params: &'a JsonApiParams<F, S>) -> T;
 }
 

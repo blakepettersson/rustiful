@@ -116,7 +116,7 @@ impl JsonIndex for Test {
 
         {
             use self::test::sort::*;
-            for order in &params.sort.fields {
+            for order in &params.sort.test {
                 match *order {
                     title(Asc) => {
                         query = query.order(column::title);

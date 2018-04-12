@@ -429,8 +429,6 @@ impl JsonApiRouterBuilder {
         T: Handler<Status = Status>,
         T: IndexHandler,
         T::Context: FromRequest,
-        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
         self.router.get(
             format!("/{}", T::RESOURCE_NAME),
@@ -596,8 +594,6 @@ impl JsonApiRouterBuilder {
         T: Handler<Status = Status>,
         T: GetHandler,
         T::Context: FromRequest,
-        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router.get(
@@ -928,8 +924,6 @@ impl JsonApiRouterBuilder {
         T: 'static,
         T: PostHandler,
         T::Context: FromRequest,
-        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>
     {
         self.router.post(
             format!("/{}", T::RESOURCE_NAME),
@@ -1108,8 +1102,6 @@ impl JsonApiRouterBuilder {
         T: 'static,
         T: PatchHandler,
         T::Context: FromRequest,
-        T::SortField: for<'b> TryFrom<(&'b str, SortOrder), Error = QueryStringParseError>,
-        T::FilterField: for<'b> TryFrom<(&'b str, Vec<&'b str>), Error = QueryStringParseError>,
         <T::JsonApiIdType as FromStr>::Err: Error
     {
         self.router.patch(
