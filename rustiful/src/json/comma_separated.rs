@@ -1,10 +1,8 @@
-use serde::de::Deserializer;
+use serde::de::{Deserialize, Deserializer, Visitor};
 use std::iter::FromIterator;
 use std::str::FromStr;
 use std::fmt::Display;
-use serde::de::Visitor;
 use std::fmt;
-use serde::Deserialize;
 use std::marker::PhantomData;
 use serde::de::Error;
 

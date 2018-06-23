@@ -1,3 +1,4 @@
+#![feature(try_from)]
 pub mod db;
 pub mod todo;
 pub mod errors;

@@ -361,8 +361,8 @@ fn parse_json_api_failure_in_query_parse_in_get() {
     assert_json_api_error(
         response,
         JsonApiError {
-            title: "fail".to_string(),
-            detail: "Query string parse error: Invalid value: fail".to_string(),
+            title: "miscellaneous failure".to_string(),
+            detail: "failed with reason: Query string parse error: Invalid value: fail".to_string(),
             status: "400".to_string()
         }
     );
@@ -379,8 +379,8 @@ fn parse_json_api_failure_in_query_parse_in_index() {
     assert_json_api_error(
         response,
         JsonApiError {
-            title: "fail".to_string(),
-            detail: "Query string parse error: Invalid value: fail".to_string(),
+            title: "miscellaneous failure".to_string(),
+            detail: "failed with reason: Query string parse error: Invalid value: fail".to_string(),
             status: "400".to_string()
         }
     );

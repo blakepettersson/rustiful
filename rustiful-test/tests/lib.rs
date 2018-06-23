@@ -1,3 +1,4 @@
+#![feature(try_from)]
 extern crate rustiful;
 extern crate dotenv;
 extern crate r2d2;

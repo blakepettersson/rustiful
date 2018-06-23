@@ -1,10 +1,14 @@
 extern crate url;
 extern crate serde_qs as qs;
 
+use std::fmt::Display;
+use self::qs::Config;
 use std::collections::HashMap;
 use std::str::FromStr;
 use serde::Deserialize;
+use std::fmt::Debug;
 
+#[serde(default)]
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
 /// A type-safe container for all incoming query parameters in a request.
 ///
@@ -39,7 +43,7 @@ use serde::Deserialize;
 /// assert_eq!(sort, params.sort.fields);
 /// assert_eq!(query_params, params.query_params);
 /// ```
-pub struct JsonApiParams<F: Default, S: FromStr> {
+pub struct JsonApiParams<F: Default, S: FromStr> where <S as FromStr>::Err: Display {
     /// A type-safe container for the "sort" query parameter in JSONAPI.
     ///
     /// The type parameter `<S>` will usually be an enum type that is generated using the `JsonApi`
@@ -50,22 +54,18 @@ pub struct JsonApiParams<F: Default, S: FromStr> {
     ///
     /// The type parameter `<F>` will usually be an enum type that is generated using the `JsonApi`
     /// attribute in rustiful-derive.
-    #[serde(rename = "fields")]
-    pub fieldset: F,
-    /// A hashmap representing all other query parameters that are not `sort` or `fields[*]`.
-    pub query_params: HashMap<String, Vec<String>>
+    ///#[serde(rename = "fields")]
+    pub fields: F
 }
 
-impl<F: Default, S: FromStr> JsonApiParams<F, S> {
+impl<F: Default, S: FromStr> JsonApiParams<F, S> where <S as FromStr>::Err: Display {
     pub fn new(
         fieldset: F,
-        sort: Vec<S>,
-        query_params: HashMap<String, Vec<String>>
+        sort: Vec<S>
     ) -> JsonApiParams<F, S> {
         JsonApiParams {
             sort,
-            fieldset,
-            query_params
+            fields: fieldset
         }
     }
 }
@@ -141,22 +141,25 @@ impl<F: Default, S: FromStr> JsonApiParams<F, S> {
 /// ```
 impl<F, S> FromStr for JsonApiParams<F, S>
 where
-    S: FromStr,
-    F: Default,
+    S: FromStr + Debug,
+    F: Default + Debug,
     S: for<'b> Deserialize<'b>,
-    F: for<'b> Deserialize<'b>
+    F: for<'b> Deserialize<'b>,
+    <S as FromStr>::Err: Display
 {
     type Err = qs::Error;
 
     fn from_str<'a>(query_string: &'a str) -> Result<Self, Self::Err> {
-        qs::from_str(query_string)
+        let config = Config::new(10, false);
+        let result = config.deserialize_str(query_string);
+        println!("{:?}", result);
+        result
     }
 }
 
-impl<F: Default, S: FromStr> Default for JsonApiParams<F, S> {
+impl<F: Default, S: FromStr> Default for JsonApiParams<F, S> where <S as FromStr>::Err: Display {
     fn default() -> Self {
-        let query_params: HashMap<String, Vec<String>> = Default::default();
-        JsonApiParams::new(F::default(), Vec::new(), query_params)
+        JsonApiParams::new(F::default(), Vec::new())
     }
 }
 

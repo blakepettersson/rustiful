@@ -1,5 +1,6 @@
 use params::JsonApiParams;
 use resource::JsonApiResource;
+use std::fmt::Display;
 use std::marker::PhantomData;
 use to_json::ToJson;
 use std::str::FromStr;
@@ -121,6 +122,7 @@ where
 /// ```
 impl<'a, T> From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)> for JsonApiData<T>
 where
+    <T::SortField as FromStr>::Err: Display,
     T: ToJson + JsonApiResource,
     T::Attrs: From<(T, &'a JsonApiParams<T::FilterField, T::SortField>)>
 {
@@ -130,7 +132,7 @@ where
 }
 
 /// Converts `Self` into `T`. See the implementations to see what the conversions are intended for.
-pub trait IntoJson<T, F: Default, S: FromStr> {
+pub trait IntoJson<T, F: Default, S: FromStr> where S::Err: Display {
     fn into_json<'a>(self, params: &'a JsonApiParams<F, S>) -> T;
 }
 
@@ -195,6 +197,7 @@ pub trait IntoJson<T, F: Default, S: FromStr> {
 impl<T> IntoJson<JsonApiData<T>, T::FilterField, T::SortField> for T
 where
     T: ToJson + JsonApiResource,
+    <T::SortField as FromStr>::Err: Display,
     T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn into_json<'a>(
@@ -267,6 +270,7 @@ where
 impl<T> IntoJson<Vec<JsonApiData<T>>, T::FilterField, T::SortField> for Vec<T>
 where
     T: ToJson + JsonApiResource,
+    <T::SortField as FromStr>::Err: Display,
     T::Attrs: for<'b> From<(T, &'b JsonApiParams<T::FilterField, T::SortField>)>
 {
     fn into_json<'a>(

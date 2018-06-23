@@ -8,7 +8,7 @@ use std::str::FromStr;
 fn parse_renamed_json_struct() {
     use self::bar::field::*;
     match <Bar as JsonApiResource>::Params::from_str("fields[renamed]=bar") {
-        Ok(result) => assert_eq!(Some(&bar), result.fieldset.bar.first()),
+        Ok(result) => assert_eq!(Some(&bar), result.fields.bar.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -38,7 +38,7 @@ fn parse_params_fails_on_id_param() {
 fn parse_present_field() {
     use self::foo::field::*;
     match <Foo as JsonApiResource>::Params::from_str("fields[foos]=foo") {
-        Ok(result) => assert_eq!(Some(&foo), result.fieldset.foo.first()),
+        Ok(result) => assert_eq!(Some(&foo), result.fields.foo.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -47,7 +47,7 @@ fn parse_present_field() {
 fn parse_present_url_encoded_field() {
     use self::foo::field::*;
     match <Foo as JsonApiResource>::Params::from_str("fields%5Bfoos%5D=foo") {
-        Ok(result) => assert_eq!(Some(&foo), result.fieldset.foo.first()),
+        Ok(result) => assert_eq!(Some(&foo), result.fields.foo.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -55,7 +55,7 @@ fn parse_present_url_encoded_field() {
 #[test]
 fn parse_field_that_is_not_present() {
     match <Foo as JsonApiResource>::Params::from_str("") {
-        Ok(result) => assert_eq!(true, result.fieldset.foo.is_empty()),
+        Ok(result) => assert_eq!(true, result.fields.foo.is_empty()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -64,7 +64,7 @@ fn parse_field_that_is_not_present() {
 fn parse_fields_fails_if_query_param_is_not_valid() {
     match <Foo as JsonApiResource>::Params::from_str("fields=body=foo") {
         Ok(_) => assert!(false, "expected error but no error happened!"),
-        Err(e) => {}//assert_eq!(QueryStringParseError::InvalidFieldsetKey("".to_string()), e)
+        Err(e) => {}//assert_eq!(QueryStringParseError::InvalidfieldsKey("".to_string()), e)
     }
 }
 
@@ -74,7 +74,7 @@ fn parse_fields_fails_if_fields_value_is_empty() {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             /*assert_eq!(
-                QueryStringParseError::EmptyFieldsetValue("foo".to_string()),
+                QueryStringParseError::EmptyfieldsValue("foo".to_string()),
                 e
             )*/
         }
@@ -100,7 +100,7 @@ fn parse_single_field_fails_if_field_doesnt_contain_left_bracket() {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             /*assert_eq!(
-                QueryStringParseError::InvalidFieldsetKey("articles]".to_string()),
+                QueryStringParseError::InvalidfieldsKey("articles]".to_string()),
                 e
             )*/
         }
@@ -113,7 +113,7 @@ fn parse_single_field_fails_if_field_does_not_contain_right_bracket() {
         Ok(_) => assert!(false, "expected error but no error happened!"),
         Err(e) => {
             /*assert_eq!(
-                QueryStringParseError::InvalidFieldsetKey("[articles".to_string()),
+                QueryStringParseError::InvalidfieldsKey("[articles".to_string()),
                 e
             )*/
         }
@@ -124,7 +124,7 @@ fn parse_single_field_fails_if_field_does_not_contain_right_bracket() {
 fn parse_sort_field() {
     use self::foo::sort::*;
     match <Foo as JsonApiResource>::Params::from_str("sort=foo") {
-        Ok(result) => assert_eq!(Some(&foo(Asc)), result.sort.foo.first()),
+        Ok(result) => assert_eq!(Some(&foo(Asc)), result.sort.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -133,7 +133,7 @@ fn parse_sort_field() {
 fn parse_descending_sort_field() {
     use self::foo::sort::*;
     match <Foo as JsonApiResource>::Params::from_str("sort=-foo") {
-        Ok(result) => assert_eq!(Some(&foo(Desc)), result.sort.foo.first()),
+        Ok(result) => assert_eq!(Some(&foo(Desc)), result.sort.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -144,7 +144,7 @@ fn parse_multiple_sort_fields() {
     match <Foo as JsonApiResource>::Params::from_str("sort=-foo,abc") {
         Ok(result) => {
             let expected = vec![foo(Desc), abc(Asc)];
-            assert_eq!(expected, result.sort.foo)
+            assert_eq!(expected, result.sort)
         }
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
@@ -153,29 +153,7 @@ fn parse_multiple_sort_fields() {
 #[test]
 fn parse_null_sort_field() {
     match <Foo as JsonApiResource>::Params::from_str("") {
-        Ok(result) => assert_eq!(None, result.sort.foo.first()),
-        Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
-    }
-}
-
-#[test]
-fn parse_query_param() {
-    match <Foo as JsonApiResource>::Params::from_str("foo=bar") {
-        Ok(result) => {
-            let expected = vec!["bar".to_string()];
-            assert_eq!(&expected, result.query_params.get("foo").unwrap())
-        }
-        Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
-    }
-}
-
-#[test]
-fn parse_multiple_query_params() {
-    match <Foo as JsonApiResource>::Params::from_str("foo=bar&foo=test") {
-        Ok(result) => {
-            let expected = vec!["bar".to_string(), "test".to_string()];
-            assert_eq!(&expected, result.query_params.get("foo").unwrap())
-        }
+        Ok(result) => assert_eq!(None, result.sort.first()),
         Err(e) => assert!(false, format!("unexpected error!, {:?}", e))
     }
 }
@@ -218,3 +196,4 @@ fn parse_sort_field_fails_on_non_existent_param() {
         }
     }
 }
+

@@ -27,7 +27,7 @@ pub fn get_attrs_and_id(body: Body) -> (JsonApiField, Vec<JsonApiField>) {
 
                     JsonApiField {
                         field: f,
-                        ident: ident
+                        ident
                     }
                 })
                 .partition(|f| {

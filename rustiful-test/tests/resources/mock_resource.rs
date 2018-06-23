@@ -80,11 +80,6 @@ impl JsonIndex for Foo {
         params: &Self::Params,
         _: Self::Context
     ) -> Result<Vec<JsonApiData<Self>>, (Self::Error, Self::Status)> {
-        if let Some(_) = params.query_params.get("fail") {
-            let err = TestError::new("fail in index");
-            return Err(err.into());
-        }
-
         Ok(vec![Foo::new("1", "test", "test", true)].into_json(params))
     }
 }

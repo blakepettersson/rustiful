@@ -73,7 +73,7 @@ impl JsonIndex for Todo {
             let mut order_columns: Vec<Box<BoxableExpression<table, Pg, SqlType = ()>>> =
                 Vec::new();
 
-            for order in &params.sort.fields {
+            for order in &params.sort {
                 match *order {
                     title(Asc) => {
                         order_columns.push(Box::new(column::title.asc()));

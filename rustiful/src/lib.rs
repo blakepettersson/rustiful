@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "dev", plugin(clippy))]
 #![warn(missing_debug_implementations, missing_copy_implementations, trivial_casts,
         trivial_numeric_casts, unused_import_braces, unused_qualifications)]
-
+#![feature(try_from)]
 extern crate serde;
 
 pub mod json;
